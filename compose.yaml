@@ -1,0 +1,51 @@
+services:
+  nginx:
+    image: nginx:1.25.4
+    container_name: chumbucket-nginx
+    depends_on:
+      - ui
+      - minio
+    env_file:
+      - ./.env
+    ports:
+      - ${CB_EXTERNAL_HTTP_PORT}:80
+    networks:
+      - private
+      - public
+    volumes:
+      - ./templates/nginx.conf:/etc/nginx/conf.d/revproxy.conf
+
+  minio:
+    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    container_name: chumbucket-minio
+    entrypoint: ["/bin/sh", "-ce", "/usr/bin/docker-entrypoint.sh minio server --console-address \":9001\" /data"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - 9001:9001
+      - 9000:9000
+    env_file:
+      - ./.env
+    networks:
+      - private
+      - public
+    volumes:
+      - ${CB_DATA_DIR}/objects:/data
+
+  ui:
+    image: chumbucket/ui
+    container_name: chumbucket-ui
+    entrypoint: ["gunicorn", "-w", "${GUNICORN_WORKERS}", "main:app", "-b", "0.0.0.0:8957"]
+    env_file:
+      - ./.env
+    networks:
+      - private
+
+networks:
+  public:
+    external: true
+  private:
+    external: false
