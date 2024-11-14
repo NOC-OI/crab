@@ -1,2 +1,2 @@
 #!/bin/bash
-docker build -t chumbucket/ui .
+docker build -t crab/ui .

@@ -1,7 +1,7 @@
 services:
   nginx:
     image: nginx:1.25.4
-    container_name: chumbucket-nginx
+    container_name: crab-nginx
     depends_on:
       - ui
       - minio
@@ -17,7 +17,7 @@ services:
 
   minio:
     image: minio/minio:RELEASE.2024-10-13T13-34-11Z
-    container_name: chumbucket-minio
+    container_name: crab-minio
     entrypoint: ["/bin/sh", "-ce", "/usr/bin/docker-entrypoint.sh minio server --console-address \":9001\" /data"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
@@ -36,8 +36,8 @@ services:
       - ${CB_DATA_DIR}/objects:/data
 
   ui:
-    image: chumbucket/ui
-    container_name: chumbucket-ui
+    image: crab/ui
+    container_name: crab-ui
     entrypoint: ["gunicorn", "-w", "${GUNICORN_WORKERS}", "main:app", "-b", "0.0.0.0:8957"]
     env_file:
       - ./.env
