@@ -1,4 +1,4 @@
-# chumbucket
+# C.R.A.B
 A FOSS stack for ML dataset management and annotation
 
 ## Installation
