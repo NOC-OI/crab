@@ -165,3 +165,60 @@ let uploadFile = (then = () => {}, onError = () => {}, uri = "/upload") => {
     });
     xhr.send(data);
 }
+
+let confirmMetadata = (then = () => {}, onError = () => {}, uri = "/applyMapping") => {
+    event.preventDefault();
+    const method = 'post';
+    const xhr = new XMLHttpRequest();
+    const form = event.target.form;
+    const fieldset = form.querySelector("fieldset");
+    form.querySelector("#form_run_uuid").disabled = false;
+    form.querySelector("#form_md_pm_file").disabled = false;
+    const data = new FormData(form);
+    const progressBar = form.querySelector(".progress-bar");
+    const spinnerContainer = form.querySelector(".spinner-container");
+    fieldset.disabled = true;
+    spinnerContainer.style.display = "";
+    xhr.open(method, uri);
+    xhr.addEventListener('loadend', () => {
+        if (xhr.status === 200) {
+
+            modalAlert("Upload succeeded", "You can now close this page.");
+            progressBar.aria_valuenow = 0;
+            progressBar.style.width = 0;
+            progressBar.classList.remove("bg-success");
+            //form.before(note);
+            spinnerContainer.style.display = "none";
+            then(form, JSON.parse(xhr.responseText));
+        } else {
+            onError(xhr.status);
+            modalAlert("Unpacking archive failed", "Please try again");
+            progressBar.aria_valuenow = 0;
+            progressBar.style.width = 0;
+            fieldset.disabled = false;
+            spinnerContainer.style.display = "none";
+        }
+    });
+    xhr.upload.addEventListener("progress", event => {
+        //console.log(event.loaded)
+        let perc = (event.loaded / event.total) * 100;
+        //console.log(perc)
+
+        if (perc > 99) {
+            const progressBar = form.querySelector(".progress-bar");
+            const spinnerContainer = form.querySelector(".spinner-container");
+            spinnerContainer.style.display = "";
+            progressBar.aria_valuenow = 100;
+            progressBar.style.width = "100%";
+            progressBar.classList.add("bg-success");
+            spinnerContainer.querySelector(".spinner-container-text").innerText = " Extracting metadata...";
+        } else {
+            progressBar.aria_valuenow = perc;
+            progressBar.style.width = perc + "%";
+        }
+        //console.log(progressBar)
+    });
+    xhr.send(data);
+    form.querySelector("#form_run_uuid").disabled = true;
+    form.querySelector("#form_md_pm_file").disabled = true;
+}

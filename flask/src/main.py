@@ -1,16 +1,53 @@
-from flask import Flask, render_template, request, redirect, url_for
-from flask import render_template
+from flask import Flask, render_template, request, redirect, url_for, Response
 import uuid
+import os
+import boto3
 import json
 import zipfile
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+s3_region = os.environ.get("S3_REGION")
+s3_endpoint = os.environ.get("S3_ENDPOINT")
+s3_bucket = os.environ.get("S3_BUCKET")
+s3_access_key = os.environ.get("S3_ACCESS_KEY")
+s3_secret_key = os.environ.get("S3_SECRET_KEY")
+print("S3 Endpoint = " + s3_endpoint)
+s3 = boto3.resource("s3",
+    endpoint_url=s3_endpoint,
+    aws_access_key_id=s3_access_key,
+    aws_secret_access_key=s3_secret_key,
+    aws_session_token=None,
+    config=boto3.session.Config(signature_version='s3v4'),
+    verify=False
+)
+
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
+
+
 
 @app.route("/")
 def home_screen():
     return render_template("index.html")
+
+@app.route('/applyMapping', methods=['POST'])
+def unpack_upload():
+    archive = None
+    run_uuid = None
+    try:
+        uuid_obj = uuid.UUID(request.form["run_uuid"], version=4)
+        archive = str(uuid_obj) + ".zip"
+        run_uuid = str(uuid_obj)
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badRequest",
+            "msg": "Invalid UUID " + request.form["run_uuid"]
+            }), status=400, mimetype='application/json')
+    s3.Bucket(s3_bucket).upload_file(archive, "raw_uploads/" + run_uuid + ".zip")
+    with zipfile.ZipFile(archive) as zipf:
+        zipf.extractall(run_uuid + "-unpacked")
+    return Response(json.dumps(request.form["run_uuid"]), status=200, mimetype='application/json')
+
 
 @app.route("/upload", methods=['GET'])
 def upload_screen():
