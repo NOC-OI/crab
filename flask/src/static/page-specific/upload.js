@@ -14,9 +14,11 @@ let setSensorType = (type) => {
     switch (type) {
         case "ifcb":
             document.getElementById("sensor_selector_ifcb").classList.add("active");
+            document.getElementById("sensor_selector_ifcb").style.display = "";
             break;
         case "flowcam":
             document.getElementById("sensor_selector_flowcam").classList.add("active");
+            document.getElementById("sensor_selector_flowcam").style.display = "";
             break;
         case "pre-classified":
             document.getElementById("sensor_selector_pre_classified").classList.add("active");
@@ -39,6 +41,7 @@ let analyseMetadata = (form, response) => {
     let globalMetadata = {}
     let detectedType = null;
     let hasMetadata = true;
+    let detectedPrimaryMetadataFile = null;
     let hasPrimaryMetadata = true;
     let nestedFolders = false;
     if (response["primary_metadata"].length == 0) {
@@ -53,13 +56,14 @@ let analyseMetadata = (form, response) => {
         if (hasPrimaryMetadata) {
             detectedType = "raw-image"
             //console.log(response["primary_metadata"])
-            for (let i = 0; i < response["primary_metadata"].length; i++) {
-                if (response["primary_metadata"][i].hasOwnProperty("context")) {
-                    let testStr = response["primary_metadata"][i]["context"];
+            for (filename in response["primary_metadata"]) {
+                if (response["primary_metadata"][filename].hasOwnProperty("context")) {
+                    let testStr = response["primary_metadata"][filename]["context"];
                     if (testStr.includes("Imaging FlowCytobot")) {
                         detectedType = "ifcb";
+                        detectedPrimaryMetadataFile = filename;
                         try {
-                            globalMetadata["sample_time"] = response["primary_metadata"][i]["sampleTime"]
+                            globalMetadata["sample_time"] = response["primary_metadata"][filename]["sampleTime"]
                         } catch (e) {
 
                         }
@@ -76,9 +80,17 @@ let analyseMetadata = (form, response) => {
             detectedType = "raw-image";
         }
     }
-
+    if (detectedPrimaryMetadataFile == null) {
+        document.getElementById("form_md_pm_file").value = "";
+        document.getElementById("form_md_pm_file").disabled = false;
+    } else {
+        document.getElementById("form_md_pm_file").value = detectedPrimaryMetadataFile;
+    }
+    
     if (globalMetadata.hasOwnProperty("sample_time")) {
         document.getElementById("form_md_sample_time").value = globalMetadata["sample_time"];
+    } else {
+        document.getElementById("form_md_sample_time").value = "";
     }
     //console.log(response);
     switch (detectedType) {
@@ -97,6 +109,7 @@ let analyseMetadata = (form, response) => {
     }
     setSensorType(detectedType);
     form.before(note);
+    document.getElementById("metadata_form_container").style.display = "";
 }
 
 let uploadFile = (then = () => {}, onError = () => {}, uri = "/upload") => {

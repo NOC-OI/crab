@@ -25,7 +25,7 @@ def upload_file():
     zipf = zipfile.ZipFile(run_uuid + ".zip")
     namelist = zipf.namelist()
     primary_metadata_files = []
-    primary_metadata = []
+    primary_metadata = {}
     metadata_files = []
     unknown_files = []
     for nlpath in namelist:
@@ -44,7 +44,7 @@ def upload_file():
 
     for mdfile in primary_metadata_files:
         with zipf.open(mdfile) as mdfilefh:
-            primary_metadata.append(json.loads(mdfilefh.read()))
+            primary_metadata[mdfile] = json.loads(mdfilefh.read())
 
     ret = {
         "run_uuid": run_uuid,
