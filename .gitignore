@@ -1,6 +1,9 @@
 # Minio data dir
 /data
 
+# Build blob dir
+/build
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
