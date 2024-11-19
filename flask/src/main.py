@@ -4,6 +4,7 @@ import os
 import boto3
 import json
 import zipfile
+import couchdb
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 s3_region = os.environ.get("S3_REGION")
@@ -20,6 +21,13 @@ s3 = boto3.resource("s3",
     config=boto3.session.Config(signature_version='s3v4'),
     verify=False
 )
+couch_user = os.environ.get("COUCHDB_ROOT_USER")
+couch_password = os.environ.get("COUCHDB_ROOT_PASSWORD")
+couch_host = os.environ.get("COUCHDB_HOST")
+couch_port = os.environ.get("COUCHDB_PORT", 5984)
+couch = couchdb.Server("https://" + couch_user + ":" + couch_password + "@" + couch_host + ":" + couch_port + "/")
+
+temp_loc = "temp"
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
@@ -36,7 +44,7 @@ def unpack_upload():
     run_uuid = None
     try:
         uuid_obj = uuid.UUID(request.form["run_uuid"], version=4)
-        archive = str(uuid_obj) + ".zip"
+        archive = temp_loc + "/" + str(uuid_obj) + ".zip"
         run_uuid = str(uuid_obj)
     except ValueError:
         return Response(json.dumps({
@@ -45,7 +53,7 @@ def unpack_upload():
             }), status=400, mimetype='application/json')
     s3.Bucket(s3_bucket).upload_file(archive, "raw_uploads/" + run_uuid + ".zip")
     with zipfile.ZipFile(archive) as zipf:
-        zipf.extractall(run_uuid + "-unpacked")
+        zipf.extractall(temp_loc + "/" + run_uuid + "-unpacked")
     return Response(json.dumps(request.form["run_uuid"]), status=200, mimetype='application/json')
 
 
@@ -58,8 +66,8 @@ def upload_file():
     uploaded_file = request.files['file']
     run_uuid = str(uuid.uuid4())
     if uploaded_file.filename != '':
-        uploaded_file.save(run_uuid + ".zip")
-    zipf = zipfile.ZipFile(run_uuid + ".zip")
+        uploaded_file.save(temp_loc + "/" + run_uuid + ".zip")
+    zipf = zipfile.ZipFile(temp_loc + "/" + run_uuid + ".zip")
     namelist = zipf.namelist()
     primary_metadata_files = []
     primary_metadata = {}
