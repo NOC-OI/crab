@@ -35,6 +35,18 @@ services:
     volumes:
       - minio:/data
 
+  couchdb:
+    image: couchdb:3.4.2
+    container_name: crab-couchdb
+    ports:
+      - 5984:5984
+    networks:
+      - private
+      - public
+    volumes:
+      - couchdb:/opt/couchdb/data
+      - ./config/couchdb:/opt/couchdb/etc/local.d
+
   ui:
     image: crab/ui
     container_name: crab-ui
@@ -52,3 +64,4 @@ networks:
 
 volumes:
   minio:
+  couchdb:
