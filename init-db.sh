@@ -6,7 +6,7 @@ docker compose up -d minio
 
 echo "Waiting for MinIO to start..."
 pingcount=0
-until docker exec -it crab-minio curl "http://localhost:9000/minio/health/live" > /dev/null
+until docker exec -it crab-minio curl -s -f -o /dev/null "http://localhost:9000/minio/health/live"
 do
         symbol="|"
         case $(($pingcount % 4)) in

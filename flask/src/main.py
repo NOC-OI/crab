@@ -5,6 +5,7 @@ import boto3
 import json
 import zipfile
 import couchdb
+import requests
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 s3_region = os.environ.get("S3_REGION")
@@ -25,7 +26,17 @@ couch_user = os.environ.get("COUCHDB_ROOT_USER")
 couch_password = os.environ.get("COUCHDB_ROOT_PASSWORD")
 couch_host = os.environ.get("COUCHDB_HOST")
 couch_port = os.environ.get("COUCHDB_PORT", 5984)
-couch = couchdb.Server("https://" + couch_user + ":" + couch_password + "@" + couch_host + ":" + couch_port + "/")
+couch = couchdb.Server("https://" + couch_user + ":" + couch_password + "@" + couch_host + ":" + str(couch_port) + "/")
+
+openid_config_uri = os.environ.get("CRAB_OPENID_CONFIG_URI")
+openid_client_id = os.environ.get("CRAB_OPENID_CLIENT_ID")
+openid_client_secret = os.environ.get("CRAB_OPENID_CLIENT_SECRET")
+
+openid_config = requests.get(openid_config_uri).json()
+
+global_vars = {"openid": openid_config}
+
+print(openid_config)
 
 temp_loc = "temp"
 
@@ -36,7 +47,8 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 
 @app.route("/")
 def home_screen():
-    return render_template("index.html")
+    global global_vars
+    return render_template("index.html", global_vars=global_vars)
 
 @app.route('/applyMapping', methods=['POST'])
 def unpack_upload():

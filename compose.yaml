@@ -4,7 +4,6 @@ services:
     container_name: crab-nginx
     depends_on:
       - ui
-      - minio
     env_file:
       - ./.env
     ports:
@@ -47,9 +46,31 @@ services:
       - couchdb:/opt/couchdb/data
       - ./config/couchdb:/opt/couchdb/etc/local.d
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.5
+    container_name: crab-keycloak
+    ports:
+      - 7080:7080
+    env_file:
+      - ./.env
+    networks:
+      - private
+      - public
+    volumes:
+      - keycloak:/opt/keycloak/data/
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7080/health/ready"]
+      interval: 15s
+      timeout: 2s
+      retries: 15
+    command: ["start-dev", "--http-port", "7080", "--https-port", "7443"]
+
   ui:
     image: crab/ui
     container_name: crab-ui
+    depends_on:
+      - minio
+      - keycloak
     entrypoint: ["gunicorn", "-w", "${GUNICORN_WORKERS}", "main:app", "-b", "0.0.0.0:8957"]
     env_file:
       - ./.env
@@ -65,3 +86,4 @@ networks:
 volumes:
   minio:
   couchdb:
+  keycloak:
