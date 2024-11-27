@@ -13,17 +13,21 @@ let setSensorType = (type) => {
     document.getElementById("sensor_selector_ifcb").classList.remove("active");
     switch (type) {
         case "ifcb":
+            document.getElementById("sensor_selector_hf").value = "ifcb"
             document.getElementById("sensor_selector_ifcb").classList.add("active");
             document.getElementById("sensor_selector_ifcb").style.display = "";
             break;
         case "flowcam":
+            document.getElementById("sensor_selector_hf").value = "flowcam"
             document.getElementById("sensor_selector_flowcam").classList.add("active");
             document.getElementById("sensor_selector_flowcam").style.display = "";
             break;
         case "pre-classified":
+            document.getElementById("sensor_selector_hf").value = "pre-classified"
             document.getElementById("sensor_selector_pre_classified").classList.add("active");
             break;
         default:
+            document.getElementById("sensor_selector_hf").value = "raw-image"
             document.getElementById("sensor_selector_raw_image").classList.add("active");
     }
 }
@@ -38,60 +42,47 @@ let analyseMetadata = (form, response) => {
     let note = document.createElement("div");
     note.classList.add("alert");
     note.role = "alert";
-    let globalMetadata = {}
     let detectedType = null;
-    let hasMetadata = true;
-    let detectedPrimaryMetadataFile = null;
-    let hasPrimaryMetadata = true;
-    let nestedFolders = false;
-    if (response["primary_metadata"].length == 0) {
-        hasMetadata = false;
-        hasPrimaryMetadata = false;
-        if (response["secondary_metadata_files"].length != 0) {
-            hasMetadata = true;
+    let directoryStructure = response["directory_structure"];
+    let fileList = response["file_list"];
+    let cd = "";
+    let definitiveDetection = false;
+    document.getElementById("form_run_uuid").value = response["run_uuid"];
+
+    // Traverse down single directories
+    while (Object.keys(directoryStructure).length == 1) {
+        let pcd = Object.keys(directoryStructure)[0];
+        if (typeof directoryStructure[pcd] === 'string' || directoryStructure[pcd] instanceof String) {
+            detectedType = "single-file";
+            definitiveDetection = true; // Only a single file in the zip!
+        } else {
+            cd = pcd + "/";
+            directoryStructure = directoryStructure[pcd];
         }
     }
-    document.getElementById("form_run_uuid").value = response["run_uuid"];
-    if (hasMetadata) {
-        if (hasPrimaryMetadata) {
-            detectedType = "raw-image"
-            //console.log(response["primary_metadata"])
-            for (filename in response["primary_metadata"]) {
-                if (response["primary_metadata"][filename].hasOwnProperty("context")) {
-                    let testStr = response["primary_metadata"][filename]["context"];
-                    if (testStr.includes("Imaging FlowCytobot")) {
-                        detectedType = "ifcb";
-                        detectedPrimaryMetadataFile = filename;
-                        try {
-                            globalMetadata["sample_time"] = response["primary_metadata"][filename]["sampleTime"]
-                        } catch (e) {
 
-                        }
-                    }
+    console.log("cd /" + cd)
+    console.log(directoryStructure)
+
+    for (let i = 0; i < fileList.length; i++) {
+        if (fileList[i].endsWith(".adc")) {
+            let basename = fileList[i].substring(0, fileList[i].length - 4);
+            if (fileList.indexOf(basename + ".hdr") > -1) {
+                if (fileList.indexOf(basename + ".roi") > -1) {
+                    console.log("IFCB ROI COLLECTION " + basename);
+                    detectedType = "ifcb";
+                    definitiveDetection = true;
                 }
             }
-        } else {
-            detectedType = "raw-image";
-        }
-    } else {
-        if (nestedFolders) {
-            detectedType = "pre-classified";
-        } else {
-            detectedType = "raw-image";
         }
     }
-    if (detectedPrimaryMetadataFile == null) {
-        document.getElementById("form_md_pm_file").value = "";
-        document.getElementById("form_md_pm_file").disabled = false;
-    } else {
-        document.getElementById("form_md_pm_file").value = detectedPrimaryMetadataFile;
+
+    if (detectedType == null) {
+        detectedType = "raw-image";
     }
     
-    if (globalMetadata.hasOwnProperty("sample_time")) {
-        document.getElementById("form_md_sample_time").value = globalMetadata["sample_time"];
-    } else {
-        document.getElementById("form_md_sample_time").value = "";
-    }
+
+    document.getElementById("form_md_sample_time").value = response["timestamp"];
     //console.log(response);
     switch (detectedType) {
         case "ifcb":
@@ -173,7 +164,6 @@ let confirmMetadata = (then = () => {}, onError = () => {}, uri = "/applyMapping
     const form = event.target.form;
     const fieldset = form.querySelector("fieldset");
     form.querySelector("#form_run_uuid").disabled = false;
-    form.querySelector("#form_md_pm_file").disabled = false;
     const data = new FormData(form);
     const progressBar = form.querySelector(".progress-bar");
     const spinnerContainer = form.querySelector(".spinner-container");
@@ -219,6 +209,4 @@ let confirmMetadata = (then = () => {}, onError = () => {}, uri = "/applyMapping
         //console.log(progressBar)
     });
     xhr.send(data);
-    form.querySelector("#form_run_uuid").disabled = true;
-    form.querySelector("#form_md_pm_file").disabled = true;
 }

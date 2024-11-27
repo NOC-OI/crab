@@ -6,6 +6,8 @@ import json
 import zipfile
 import couchdb
 import requests
+import re
+import microtiff.ifcb
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 s3_region = os.environ.get("S3_REGION")
@@ -26,7 +28,9 @@ couch_user = os.environ.get("COUCHDB_ROOT_USER")
 couch_password = os.environ.get("COUCHDB_ROOT_PASSWORD")
 couch_host = os.environ.get("COUCHDB_HOST")
 couch_port = os.environ.get("COUCHDB_PORT", 5984)
-couch = couchdb.Server("https://" + couch_user + ":" + couch_password + "@" + couch_host + ":" + str(couch_port) + "/")
+couch = couchdb.Server("http://" + couch_user + ":" + couch_password + "@" + couch_host + ":" + str(couch_port) + "/")
+print(couch_host + ":" + str(couch_port))
+print(couch["crab_runs"])
 
 openid_config_uri = os.environ.get("CRAB_OPENID_CONFIG_URI")
 openid_client_id = os.environ.get("CRAB_OPENID_CLIENT_ID")
@@ -36,7 +40,7 @@ openid_config = requests.get(openid_config_uri).json()
 
 global_vars = {"openid": openid_config}
 
-print(openid_config)
+#print(openid_config)
 
 temp_loc = "temp"
 
@@ -44,6 +48,14 @@ app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
 
+def to_snake_case(str_in):
+    str_out = re.sub("(?<!^)(?<![A-Z])(?=[A-Z]+)", "_", str_in).lower() # Prepend all strings of uppercase with an underscore
+    str_out = re.sub("[^a-z0-9]", "_", str_out) # Replace all non-alphanumeric with underscore
+    str_out = re.sub("_+", "_", str_out) # Clean up double underscores
+    str_out = re.sub("(^_)|(_$)", "", str_out) # Clean up trailing or leading underscores
+    return str_out
+
+#print(to_snake_case("OWOTestString--?test_test_TEST"))
 
 @app.route("/")
 def home_screen():
@@ -60,13 +72,72 @@ def unpack_upload():
         run_uuid = str(uuid_obj)
     except ValueError:
         return Response(json.dumps({
-            "error": "badRequest",
+            "error": "badUUID",
             "msg": "Invalid UUID " + request.form["run_uuid"]
             }), status=400, mimetype='application/json')
     s3.Bucket(s3_bucket).upload_file(archive, "raw_uploads/" + run_uuid + ".zip")
+    profile = request.form["sensor"]
+    ret = {"uuid": run_uuid, "profile": profile}
+    workdir = temp_loc + "/" + run_uuid + "-unpacked"
     with zipfile.ZipFile(archive) as zipf:
-        zipf.extractall(temp_loc + "/" + run_uuid + "-unpacked")
-    return Response(json.dumps(request.form["run_uuid"]), status=200, mimetype='application/json')
+        zipf.extractall(workdir)
+    if profile == "ifcb":
+        print("IFCB profile!")
+        #microtiff.
+        targets = []
+        for in_file in os.listdir(workdir):
+            in_file_s = os.path.splitext(in_file)
+            if in_file_s[1] == ".adc" or in_file_s[1] == ".hdr" or in_file_s[1] == ".roi":
+                targets.append(in_file_s[0])
+        targets = list(set(targets))
+        #print(targets)
+        run_metadata = None
+        group_metadata = {}
+        for target in targets:
+            with open(workdir + "/" + target + ".hdr") as f:
+                header_lines = f.readlines()
+                extracted_metadata = microtiff.ifcb.header_file_to_dict(header_lines)
+                filtered_metadata = {}
+                for key in extracted_metadata:
+                    filtered_metadata[to_snake_case(key)] = extracted_metadata[key]
+                group_metadata[target] = filtered_metadata
+                if run_metadata is None:
+                    run_metadata = group_metadata[target].copy()
+                for gmk in group_metadata[target]:
+                    if not run_metadata[gmk] == group_metadata[target][gmk]:
+                        run_metadata[gmk] = []
+            microtiff.ifcb.extract_ifcb_images(workdir + "/" + target)
+
+        for group in group_metadata:
+            for gmk in group_metadata[group]:
+                #print(gmk)
+                if type(run_metadata[gmk]) is list:
+                    #print(group_metadata[group][gmk])
+                    run_metadata[gmk].append(group_metadata[group][gmk])
+                else:
+                    group_metadata[group][gmk] = None
+            group_metadata[group] = {k: v for k, v in group_metadata[group].items() if v is not None}
+        run_metadata = {k: v for k, v in run_metadata.items() if v is not None}
+
+        ret["run_metadata"] = run_metadata
+        ret["group_metadata"] = group_metadata
+
+        run_dblist = couch["crab_runs"]
+        sample_dblist = couch["crab_samples"]
+
+        run_dblist[run_uuid] = run_metadata
+
+        for in_file in os.listdir(workdir):
+            in_file_s = os.path.splitext(in_file)
+            if in_file_s[1] == ".tiff":
+                s3.Bucket(s3_bucket).upload_file(workdir + "/" + in_file, "runs/" + run_uuid + "/" + in_file_s[0] + ".tiff")
+    else:
+        return Response(json.dumps({
+            "error": "badProfile",
+            "msg": "Invalid Profile " + profile
+            }), status=400, mimetype='application/json')
+
+    return Response(json.dumps(ret), status=200, mimetype='application/json')
 
 
 @app.route("/upload", methods=['GET'])
@@ -80,34 +151,40 @@ def upload_file():
     if uploaded_file.filename != '':
         uploaded_file.save(temp_loc + "/" + run_uuid + ".zip")
     zipf = zipfile.ZipFile(temp_loc + "/" + run_uuid + ".zip")
+    timestamp = None
     namelist = zipf.namelist()
-    primary_metadata_files = []
-    primary_metadata = {}
-    metadata_files = []
-    unknown_files = []
+    if len(namelist) > 0:
+        dt = zipf.getinfo(namelist[0]).date_time
+        timestamp = "{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}Z".format(dt[0],dt[1],dt[2],dt[3],dt[4],dt[5])
+    folder_structure = {}
     for nlpath in namelist:
-        if nlpath.endswith(".json"):
-            primary_metadata_files.append(nlpath)
-        elif nlpath.endswith(".csv"):
-            metadata_files.append(nlpath)
-        elif nlpath.endswith(".ctx"):
-            metadata_files.append(nlpath)
-        elif nlpath.endswith(".txt"):
-            metadata_files.append(nlpath)
-        elif nlpath.endswith(".ifo"):
-            metadata_files.append(nlpath)
-        else:
-            unknown_files.append(nlpath)
+        cd = folder_structure
+        pels = re.split("/|\\\\", nlpath)
+        for pel in pels[:-1]:
+            try:
+                cd[pel]
+            except KeyError:
+                cd[pel] = {}
+            cd = cd[pel]
+        if len(pels[-1]) > 0:
+            cd[pels[-1]] = "file"
 
-    for mdfile in primary_metadata_files:
-        with zipf.open(mdfile) as mdfilefh:
-            primary_metadata[mdfile] = json.loads(mdfilefh.read())
 
+    #for mdfile in primary_metadata_files:
+    #    with zipf.open(mdfile) as mdfilefh:
+    #        primary_metadata[mdfile] = json.loads(mdfilefh.read())
+
+    #ret = {
+    #    "run_uuid": run_uuid,
+    #    "primary_metadata_files": primary_metadata_files,
+    #    "primary_metadata": primary_metadata,
+    #    "secondary_metadata_files": metadata_files,
+    #    "unknown_files": unknown_files
+    #}
     ret = {
         "run_uuid": run_uuid,
-        "primary_metadata_files": primary_metadata_files,
-        "primary_metadata": primary_metadata,
-        "secondary_metadata_files": metadata_files,
-        "unknown_files": unknown_files
+        "directory_structure": folder_structure,
+        "file_list": namelist,
+        "timestamp": timestamp
     }
     return ret
