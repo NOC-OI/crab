@@ -45,7 +45,7 @@
                     <fieldset>
                         <div class="mb-3">
                             <label class="form-label" for="sensor">Import type</label>
-                            <input type="hidden" name="sensor">
+                            <input type="hidden" name="sensor" id="sensor_selector_hf" value="raw-image" />
                             <div class="list-group">
                                 <a href="#" onclick="setSensorType('raw-image');" id="sensor_selector_raw_image" class="list-group-item list-group-item-action active" aria-current="true"><span>Raw image import</span></a>
                                 <a href="#" onclick="setSensorType('flowcam');" id="sensor_selector_flowcam" class="list-group-item list-group-item-action" style="display: none;">
@@ -65,11 +65,6 @@
                             <div class="form-text">This identifier is unique to this upload and can't be changed.</div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label" for="form_md_pm_file">Primary metadata file <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
-                            <input class="form-control" type="text" name="form_md_pm_file" id="form_md_pm_file" disabled>
-                            <div class="form-text">This file, if specified, will be used to import metadata relating to the whole run. Image-specific metadata will be handled seperately.</div>
-                        </div>
-                        <div class="mb-3">
                             <label class="form-label" for="project">Sample identifier <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
                             <input class="form-control" type="text" name="project">
                             <div class="form-text">User specified, useful to identify runs that draw from the same sample.</div>
@@ -77,7 +72,7 @@
                         <div class="mb-3">
                             <label class="form-label" for="md_sample_time">Analysis timestamp</label>
                             <input class="form-control" type="datetime" name="md_sample_time" id="form_md_sample_time">
-                            <div class="form-text">Enter an ISO timestamp (<em>YYYY</em>-<em>MM</em>-<em>DD</em>T<em>HH</em>:<em>MM</em>:<em>SS</em>Z) for the analysis date and time.</div>
+                            <div class="form-text">Enter an UTC ISO timestamp (<em>YYYY</em>-<em>MM</em>-<em>DD</em>T<em>HH</em>:<em>MM</em>:<em>SS</em>Z) for the analysis date and time.</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label" for="add_info">Additional information <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
