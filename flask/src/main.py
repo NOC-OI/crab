@@ -120,17 +120,42 @@ def unpack_upload():
         run_metadata = {k: v for k, v in run_metadata.items() if v is not None}
 
         ret["run_metadata"] = run_metadata
-        ret["group_metadata"] = group_metadata
 
         run_dblist = couch["crab_runs"]
         sample_dblist = couch["crab_samples"]
-
-        run_dblist[run_uuid] = run_metadata
+        samples = []
 
         for in_file in os.listdir(workdir):
             in_file_s = os.path.splitext(in_file)
             if in_file_s[1] == ".tiff":
-                s3.Bucket(s3_bucket).upload_file(workdir + "/" + in_file, "runs/" + run_uuid + "/" + in_file_s[0] + ".tiff")
+                base_group = in_file_s[0].split("_TN")[0]
+                ofn = "runs/" + run_uuid + "/" + in_file_s[0] + ".tiff"
+                s3.Bucket(s3_bucket).upload_file(workdir + "/" + in_file, ofn)
+                sample_uuid = str(uuid.uuid4())
+                sample_metadata = {
+                    "path": ofn,
+                    "host": s3_endpoint + "/" + s3_bucket,
+                    "type": {
+                            "dimensions": 2,
+                            "format": "TIFF",
+                            "channels": [
+                                    {
+                                        "type": "L",
+                                        "bit_depth": 8
+                                    }
+                                ]
+                        },
+                    "origin_tags": group_metadata[base_group].copy()
+                }
+                sample_dblist[sample_uuid] = sample_metadata
+                samples.append(sample_uuid)
+
+
+        run_dblist[run_uuid] = {
+            "origin_tags": run_metadata,
+            "samples": samples
+        }
+
     else:
         return Response(json.dumps({
             "error": "badProfile",
