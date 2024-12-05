@@ -1,4 +1,4 @@
-# C.R.A.B
+# Centralised Repository for Annotations and BLOBs
 A FOSS stack for ML dataset management and annotation
 
 ## Prerequisites
