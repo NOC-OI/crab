@@ -80,6 +80,11 @@ def get_session_info():
             return session_info
     return None
 
+@app.errorhandler(404)
+def not_found_error_handler(e):
+    session_info = get_session_info()
+    return render_template("404.html", global_vars=global_vars, session_info=session_info)
+
 @app.route("/")
 def home_screen():
     session_info = get_session_info()
@@ -117,7 +122,7 @@ def login_inbound_redirect():
     if "scope" in openid_response:
         jwt_header = jwt.get_unverified_header(openid_response["access_token"])
         jwt_key = openid_keys.get_signing_key_from_jwt(openid_response["access_token"])
-        openid_user_info = jwt.decode(openid_response["access_token"], key=jwt_key, algorithms=[jwt_header["alg"]], audience="account")
+        openid_user_info = jwt.decode(openid_response["access_token"], key=jwt_key, algorithms=[jwt_header["alg"]], options={"verify_aud": False, "verify_signature": True})
 
         session_info = couch["crab_sessions"][session_uuid]
 
