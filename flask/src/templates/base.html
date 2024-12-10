@@ -18,13 +18,13 @@
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="/">Home</a>
+                            <a class="nav-link" href="/browse">Browse</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="/upload">Upload</a>
                         </li>
                     </ul>
-                    <a class="btn btn-primary d-flex" type="button" href="/account">{{ session_info.short_name if session_info is not none else 'Login' }}</a>
+                    <a class="btn {{ "btn-light" if session_info is not none else "btn-primary" }} d-flex" type="button" href="/account">{{ (session_info.short_name ~ "'s Account") if session_info is not none else 'Login' }}</a>
                 </div>
             </div>
         </nav>
