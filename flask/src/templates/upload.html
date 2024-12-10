@@ -1,25 +1,87 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>C.R.A.B</title>
-    <link href="/static/bootstrap.min.css" rel="stylesheet">
-  </head>
-  <body>
+{% extends 'base.html' %}
 
-    <div class="container my-5">
-        <h1>Data import</h1>
+{% block title %}Data Import{% endblock %}
 
-        <div class="col-lg-8 px-0">
+{% block content %}
+<div class="container my-5">
+    <h1>Data import</h1>
+
+    <div class="col-lg-8 px-0">
+        <hr class="my-4">
+
+        <p class="fs-5">Package any complete imaging run as a zip file and upload here.</p>
+        <form method="POST" action="" enctype="multipart/form-data">
+            <fieldset>
+                <div class="mb-3">
+                    <label class="form-label" for="file">Data file<!-- <span class="badge rounded-pill bg-danger">Required</span> --></label>
+                    <input class="form-control" type="file" name="file" accept=".zip">
+                </div>
+                <div class="mb-3">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="mb-3 spinner-container" style="display: none;">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="spinner-container-text"> Working on it...</span>
+                </div>
+                <div class="mb-3">
+                    <input class="btn btn-primary" onclick="uploadFile(analyseMetadata);" type="submit" value="Upload">
+                </div>
+            </fieldset>
+        </form>
+
+        <div id="metadata_form_container" style="display: none;"> <!-- <div style="display: none;"> -->
             <hr class="my-4">
-
-            <p class="fs-5">Package any complete imaging run as a zip file and upload here.</p>
+            <p class="fs-5">Make sure the correct import type is identified. Correct metadata extraction relies on the matching profile being used.</p>
             <form method="POST" action="" enctype="multipart/form-data">
                 <fieldset>
                     <div class="mb-3">
-                        <label class="form-label" for="file">Data file<!-- <span class="badge rounded-pill bg-danger">Required</span> --></label>
-                        <input class="form-control" type="file" name="file" accept=".zip">
+                        <label class="form-label" for="sensor">Import type</label>
+                        <input type="hidden" name="sensor" id="sensor_selector_hf" value="raw-image" />
+                        <div class="list-group">
+                            <a href="#" onclick="setSensorType('raw-image');" id="sensor_selector_raw_image" class="list-group-item list-group-item-action active" aria-current="true"><span>Raw image import</span></a>
+                            <a href="#" onclick="setSensorType('flowcam');" id="sensor_selector_flowcam" class="list-group-item list-group-item-action" style="display: none;">
+                                <span>FlowCam</span>
+                                <span class="badge text-bg-warning rounded-pill">Beta</span>
+                            </a>
+                            <a href="#" onclick="setSensorType('ifcb');" id="sensor_selector_ifcb" class="list-group-item list-group-item-action" style="display: none;">
+                                <span>Imaging FlowCytobot</span>
+                                <span class="badge text-bg-warning rounded-pill">Beta</span>
+                            </a>
+                            <a href="#" onclick="setSensorType('pre-classified');" id="sensor_selector_pre_classified" class="list-group-item list-group-item-action"><span>Pre-classified images</span></a>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="run_uuid">Run UUID</label>
+                        <input class="form-control" type="text" name="run_uuid" id="form_run_uuid" disabled>
+                        <div class="form-text">This identifier is unique to this upload and can't be changed.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="project">Sample identifier <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
+                        <input class="form-control" type="text" name="project">
+                        <div class="form-text">User specified, useful to identify runs that draw from the same sample.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="md_sample_time">Analysis timestamp</label>
+                        <input class="form-control" type="datetime" name="md_sample_time" id="form_md_sample_time">
+                        <div class="form-text">Enter an UTC ISO timestamp (<em>YYYY</em>-<em>MM</em>-<em>DD</em>T<em>HH</em>:<em>MM</em>:<em>SS</em>Z) for the analysis date and time.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="add_info">Additional information <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
+                        <textarea class="form-control" name="add_info"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" checked>
+                            <label class="form-check-label" for="flexSwitchCheckChecked">Automatically mark duplicate images as hidden</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked">
+                            <label class="form-check-label" for="flexSwitchCheckChecked">Keep duplicate metadata within image files</label>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <div class="progress">
@@ -33,99 +95,30 @@
                         <span class="spinner-container-text"> Working on it...</span>
                     </div>
                     <div class="mb-3">
-                        <input class="btn btn-primary" onclick="uploadFile(analyseMetadata);" type="submit" value="Upload">
+                        <input class="btn btn-primary" onclick="confirmMetadata();" type="submit" value="Import">
                     </div>
                 </fieldset>
             </form>
+        </div>
+    </div>
+</div>
 
-            <div id="metadata_form_container" style="display: none;"> <!-- <div style="display: none;"> -->
-                <hr class="my-4">
-                <p class="fs-5">Make sure the correct import type is identified. Correct metadata extraction relies on the matching profile being used.</p>
-                <form method="POST" action="" enctype="multipart/form-data">
-                    <fieldset>
-                        <div class="mb-3">
-                            <label class="form-label" for="sensor">Import type</label>
-                            <input type="hidden" name="sensor" id="sensor_selector_hf" value="raw-image" />
-                            <div class="list-group">
-                                <a href="#" onclick="setSensorType('raw-image');" id="sensor_selector_raw_image" class="list-group-item list-group-item-action active" aria-current="true"><span>Raw image import</span></a>
-                                <a href="#" onclick="setSensorType('flowcam');" id="sensor_selector_flowcam" class="list-group-item list-group-item-action" style="display: none;">
-                                    <span>FlowCam</span>
-                                    <span class="badge text-bg-warning rounded-pill">Beta</span>
-                                </a>
-                                <a href="#" onclick="setSensorType('ifcb');" id="sensor_selector_ifcb" class="list-group-item list-group-item-action" style="display: none;">
-                                    <span>Imaging FlowCytobot</span>
-                                    <span class="badge text-bg-warning rounded-pill">Beta</span>
-                                </a>
-                                <a href="#" onclick="setSensorType('pre-classified');" id="sensor_selector_pre_classified" class="list-group-item list-group-item-action"><span>Pre-classified images</span></a>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="run_uuid">Run UUID</label>
-                            <input class="form-control" type="text" name="run_uuid" id="form_run_uuid" disabled>
-                            <div class="form-text">This identifier is unique to this upload and can't be changed.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="project">Sample identifier <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
-                            <input class="form-control" type="text" name="project">
-                            <div class="form-text">User specified, useful to identify runs that draw from the same sample.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="md_sample_time">Analysis timestamp</label>
-                            <input class="form-control" type="datetime" name="md_sample_time" id="form_md_sample_time">
-                            <div class="form-text">Enter an UTC ISO timestamp (<em>YYYY</em>-<em>MM</em>-<em>DD</em>T<em>HH</em>:<em>MM</em>:<em>SS</em>Z) for the analysis date and time.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="add_info">Additional information <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
-                            <textarea class="form-control" name="add_info"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" checked>
-                                <label class="form-check-label" for="flexSwitchCheckChecked">Automatically mark duplicate images as hidden</label>
-                            </div>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked">
-                                <label class="form-check-label" for="flexSwitchCheckChecked">Keep duplicate metadata within image files</label>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <div class="progress">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <div class="mb-3 spinner-container" style="display: none;">
-                            <div class="spinner-border spinner-border-sm" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <span class="spinner-container-text"> Working on it...</span>
-                        </div>
-                        <div class="mb-3">
-                            <input class="btn btn-primary" onclick="confirmMetadata();" type="submit" value="Import">
-                        </div>
-                    </fieldset>
-                </form>
+<div class="modal fade" id="uploadModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="uploadModalText"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="modal fade" id="uploadModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="uploadModalLabel"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p id="uploadModalText"></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="/static/bootstrap.bundle.min.js"></script>
-    <script src="/static/page-specific/upload.js"></script>
-  </body>
-</html>
+<script src="/static/page-specific/upload.js"></script>
+{% endblock %}

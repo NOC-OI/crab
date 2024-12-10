@@ -1,11 +1,14 @@
-from flask import Flask, render_template, request, redirect, url_for, Response
+from flask import Flask, render_template, request, redirect, url_for, Response, make_response
 import uuid
 import os
 import boto3
+import jwt
 import json
 import zipfile
 import couchdb
+import urllib.parse
 import requests
+import secrets
 import re
 import microtiff.ifcb
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -37,10 +40,13 @@ openid_client_id = os.environ.get("CRAB_OPENID_CLIENT_ID")
 openid_client_secret = os.environ.get("CRAB_OPENID_CLIENT_SECRET")
 
 openid_config = requests.get(openid_config_uri).json()
+openid_keys = jwt.PyJWKClient(openid_config["jwks_uri"])
 
-global_vars = {"openid": openid_config}
-
-#print(openid_config)
+global_vars = {
+        "openid": openid_config,
+        "brand": "CRAB",
+        "long_brand": "Centralised Repository for Annotations and BLOBs"
+    }
 
 temp_loc = "temp"
 
@@ -57,10 +63,124 @@ def to_snake_case(str_in):
 
 #print(to_snake_case("OWOTestString--?test_test_TEST"))
 
+def get_session_info():
+    session_uuid = None
+    raw_session_id = request.cookies.get("sessionId")
+    if raw_session_id is None:
+        return None
+    try:
+        uuid_obj = uuid.UUID(raw_session_id, version=4)
+        session_uuid = str(uuid_obj)
+    except ValueError:
+        return None
+    session_info = couch["crab_sessions"][session_uuid].copy()
+    if session_info["status"] == "ACTIVE":
+        if session_info["access_token"] == request.cookies.get("sessionKey"):
+            session_info["session_uuid"] = session_uuid
+            return session_info
+    return None
+
 @app.route("/")
 def home_screen():
-    global global_vars
-    return render_template("index.html", global_vars=global_vars)
+    session_info = get_session_info()
+    return render_template("index.html", global_vars=global_vars, session_info=session_info)
+
+@app.route("/account")
+def account_screen():
+    session_info = get_session_info()
+    if session_info is None:
+        return redirect("/login", code=302)
+    return render_template("account.html", global_vars=global_vars, session_info=session_info)
+
+@app.route("/inbound-login")
+def login_inbound_redirect():
+    session_uuid = None
+    try:
+        uuid_obj = uuid.UUID(request.args.get("state"), version=4)
+        session_uuid = str(uuid_obj)
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + request.args.get("state")
+            }), status=400, mimetype='application/json')
+
+    data = {
+            "client_secret": openid_client_secret,
+            "client_id": openid_client_id,
+            "redirect_uri": couch["crab_sessions"][session_uuid]["login_redirect_uri"],
+            "code": request.args.get("code"),
+            "grant_type": "authorization_code"
+        }
+
+    openid_response = requests.post(openid_config["token_endpoint"], data=data).json()
+
+    if "scope" in openid_response:
+        jwt_header = jwt.get_unverified_header(openid_response["access_token"])
+        jwt_key = openid_keys.get_signing_key_from_jwt(openid_response["access_token"])
+        openid_user_info = jwt.decode(openid_response["access_token"], key=jwt_key, algorithms=[jwt_header["alg"]], audience="account")
+
+        session_info = couch["crab_sessions"][session_uuid]
+
+        session_info["openid_info"] = openid_user_info
+        session_info["user_uuid"] = openid_user_info["sub"]
+        if "email" in openid_user_info:
+            session_info["email"] = openid_user_info["email"]
+            session_info["status"] = "ACTIVE"
+        else:
+            session_info["status"] = "MISSING_EMAIL"
+            return Response(json.dumps({
+                "error": "missingEmail",
+                "msg": "User " + openid_user_info["sub"] + " does not have a valid email."
+                }), status=400, mimetype='application/json')
+
+        if "name" in openid_user_info:
+            session_info["short_name"] = openid_user_info["name"]
+        if "given_name" in openid_user_info:
+            session_info["short_name"] = openid_user_info["given_name"]
+
+        session_info["openid_access_token"] = openid_response["access_token"]
+        access_token = secrets.token_urlsafe(24)
+        session_info["access_token"] = access_token
+
+        couch["crab_sessions"][session_uuid] = session_info
+
+        response = make_response(redirect("/account", code=302))
+        response.set_cookie("sessionId", session_uuid)
+        response.set_cookie("sessionKey", access_token)
+        return response
+    else:
+        return Response(json.dumps({
+            "error": "authError",
+            "msg": "Could not authenticate OpenID code for session " + session_uuid
+            }), status=400, mimetype='application/json')
+
+@app.route("/logout")
+def logout_outbound_redirect():
+    session_info = get_session_info()
+    tokens = ""
+    if not session_info is None:
+        session_uuid = session_info["session_uuid"]
+        session_info["status"] = "DESTROYED"
+        del session_info["session_uuid"]
+        couch["crab_sessions"][session_uuid] = session_info
+    response = make_response(redirect("/", code=302))
+    response.delete_cookie("sessionId")
+    response.delete_cookie("sessionKey")
+    return response
+
+@app.route("/login")
+def login_outbound_redirect():
+    state = str(uuid.uuid4())
+    nonce = str(uuid.uuid4())
+
+    redirect_uri = request.host_url + "inbound-login"
+    couch["crab_sessions"][state] = {
+            "status": "PENDING_AUTH",
+            "origin_ip": request.remote_addr,
+            "login_redirect_uri": redirect_uri
+        }
+    tokens = "response_type=code&scope=basic+email&prompt=select_account&response_mode=query&state=" + state + "&nonce=" + nonce + "&redirect_uri=" + urllib.parse.quote_plus(redirect_uri) + "&client_id=" + urllib.parse.quote_plus(openid_client_id)
+    return redirect(openid_config["authorization_endpoint"] + "?" + tokens, code=302)
 
 @app.route('/applyMapping', methods=['POST'])
 def unpack_upload():
@@ -167,7 +287,10 @@ def unpack_upload():
 
 @app.route("/upload", methods=['GET'])
 def upload_screen():
-    return render_template("upload.html")
+    session_info = get_session_info()
+    if session_info is None:
+        return redirect("/login", code=302)
+    return render_template("upload.html", global_vars=global_vars, session_info=session_info)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -194,18 +317,6 @@ def upload_file():
         if len(pels[-1]) > 0:
             cd[pels[-1]] = "file"
 
-
-    #for mdfile in primary_metadata_files:
-    #    with zipf.open(mdfile) as mdfilefh:
-    #        primary_metadata[mdfile] = json.loads(mdfilefh.read())
-
-    #ret = {
-    #    "run_uuid": run_uuid,
-    #    "primary_metadata_files": primary_metadata_files,
-    #    "primary_metadata": primary_metadata,
-    #    "secondary_metadata_files": metadata_files,
-    #    "unknown_files": unknown_files
-    #}
     ret = {
         "run_uuid": run_uuid,
         "directory_structure": folder_structure,

@@ -1,48 +1,21 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>C.R.A.B</title>
-    <link href="/static/bootstrap.min.css" rel="stylesheet">
-  </head>
-  <body>
-    <!--<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-      <div class="container">
+{% extends 'base.html' %}
 
-        <a class="navbar-brand" href="/">Chum Bucket</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-            <li class="nav-item">
-              <a class="nav-link active" aria-current="page" href="/">Home</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/">Projects</a>
-            </li>
-          </ul>
-          <form class="d-flex" role="search">
-            <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-            <button class="btn btn-outline-success" type="submit">Search</button>
-          </form>
-        </div>
-      </div>
-    </nav> -->
+{% block title %}Home{% endblock %}
 
-    <div class="container my-5">
-      <h1>Centralised Repository for Annotations and BLOBs</h1>
-      <div class="col-lg-8 px-0">
+{% block content %}
+
+<div class="container my-5">
+    <h1>{{ global_vars.long_brand }}</h1>
+    <div class="col-lg-8 px-0">
         <p class="fs-5">ML data aggregation.</p>
 
         <hr class="my-4">
 
-        <a href="/upload" class="btn btn-primary">Upload anonymously</a>
+        <a href="/upload" class="btn btn-primary">Upload data</a>
         <!-- <a href="https://github.com/twbs/examples" class="btn btn-secondary">View on GitHub</a> -->
-      </div>
     </div>
+</div>
 
-    <script src="/static/bootstrap.bundle.min.js"></script>
-  </body>
-</html>
+<script src="/static/bootstrap.bundle.min.js"></script>
+
+{% endblock %}
