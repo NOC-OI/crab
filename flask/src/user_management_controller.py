@@ -14,6 +14,8 @@ openid_config_uri = os.environ.get("CRAB_OPENID_CONFIG_URI")
 openid_client_id = os.environ.get("CRAB_OPENID_CLIENT_ID")
 openid_client_secret = os.environ.get("CRAB_OPENID_CLIENT_SECRET")
 
+crab_external_endpoint = "http://" + os.environ.get("CRAB_EXTERNAL_HOST") + ":" + os.environ.get("CRAB_EXTERNAL_PORT") + "/"
+
 openid_config = requests.get(openid_config_uri).json()
 openid_keys = jwt.PyJWKClient(openid_config["jwks_uri"])
 
@@ -120,7 +122,7 @@ def login_outbound_redirect():
     state = str(uuid.uuid4())
     nonce = str(uuid.uuid4())
 
-    redirect_uri = request.host_url + "inbound-login"
+    redirect_uri = crab_external_endpoint + "inbound-login"
     get_couch()["crab_sessions"][state] = {
             "status": "PENDING_AUTH",
             "origin_ip": request.remote_addr,
