@@ -45,6 +45,8 @@ KC_BOOTSTRAP_ADMIN_PASSWORD="$KEYCLOAK_ADMIN_PASSWORD"
 KC_HEALTH_ENABLED=true
 KC_LOG_LEVEL=info
 
+CERTBOT_EMAIL="webmaster@$CRAB_EXTERNAL_HOST"
+
 # Uncomment and fill out the following to use and external MinIO instance:
 #S3_REGION="us-east-1"
 #S3_ENDPOINT="https://s3.us-east-1.amazonaws.com"

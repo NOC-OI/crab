@@ -26,5 +26,5 @@ CRAB should now be avaliable on `http://localhost:8080`
 While normally, a seperate reverse proxy on the host machine would be used, one can enable SSL on the included nginx container. Edit the config template in `templates/nginx.conf` to enable SSL before launching.
 
 ## License
-CRAB is free software under the AGPL-3.0 license
-The CRAB Logo (© 2024, Alex Baldwin) is licensed under CC BY-SA 4.0
+CRAB is free software under the AGPL-3.0 license.
+The CRAB Logo (© 2024, Alex Baldwin) is licensed under CC BY-SA 4.0.

@@ -3,13 +3,15 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
         <title>{{ global_vars.brand }} - {% block title %}{% endblock %}</title>
         <link href="/static/bootstrap.min.css" rel="stylesheet">
+        <link rel="manifest" href="/static/manifest.json" />
     </head>
     <body>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container">
-                <a class="navbar-brand" href="/">{{ global_vars.brand }}</a>
+                <a class="navbar-brand" href="/"><img src="/static/crab128.png" class="d-block my-1" alt="{{ global_vars.brand }}" style="height: 2em;" /></a>
 
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -24,8 +26,8 @@
                             <a class="nav-link" href="/upload">Upload</a>
                         </li>
                     </ul>
-                    <a class="btn {{ "btn-light" if session_info is not none else "btn-primary" }} d-flex" type="button" href="/account">{{ (session_info.short_name ~ "'s Account") if session_info is not none else 'Login' }}</a>
                 </div>
+                <a class="btn {{ "btn-light" if session_info is not none else "btn-primary" }} d-flex" type="button" href="/account">{{ (session_info.short_name ~ "'s Account") if session_info is not none else 'Login' }}</a>
             </div>
         </nav>
 
