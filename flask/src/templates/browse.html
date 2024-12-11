@@ -1,19 +1,53 @@
 {% extends 'base.html' %}
 
-{% block title %}Account{% endblock %}
+{% block title %}Browse Data{% endblock %}
 
 {% block content %}
+<style>
+input[type='number'] {
+    -moz-appearance:textfield;
+    color: inherit;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+}
+</style>
+
 <div class="container my-5">
-    <h1>Hi {{ session_info.short_name }}</h1>
-    <div class="col-lg-8 px-0">
-        <span>Session UUID: {{ session_info.session_uuid }}</span><br />
-        <span>User UUID: {{ session_info.user_uuid }}</span><br />
-        <span>User Email: {{ session_info.email }}</span>
+    <h1>Browse data</h1>
+    <ul class="pagination">
+        <li class="page-item">
+            <a href="javascript:prevPage();" class="page-link" id="prev_page_top">Previous</a>
+        </li>
+        <li class="page-item">
+            <input type="number" onchange="setPage(this.value)" class="page-link" id="page_number_top" placeholder="1">
+        </li>
+        <li class="page-item">
+            <a href="javascript:nextPage();" class="page-link" id="next_page_top">Next</a>
+        </li>
+    </ul>
 
-        <hr class="my-4">
-
-        <a href="/logout" class="btn btn-primary">Logout</a>
-        <a href="/upload" class="btn btn-primary">Upload data</a>
+    <div class="mb-3 spinner-container" style="display: none;" id="page_spinner">
+        <div class="spinner-border spinner-border-sm" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <span class="spinner-container-text"> Loading data...</span>
     </div>
+    <div id="list_view" class="row gx-3"></div>
+    <ul class="pagination">
+        <li class="page-item">
+            <a href="javascript:prevPage();" class="page-link" id="prev_page_bottom">Previous</a>
+        </li>
+        <li class="page-item">
+            <input type="number" onchange="setPage(this.value)" class="page-link" id="page_number_bottom" placeholder="1">
+        </li>
+        <li class="page-item">
+            <a href="javascript:nextPage();" class="page-link" id="next_page_bottom">Next</a>
+        </li>
+    </ul>
 </div>
+
+<script src="/static/page-specific/browse.js"></script>
 {% endblock %}

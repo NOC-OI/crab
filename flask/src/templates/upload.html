@@ -42,16 +42,16 @@
                         <label class="form-label" for="sensor">Import type</label>
                         <input type="hidden" name="sensor" id="sensor_selector_hf" value="raw-image" />
                         <div class="list-group">
-                            <a href="#" onclick="setSensorType('raw-image');" id="sensor_selector_raw_image" class="list-group-item list-group-item-action active" aria-current="true"><span>Raw image import</span></a>
+                            <a href="#" onclick="setSensorType('raw-image');" id="sensor_selector_raw_image" class="list-group-item list-group-item-action active" aria-current="true"><span>Raw image import (.jpg/jpeg, .png, .tif/tiff)</span></a>
                             <a href="#" onclick="setSensorType('flowcam');" id="sensor_selector_flowcam" class="list-group-item list-group-item-action" style="display: none;">
                                 <span>FlowCam</span>
                                 <span class="badge text-bg-warning rounded-pill">Beta</span>
                             </a>
                             <a href="#" onclick="setSensorType('ifcb');" id="sensor_selector_ifcb" class="list-group-item list-group-item-action" style="display: none;">
-                                <span>Imaging FlowCytobot</span>
+                                <span>Imaging FlowCytobot (.adc, .hdr, .roi)</span>
                                 <span class="badge text-bg-warning rounded-pill">Beta</span>
                             </a>
-                            <a href="#" onclick="setSensorType('pre-classified');" id="sensor_selector_pre_classified" class="list-group-item list-group-item-action"><span>Pre-classified images</span></a>
+                            <a href="#" onclick="setSensorType('pre-classified');" id="sensor_selector_pre_classified" class="list-group-item list-group-item-action"><span>Pre-classified images in subfolders (.jpg/jpeg, .png, .tif/tiff)</span></a>
                         </div>
                     </div>
                     <div class="mb-3">

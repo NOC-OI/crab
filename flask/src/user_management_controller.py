@@ -70,14 +70,26 @@ def login_inbound_redirect():
 
         if "name" in openid_user_info:
             session_info["short_name"] = openid_user_info["name"]
+            session_info["name"] = openid_user_info["name"]
+        else:
+            session_info["name"] = session_info["email"] # Fallback just in-case name is missing or restricted
+            session_info["short_name"] = session_info["name"]
         if "given_name" in openid_user_info:
-            session_info["short_name"] = openid_user_info["given_name"]
+            session_info["short_name"] = openid_user_info["given_name"] # Preferentially use this in UI for this user
 
         session_info["openid_access_token"] = openid_response["access_token"]
         access_token = secrets.token_urlsafe(24)
         session_info["access_token"] = access_token
 
         get_couch()["crab_sessions"][session_uuid] = session_info
+        user_doc = {
+                "email": session_info["email"],
+                "name": session_info["name"],
+                "short_name": session_info["short_name"]
+            }
+        if session_info["user_uuid"] in get_couch()["crab_users"]:
+            user_doc["_rev"] = get_couch()["crab_users"][session_info["user_uuid"]]["_rev"]
+        get_couch()["crab_users"][session_info["user_uuid"]] = user_doc
 
         response = make_response(redirect("/account", code=302))
         response.set_cookie("sessionId", session_uuid)
