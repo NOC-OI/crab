@@ -109,7 +109,6 @@ let loadPage = (selector = {}, sort = {}, page = 0) => {
                         let alertCol = document.createElement("div");
                         alertCol.classList.add("col");
                         alertCol.classList.add("col-12");
-                        alertCol.classList.add("mb-3");
                         alertCol.classList.add("mr-3");
                         listView.appendChild(alertCol)
 
