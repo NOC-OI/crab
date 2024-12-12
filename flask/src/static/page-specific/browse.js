@@ -102,6 +102,17 @@ let loadPage = (selector = {}, sort = {}, page = 0) => {
                 resolve();
                 response = JSON.parse(currentXhr.responseText);
                 bookmark = response["docs"];
+                if (response["docs"].length == 0) {
+                    if (page > 0) { // We only want to do this if we're past page one- otherwise we could loop over an empty page!
+                        setPage(page); // The setPage function is one indexed, so this is actually going to the previous page
+                    } else {
+                        let alert = document.createElement("div");
+                        alert.classList.add("alert");
+                        alert.classList.add("alert-warning");
+                        alert.innerText = "No matching data found!";
+                        listView.appendChild(alert)
+                    }
+                }
                 for (let i = 0; i < response["docs"].length; i ++) {
                     let runInfo = response["docs"][i];
                     console.log(runInfo);
@@ -130,7 +141,10 @@ let loadPage = (selector = {}, sort = {}, page = 0) => {
                     card.appendChild(cardBody);
                     let cardTitle = document.createElement("h5");
                     cardTitle.classList.add("card-title");
-                    cardTitle.innerText = "TEST";
+                    cardTitle.innerText = runInfo["_id"];
+                    if (runInfo.hasOwnProperty("identifier")) {
+                        cardTitle.innerText = runInfo["identifier"]
+                    }
                     cardBody.appendChild(cardTitle);
                     let cardText = document.createElement("p");
                     cardText.classList.add("card-text");
@@ -148,7 +162,7 @@ let loadPage = (selector = {}, sort = {}, page = 0) => {
                     cardNoteInner.innerText = "Run " + runInfo["_id"];
                     cardNote.appendChild(cardNoteInner);
 
-                    listView.appendChild(cardCol)
+                    listView.appendChild(cardCol);
                 }
                 spinnerContainer.style.display = "none";
                 currentXhr = null;
