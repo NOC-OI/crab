@@ -4,8 +4,8 @@ docker compose down
 docker compose up -d minio
 docker compose up -d couchdb
 docker compose up -d keycloak
-# In this order since CouchDB usually takes longer than MinIO to start
-echo "Waiting for MinIO and CouchDB to start..."
+# In this order since CouchDB usually takes longer than MinIO to start, and Keycloak takes the longest
+echo "Waiting for MinIO, CouchDB and Keycloak to start..."
 pingcount=0
 until docker exec -it crab-minio curl -s -f -o /dev/null "http://localhost:9000/minio/health/live"
 do
@@ -25,7 +25,7 @@ do
                 ;;
         esac
         secs=$(($pingcount/10))
-        echo -en "\rStill waiting for MinIO to start $symbol [$secs s]"
+        echo -en "\rWaiting for containers to start $symbol [$secs s]"
         pingcount=$(($pingcount+1))
         sleep 0.1
 done
@@ -50,13 +50,12 @@ do
         	;;
 	esac
 	secs=$(($pingcount/10))
-	echo -en "\rStill waiting for CouchDB to start $symbol [$secs s]"
+	echo -en "\rWaiting for CouchDB/Keycloak to start $symbol [$secs s]"
 	pingcount=$(($pingcount+1))
 	sleep 0.1
 done
 echo ""
 echo "CouchDB up!"
-echo "Waiting for Keycloak to start..."
 pingcount=0
 until curl -s -f -o /dev/null http://localhost:7080/realms/master/.well-known/openid-configuration
 do
@@ -76,7 +75,7 @@ do
                 ;;
         esac
         secs=$(($pingcount/10))
-        echo -en "\rStill waiting for Keycloak to start $symbol [$secs s]"
+        echo -en "\rFinally, waiting for Keycloak to start $symbol [$secs s]"
         pingcount=$(($pingcount+1))
         sleep 0.1
 done
