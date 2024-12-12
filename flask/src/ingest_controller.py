@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 import os
 import microtiff.ifcb
-from flask import Blueprint, request, render_template, Response, make_response
+from flask import Blueprint, request, render_template, Response, make_response, redirect
 
 from utils import get_session_info, get_app_frontend_globals, to_snake_case
 from db import get_couch, get_bucket, get_bucket_uri
