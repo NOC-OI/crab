@@ -106,11 +106,18 @@ let loadPage = (selector = {}, sort = {}, page = 0) => {
                     if (page > 0) { // We only want to do this if we're past page one- otherwise we could loop over an empty page!
                         setPage(page); // The setPage function is one indexed, so this is actually going to the previous page
                     } else {
+                        let alertCol = document.createElement("div");
+                        alertCol.classList.add("col");
+                        alertCol.classList.add("col-12");
+                        alertCol.classList.add("mb-3");
+                        alertCol.classList.add("mr-3");
+                        listView.appendChild(alertCol)
+
                         let alert = document.createElement("div");
                         alert.classList.add("alert");
                         alert.classList.add("alert-warning");
                         alert.innerText = "No matching data found!";
-                        listView.appendChild(alert)
+                        alertCol.appendChild(alert)
                     }
                 }
                 for (let i = 0; i < response["docs"].length; i ++) {
