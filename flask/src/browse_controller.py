@@ -20,7 +20,7 @@ browse_api = Blueprint("browse_api", __name__)
 def browse_screen():
     return render_template("browse.html", global_vars=get_app_frontend_globals(), session_info=get_session_info())
 
-@browse_api.route("/api/v1/get_runs", methods=['POST'])
+@browse_api.route("/api/v1/get_runs", methods=["POST"])
 def api_v1_get_runs():
     raw_selector = json.dumps({})
     mango_selector = json.loads(raw_selector)
@@ -36,17 +36,30 @@ def api_v1_get_runs():
     limit = 5
     mango = {
             "selector": mango_selector,
-            "fields": ["creator", "ingest_timestamp", "_id", "samples.0"],
+            "fields": ["creator", "ingest_timestamp", "_id", "samples.0", "identifier"],
             "sort": mango_sort,
             "skip": page * limit,
             "limit": limit
         }
     #        "sort": mango_sort
-    #print(json.dumps(mango, indent=4))
+
     #get_couch()["crab_runs"].find(mango)
     ret = requests.post(get_couch_base_uri() + "crab_runs/" + "_find", json=mango).json()
+    #print(json.dumps(ret, indent=4))
 
     return Response(json.dumps(ret), status=200, mimetype='application/json')
+
+@browse_api.route("/api/v1/get_run/<raw_uuid>", methods=['GET'])
+def api_v1_get_run(raw_uuid):
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+        run_data = get_couch()["crab_runs"][str(uuid_obj)]
+        return Response(json.dumps(run_data), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
 
 @browse_api.route("/api/v1/get_user/<raw_uuid>", methods=['GET'])
 def api_v1_get_user(raw_uuid):

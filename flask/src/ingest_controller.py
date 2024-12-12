@@ -14,7 +14,7 @@ temp_loc = "temp"
 
 ingest_pages = Blueprint("ingest_pages", __name__)
 
-def raw_image_unpack(run_uuid, workdir, namelist, creator_info):
+def raw_image_unpack(run_uuid, workdir, namelist, metadata_template = {}):
     targets = []
     for in_file in namelist:
         in_file_s = os.path.splitext(in_file)
@@ -25,7 +25,7 @@ def raw_image_unpack(run_uuid, workdir, namelist, creator_info):
 
     return {"samples": len(targets)}
 
-def ifcb_unpack(run_uuid, workdir, namelist, creator_info):
+def ifcb_unpack(run_uuid, workdir, namelist, metadata_template = {}):
     targets = []
     for in_file in os.listdir(workdir):
         in_file_s = os.path.splitext(in_file)
@@ -91,14 +91,12 @@ def ifcb_unpack(run_uuid, workdir, namelist, creator_info):
             sample_dblist[sample_uuid] = sample_metadata
             samples.append(sample_uuid)
 
+    metadata_template["origin_tags"] = run_metadata
+    metadata_template["ingest_timestamp"] =current_unix_timestamp
+    metadata_template["sensor"] = "MCLANE_IFCB"
+    metadata_template["samples"] = samples
 
-    run_dblist[run_uuid] = {
-        "origin_tags": run_metadata,
-        "ingest_timestamp": current_unix_timestamp,
-        "sensor": "MCLANE_IFCB",
-        "creator": creator_info,
-        "samples": samples
-    }
+    run_dblist[run_uuid] = metadata_template
 
     return {"samples": len(samples)}
 
@@ -129,16 +127,21 @@ def unpack_upload():
     with zipfile.ZipFile(archive) as zipf:
         namelist = zipf.namelist()
         zipf.extractall(workdir)
-    creator_info = {
+    metadata_template = {
+        "creator": {
             "uuid": session_info["user_uuid"],
             "email": session_info["email"]
         }
+    }
+    print(request.form)
+    if "identifier" in request.form:
+        metadata_template["identifier"] = request.form["identifier"]
     if profile == "ifcb":
         print("IFCB profile!")
-        ret["unpacker_output"] = ifcb_unpack(run_uuid, workdir, namelist, creator_info)
+        ret["unpacker_output"] = ifcb_unpack(run_uuid, workdir, namelist, metadata_template)
     elif profile == "raw-image":
         print("Raw-Image profile!")
-        ret["unpacker_output"] = raw_image_unpack(run_uuid, workdir, namelist, creator_info)
+        ret["unpacker_output"] = raw_image_unpack(run_uuid, workdir, namelist, metadata_template)
     else:
         return Response(json.dumps({
             "error": "badProfile",
