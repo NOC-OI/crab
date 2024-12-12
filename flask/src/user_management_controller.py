@@ -15,6 +15,10 @@ openid_client_id = os.environ.get("CRAB_OPENID_CLIENT_ID")
 openid_client_secret = os.environ.get("CRAB_OPENID_CLIENT_SECRET")
 
 crab_external_endpoint = "http://" + os.environ.get("CRAB_EXTERNAL_HOST") + ":" + os.environ.get("CRAB_EXTERNAL_PORT") + "/"
+if os.environ.get("CRAB_EXTERNAL_PORT") == "80":
+    crab_external_endpoint = "http://" + os.environ.get("CRAB_EXTERNAL_HOST") + "/"
+elif os.environ.get("CRAB_EXTERNAL_PORT") == "443":
+    crab_external_endpoint = "https://" + os.environ.get("CRAB_EXTERNAL_HOST") + "/"
 
 openid_config = requests.get(openid_config_uri).json()
 openid_keys = jwt.PyJWKClient(openid_config["jwks_uri"])
