@@ -7,7 +7,7 @@
     <h1>{{ run_data.identifier if run_data.identifier is defined else "Untitled run" }}</h1>
     <span>Run UUID: {{ run_data._id }}</span>
     <div class="my-3">
-        <a href="/runs/{{ run_data._id }}/download" class="btn btn-primary">Download</a>
+        <a href="/api/v1/runs/{{ run_data._id }}/as_zip" class="btn btn-primary">Download raw data</a>
         <a href="/runs/{{ run_data._id }}/delete" class="btn btn-danger">Delete</a>
     </div>
     <hr class="my-3">
