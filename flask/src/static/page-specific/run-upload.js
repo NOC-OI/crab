@@ -103,7 +103,7 @@ let analyseMetadata = (form, response) => {
     document.getElementById("metadata_form_container").style.display = "";
 }
 
-let uploadFile = (then = () => {}, onError = () => {}, uri = "/upload") => {
+let uploadFile = (then = () => {}, onError = () => {}, uri = "/runs/upload") => {
     event.preventDefault();
     const method = 'post';
     const xhr = new XMLHttpRequest();
@@ -157,7 +157,7 @@ let uploadFile = (then = () => {}, onError = () => {}, uri = "/upload") => {
     xhr.send(data);
 }
 
-let confirmMetadata = (then = () => {}, onError = () => {}, uri = "/applyMapping") => {
+let confirmMetadata = (then = () => {}, onError = () => {}, uri = "/api/v1/apply_mapping") => {
     event.preventDefault();
     const method = 'post';
     const xhr = new XMLHttpRequest();
@@ -180,6 +180,8 @@ let confirmMetadata = (then = () => {}, onError = () => {}, uri = "/applyMapping
             //form.before(note);
             spinnerContainer.style.display = "none";
             then(form, JSON.parse(xhr.responseText));
+
+            window.location.href = "/runs/" + data.get("run_uuid");
         } else {
             onError(xhr.status);
             modalAlert("Unpacking archive failed", "Please try again");

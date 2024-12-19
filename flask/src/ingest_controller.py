@@ -100,7 +100,8 @@ def ifcb_unpack(run_uuid, workdir, namelist, metadata_template = {}):
 
     return {"samples": len(samples)}
 
-@ingest_pages.route('/applyMapping', methods=['POST'])
+#@ingest_pages.route('/applyMapping', methods=['POST']) # Legacy endpoint
+@ingest_pages.route('/api/v1/apply_mapping', methods=['POST'])
 def unpack_upload():
     session_info = get_session_info()
     if session_info is None:
@@ -151,14 +152,16 @@ def unpack_upload():
     return Response(json.dumps(ret), status=200, mimetype='application/json')
 
 
-@ingest_pages.route("/upload", methods=['GET'])
+# @ingest_pages.route("/upload", methods=['GET'])
+@ingest_pages.route("/runs/upload", methods=['GET'])
 def upload_screen():
     session_info = get_session_info()
     if session_info is None:
         return redirect("/login", code=302)
-    return render_template("upload.html", global_vars=get_app_frontend_globals(), session_info=session_info)
+    return render_template("run_upload.html", global_vars=get_app_frontend_globals(), session_info=session_info)
 
-@ingest_pages.route('/upload', methods=['POST'])
+# @ingest_pages.route('/upload', methods=['POST'])
+@ingest_pages.route('/runs/upload', methods=['POST'])
 def upload_file():
     uploaded_file = request.files['file']
     run_uuid = str(uuid.uuid4())
