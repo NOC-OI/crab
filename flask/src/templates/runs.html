@@ -17,6 +17,11 @@ input::-webkit-inner-spin-button {
 
 <div class="container my-5">
     <h1>Browse data</h1>
+    <div class="my-3">
+        <a href="/runs/upload" class="btn btn-primary">Upload raw data</a>
+    </div>
+    <hr class="my-3">
+
     <ul class="pagination">
         <li class="page-item">
             <a href="javascript:prevPage();" class="page-link" id="prev_page_top">Previous</a>
@@ -49,5 +54,7 @@ input::-webkit-inner-spin-button {
     </ul>
 </div>
 
-<script src="/static/page-specific/browse.js"></script>
+<input id="class_of_browse_object" value="run" type="hidden" />
+
+<script src="/static/page-specific/page-view.js"></script>
 {% endblock %}
