@@ -4,6 +4,7 @@ import re
 import json
 import requests
 import uuid
+import urllib
 import tempfile
 import os
 import io
@@ -101,6 +102,39 @@ def api_v1_get_run(raw_uuid):
         uuid_obj = uuid.UUID(raw_uuid, version=4)
         run_data = get_couch()["crab_runs"][str(uuid_obj)]
         return Response(json.dumps(run_data), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
+@browse_api.route("/api/v1/runs/<raw_uuid>/as_zip", methods=['GET'])
+def api_v1_run_download(raw_uuid):
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+        run_data = get_couch()["crab_runs"][str(uuid_obj)]
+        filename = str(uuid_obj)
+        if "identifier" in run_data:
+            filename = urllib.parse.quote_plus(run_data["identifier"])
+        zip_fp = io.BytesIO()
+        zip_fo = zipfile.ZipFile(zip_fp, "w", compression=zipfile.ZIP_DEFLATED)
+        zip_fo.writestr("run_metadata.json", json.dumps(run_data, indent=4))
+        zip_fo.mkdir("samples")
+        for sample in run_data["samples"]:
+            sample_metadata = get_couch()["crab_samples"][str(uuid.UUID(sample, version=4))] # This parsing is to throw an error on malformed input - it should not be removed!
+            zip_fo.writestr("samples/" + sample + ".json", json.dumps(sample_metadata, indent=4))
+
+            sample_bucket_obj = get_bucket_object(path=sample_metadata["path"])
+            sample_temp_file = io.BytesIO(sample_bucket_obj['Body'].read())
+            zip_fo.writestr("samples/" + sample + ".tiff", sample_temp_file.getvalue())
+
+        zip_fo.close()
+        out_bytearray = zip_fp.getvalue()
+        return Response(
+            out_bytearray,
+            mimetype="application/zip",
+            headers={"Content-Disposition": "attachment;filename=" + filename + ".zip"}
+            )
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
