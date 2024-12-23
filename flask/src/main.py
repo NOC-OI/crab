@@ -8,12 +8,18 @@ from utils import get_session_info, get_app_frontend_globals
 from user_management_controller import login_pages, account_pages
 from ingest_controller import ingest_pages
 from browse_controller import browse_pages, browse_api
+from project_controller import project_pages, project_api
+from collection_controller import collection_pages, collection_api
 
 app.register_blueprint(login_pages)
 app.register_blueprint(account_pages)
 app.register_blueprint(ingest_pages)
 app.register_blueprint(browse_pages)
 app.register_blueprint(browse_api)
+app.register_blueprint(project_pages)
+app.register_blueprint(project_api)
+app.register_blueprint(collection_pages)
+app.register_blueprint(collection_api)
 
 @app.errorhandler(404)
 def not_found_error_handler(e):

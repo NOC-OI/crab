@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}Collection{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1>{{ collection_data.identifier if collection_data.identifier is defined else "Untitled collection" }}</h1>
+    <span>Collection UUID: {{ collection_data._id }}</span><br />
+    <span>Create a new snapshot to publish this dataset</span>
+    <div class="my-3">
+        <a href="/api/v1/collections/{{ collection_data._id }}/as_zip" class="btn btn-primary">Download raw data</a>
+        <a href="/collections/{{ collection_data._id }}/new_snapshot" class="btn btn-primary">Create new snapshot</a>
+        <a href="/collections/{{ collection_data._id }}/delete" class="btn btn-danger">Delete</a>
+    </div>
+    <hr class="my-3">
+
+</div>
+{% endblock %}

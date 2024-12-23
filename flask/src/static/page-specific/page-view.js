@@ -126,6 +126,8 @@ let renderPage = (docs, docClass, listView, page) => {
 
         switch (docClass) {
             case "run":
+            case "project":
+            case "collection":
             default:
                 let cardImage = document.createElement("img");
                 cardImage.classList.add("card-img-top");
@@ -138,8 +140,13 @@ let renderPage = (docs, docClass, listView, page) => {
                 cardBody.classList.add("card-body");
                 card.appendChild(cardBody);
                 let cardTitle = document.createElement("a");
-                cardTitle.href = "/runs/" + docInfo["_id"];
+                switch (docClass) {
+                    default:
+                        cardTitle.href = "/" + docClass + "s/" + docInfo["_id"];
+                        break;
+                }
                 cardTitle.classList.add("card-title");
+                cardTitle.classList.add("fs-3");
                 cardTitle.innerText = docInfo["_id"];
                 if (docInfo.hasOwnProperty("identifier")) {
                     cardTitle.innerText = docInfo["identifier"]
@@ -148,22 +155,31 @@ let renderPage = (docs, docClass, listView, page) => {
 
                 let cardText = document.createElement("p");
                 cardText.classList.add("card-text");
-                if (docClass == "run") {
-                    let timestamp = new Date();
-                    timestamp.setTime(docInfo["ingest_timestamp"] * 1000);
-                    getUserInfo(docInfo["creator"]["uuid"]).then((userInfo) => {
-                        cardText.innerText = "Uploaded by " + userInfo["name"] + "\n on " + timestamp.toLocaleString();
-                    });
+                switch (docClass) {
+                    case "project":
+                        cardText.innerText = docInfo["description"];
+                        break;
+                    case "run":
+                        let timestamp = new Date();
+                        timestamp.setTime(docInfo["ingest_timestamp"] * 1000);
+                        getUserInfo(docInfo["creator"]["uuid"]).then((userInfo) => {
+                            cardText.innerText = "Uploaded by " + userInfo["name"] + "\n on " + timestamp.toLocaleString();
+                        });
+                        break;
                 }
                 cardBody.appendChild(cardText);
 
-                let cardNote = document.createElement("p");
-                cardNote.classList.add("card-text");
-                cardBody.appendChild(cardNote);
-                let cardNoteInner = document.createElement("small");
-                cardNoteInner.classList.add("text-muted");
-                cardNoteInner.innerText = "{" + docInfo["_id"] + "}";
-                cardNote.appendChild(cardNoteInner);
+                switch (docClass) {
+                    default:
+                        let cardNote = document.createElement("p");
+                        cardNote.classList.add("card-text");
+                        cardBody.appendChild(cardNote);
+                        let cardNoteInner = document.createElement("small");
+                        cardNoteInner.classList.add("text-muted");
+                        cardNoteInner.innerText = "{" + docInfo["_id"] + "}";
+                        cardNote.appendChild(cardNoteInner);
+                        break;
+                }
                 break;
         }
 
