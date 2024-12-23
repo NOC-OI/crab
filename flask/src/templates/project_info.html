@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Project{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+
+    <div class="container p-4 my-3 border rounded">
+        <h1>{{ project_data.identifier if project_data.identifier is defined else "Untitled project" }}</h1>
+        <span>{{ project_data.description }}</span>
+
+        <div class="my-3">
+        <a href="/projects/{{ project_data._id }}/edit" class="btn btn-outline-secondary">Edit project information <i class="bi bi-pencil-fill"></i></a>
+        </div>
+
+
+        {{ project_readme|safe }}
+    </div>
+
+    <form method="POST" action="" enctype="multipart/form-data">
+        <fieldset>
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" placeholder="Collection name" aria-label="New collection name" aria-describedby="button-addon2">
+                <button class="btn btn-primary" type="button" id="button-addon2">Create new collection</button>
+            </div>
+        </fieldset>
+    </form>
+
+    <div class="accordion" id="accordion-collections">
+        {% for collection in collections %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading-{{ collection._id }}">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ collection._id }}" aria-expanded="true" aria-controls="collapse-{{ collection._id }}">
+                {{ collection.identifier | capitalize }} collection
+            </button>
+            </h2>
+            <div id="collapse-{{ collection._id }}" class="accordion-collapse collapse show" aria-labelledby="heading-{{ collection._id }}" data-bs-parent="#accordion-collections">
+            <div class="accordion-body">
+                <span>Collection ID: {{ collection._id }}</span>
+            </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

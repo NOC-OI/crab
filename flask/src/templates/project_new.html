@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}New Project{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1>New project</h1>
+
+    <div class="col-lg-8 px-0">
+        <hr class="my-4">
+
+        <p class="fs-5">You'll be able to edit this information and add collaborators later.</p>
+        <form method="POST" action="" enctype="multipart/form-data">
+            <fieldset>
+                <div class="mb-3">
+                    <label class="form-label" for="identifier">Project name</label>
+                    <input class="form-control" type="text" name="identifier">
+                    <div class="form-text">Something short and simple that sums up the project</div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" name="public_visibility" id="public_visibility_checkbox" checked>
+                        <label class="form-check-label" for="public_visibility_checkbox">Public visibility</label>
+                    </div>
+                    <div class="form-text">When enabled, this allows complete public read access to the project. You'll still need to add collaborators who need to write to or edit the project.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="description">Description <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
+                    <textarea class="form-control" name="description"></textarea>
+                    <div class="form-text">This short description will be displayed in the project's card on the browse page.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="readme">Readme <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
+                    <textarea class="form-control" name="readme"></textarea>
+                    <div class="form-text">This description will be shown on the main project page. Markdown is supported.</div>
+                </div>
+                <div class="mb-3">
+                    <input class="btn btn-primary" type="submit" value="Create new project">
+                </div>
+            </fieldset>
+        </form>
+
+    </div>
+</div>
+{% endblock %}
