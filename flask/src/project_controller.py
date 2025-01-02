@@ -80,13 +80,22 @@ def project_detail_screen(raw_uuid):
         formatter = HtmlFormatter(style="emacs",full=True,cssclass="codehilite")
         css_string = formatter.get_style_defs()
         md_css_string = "<style>" + css_string + "</style>"
+        md_template_string = md_template_string.replace("<div class=\"codehilite\">", "<div class=\"codehilite container p-2 my-3 border rounded\">")
+        md_template_string = md_template_string.replace("<pre>", "<pre style=\"margin:0;\">")
         md_template = md_css_string + md_template_string
 
         collections = []
 
         for collection_id in project_data["collections"]:
             collection = get_couch()["crab_collections"][str(collection_id)]
-            collections.append(collection)
+            runs = []
+            for run_id in collection["runs"]:
+                runs.append(get_couch()["crab_runs"][str(run_id)])
+            collections.append({
+                    "_id": collection["_id"],
+                    "identifier": collection["identifier"],
+                    "runs": runs
+                })
 
         return render_template("project_info.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), project_data=project_data, project_readme=md_template, collections=collections)
     except ValueError:
@@ -124,3 +133,15 @@ def api_v1_get_projects():
     ret = requests.post(get_couch_base_uri() + "crab_projects/" + "_find", json=mango).json()
     print(ret)
     return Response(json.dumps(ret), status=200, mimetype='application/json')
+
+@project_api.route("/api/v1/projects/<raw_uuid>", methods=['GET'])
+def api_v1_get_project(raw_uuid):
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+        project_data = get_couch()["crab_projects"][str(uuid_obj)]
+        return Response(json.dumps(project_data), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')

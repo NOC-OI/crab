@@ -60,6 +60,19 @@ let base64URLdecode = (str) => {
     return atob(base64WithPadding);
 }
 
+let findGetParameter = (parameterName) => {
+    var result = null,
+    tmp = [];
+    location.search
+    .substr(1)
+    .split("&")
+    .forEach(function (item) {
+        tmp = item.split("=");
+        if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
+    });
+        return result;
+}
+
 let updateFragment = () => {
     let content = {
         "p": currentPage,
@@ -140,9 +153,21 @@ let renderPage = (docs, docClass, listView, page) => {
                 cardBody.classList.add("card-body");
                 card.appendChild(cardBody);
                 let cardTitle = document.createElement("a");
+                let connectTo = findGetParameter("connect_to");
+                let connectToClass = findGetParameter("connect_type");
                 switch (docClass) {
                     default:
-                        cardTitle.href = "/" + docClass + "s/" + docInfo["_id"];
+                        if (connectTo == null) {
+                            cardTitle.href = "/" + docClass + "s/" + docInfo["_id"];
+                        } else {
+                            switch (connectToClass) {
+                                case "collection":
+                                    cardTitle.href = "/api/v1/collections/" + connectTo + "/connect?to=" + docInfo["_id"] + "&type=" + docClass;
+                                    break;
+                                default:
+                                    cardTitle.href = "/" + docClass + "s/" + docInfo["_id"];
+                            }
+                        }
                         break;
                 }
                 cardTitle.classList.add("card-title");
