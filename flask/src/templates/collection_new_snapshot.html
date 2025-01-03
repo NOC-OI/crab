@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}New Snapshot{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1>Create new snapshot</h1>
+
+
+    <div class="col-lg-8 px-0">
+        <div class="alert alert-secondary my-3" role="alert">
+            <h4 class="alert-heading">Important note</h4>
+            <p class="mb-0">Snapshots cannot be edited. Make sure the collection contains all desired metadata and image data before creating your snapshot. You can delete snapshots, and change visibility settings, but nothing else.</p>
+        </div>
+        <hr class="my-4">
+        <form method="POST" action="" enctype="multipart/form-data">
+            <fieldset>
+                <div class="mb-3">
+                    <label class="form-label" for="snapshot_name">Snapshot name</label>
+                    <input class="form-control" type="text" name="snapshot_name" id="form_snapshot_name">
+                    <div class="form-text">If you have an internal naming scheme for releases, use your identifier here. You can leave this blank, and it will be autofilled with the current date.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="collection_uuid">Collection UUID</label>
+                    <input class="form-control" type="text" name="collection_uuid" value="{{ collection_data._id }}" id="form_collection_uuid" disabled>
+                    <div class="form-text">This identifier is unique to this upload and can't be changed.</div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" name="public_visibility_switch" id="public_visibility_switch" value="true" checked>
+                        <label class="form-check-label" for="public_visibility_switch">Publish snapshot publicly (no account required)</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="mb-3 spinner-container" style="display: none;">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="spinner-container-text"> Working on it...</span>
+                </div>
+                <div class="mb-3">
+                    <input class="btn btn-primary" onclick="takeSnapshot();" type="submit" value="Create snapshot">
+                </div>
+            </fieldset>
+        </form>
+
+    </div>
+</div>
+
+<div class="modal fade" id="modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="modalText"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/page-specific/new-snapshot.js"></script>
+{% endblock %}
