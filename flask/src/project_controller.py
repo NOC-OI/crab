@@ -48,7 +48,9 @@ def unpack_upload():
         }
 
     collection_template = {
+            "runs": [],
             "identifier": "main",
+            "project": project_uuid
         }
 
     project_dblist = get_couch()["crab_projects"]

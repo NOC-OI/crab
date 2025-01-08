@@ -45,5 +45,11 @@ def get_bucket():
 def get_bucket_object(full_path = None, path = None):
     return s3client.get_object(Bucket=s3_bucket, Key=path)
 
+def get_bucket_name():
+    return s3_bucket
+
+def get_s3_client():
+    return s3client
+
 def get_bucket_uri():
     return s3_endpoint + "/" + s3_bucket

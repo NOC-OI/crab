@@ -5,6 +5,48 @@ let modalAlert = (title, msg) => {
     modal.show();
 };
 
+let cJobCheck = null;
+
+let checkJob = (jobId, then = () => {}, onError = () => {}) => {
+    const method = 'get';
+    const xhr = new XMLHttpRequest();
+    const progressBar = document.body.querySelector(".progress-bar");
+    const spinnerContainer = document.body.querySelector(".spinner-container");
+    xhr.open(method, "/api/v1/jobs/" + jobId);
+    xhr.addEventListener('loadend', () => {
+        if (xhr.status === 200) {
+
+            let response = JSON.parse(xhr.responseText);
+
+            if (response["status"] == "COMPLETE") {
+                modalAlert("Snapshot taken", "You can now close this page, the snapshot has been successfully published.");
+                progressBar.aria_valuenow = 0;
+                progressBar.style.width = "0";
+                spinnerContainer.style.display = "none";
+            } else {
+                setTimeout(() => {
+                    checkJob(jobId, then, onError);
+                }, 1000);
+            }
+
+            //form.before(note);
+
+            //console.log(JSON.parse(xhr.responseText));
+            //then(form, JSON.parse(xhr.responseText));
+        } else {
+            onError(xhr.status);
+            modalAlert("Configuration failed", "Please try again");
+            progressBar.aria_valuenow = 0;
+            progressBar.style.width = "0";
+            spinnerContainer.style.display = "none";
+        }
+    });
+    progressBar.aria_valuenow = 100;
+    progressBar.style.width = "100%";
+    progressBar.classList.add("bg-success");
+    xhr.send();
+}
+
 let takeSnapshot = (then = () => {}, onError = () => {}) => {
     event.preventDefault();
     const method = 'post';
@@ -23,24 +65,26 @@ let takeSnapshot = (then = () => {}, onError = () => {}) => {
 
             //modalAlert("Upload succeeded", "You should now continue to add metadata. It's possible to do this later.");
             progressBar.aria_valuenow = 0;
-            progressBar.style.width = 0;
+            progressBar.style.width = "0";
 
+            progressBar.classList.remove("bg-warning");
+            progressBar.classList.add("bg-success");
 
-            //form.before(note);
-            spinnerContainer.style.display = "none";
-            console.log(JSON.parse(xhr.responseText));
-            then(form, JSON.parse(xhr.responseText));
+            let response = JSON.parse(xhr.responseText);
+            console.log(response);
+
+            checkJob(response["job_id"], then, onError)
         } else {
             onError(xhr.status);
             modalAlert("Configuration failed", "Please try again");
             progressBar.aria_valuenow = 0;
-            progressBar.style.width = 0;
+            progressBar.style.width = "0";
             fieldset.disabled = false;
             spinnerContainer.style.display = "none";
         }
     });
     progressBar.aria_valuenow = 100;
     progressBar.style.width = "100%";
-    progressBar.classList.add("bg-success");
+    progressBar.classList.add("bg-warning");
     xhr.send(data);
 };

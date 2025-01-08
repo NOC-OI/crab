@@ -10,6 +10,7 @@ from ingest_controller import ingest_pages
 from browse_controller import browse_pages, browse_api
 from project_controller import project_pages, project_api
 from collection_controller import collection_pages, collection_api
+from job_controller import job_pages, job_api
 
 app.register_blueprint(login_pages)
 app.register_blueprint(account_pages)
@@ -20,6 +21,8 @@ app.register_blueprint(project_pages)
 app.register_blueprint(project_api)
 app.register_blueprint(collection_pages)
 app.register_blueprint(collection_api)
+app.register_blueprint(job_pages)
+app.register_blueprint(job_api)
 
 @app.errorhandler(404)
 def not_found_error_handler(e):
