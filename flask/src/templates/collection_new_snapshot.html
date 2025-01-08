@@ -15,6 +15,7 @@
         <hr class="my-4">
         <form method="POST" action="" enctype="multipart/form-data">
             <fieldset>
+                <input type="hidden" name="redirect_on_success" value="/projects/{{ collection_data.project }}">
                 <div class="mb-3">
                     <label class="form-label" for="snapshot_name">Snapshot name</label>
                     <input class="form-control" type="text" name="snapshot_name" id="form_snapshot_name">

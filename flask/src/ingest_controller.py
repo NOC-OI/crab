@@ -65,6 +65,13 @@ def ifcb_unpack(run_uuid, workdir, namelist, metadata_template = {}):
     sample_dblist = get_couch()["crab_samples"]
     samples = []
 
+    mapping = {
+            "software_version": "source_software",
+            "analog_firmware_version": "firmware_version",
+            "sample_time": "sample_time",
+            "imager_id": "vendor_issued_hardware_id"
+        }
+
     for in_file in os.listdir(workdir):
         in_file_s = os.path.splitext(in_file)
         if in_file_s[1] == ".tiff":
@@ -72,7 +79,11 @@ def ifcb_unpack(run_uuid, workdir, namelist, metadata_template = {}):
             ofn = "runs/" + run_uuid + "/" + in_file_s[0] + ".tiff"
             get_bucket().upload_file(workdir + "/" + in_file, ofn)
             sample_uuid = str(uuid.uuid4())
-            current_unix_timestamp = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
+
+            sample_transformed_metadata = {}
+            for key in mapping:
+                sample_transformed_metadata[mapping[key]] = group_metadata[base_group][key]
+
             sample_metadata = {
                 "path": ofn,
                 "host": get_bucket_uri(),
@@ -86,13 +97,22 @@ def ifcb_unpack(run_uuid, workdir, namelist, metadata_template = {}):
                                 }
                             ]
                     },
+                "tags": sample_transformed_metadata,
                 "origin_tags": group_metadata[base_group].copy()
             }
             sample_dblist[sample_uuid] = sample_metadata
             samples.append(sample_uuid)
 
+    run_transformed_metadata = {}
+
+    for key in mapping:
+        run_transformed_metadata[mapping[key]] = run_metadata[key]
+
+    current_unix_timestamp = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
+
     metadata_template["origin_tags"] = run_metadata
-    metadata_template["ingest_timestamp"] =current_unix_timestamp
+    metadata_template["tags"] = run_transformed_metadata
+    metadata_template["ingest_timestamp"] = current_unix_timestamp
     metadata_template["sensor"] = "MCLANE_IFCB"
     metadata_template["samples"] = samples
 
