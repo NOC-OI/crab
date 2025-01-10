@@ -138,6 +138,8 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
     residual_run_origin_metadata = {}
     residual_sample_origin_metadata = {}
 
+    full_sample_metadata_heap = {}
+
     #run_info = []
     for run_id in collection_info["runs"]:
         run_info = get_couch()["crab_runs"][run_id]
@@ -157,6 +159,7 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
 
             raw_origin_metadata_sample_heap[sample_id] = sample_info["origin_tags"]
             raw_metadata_sample_heap[sample_id] = sample_info["tags"]
+            full_sample_metadata_heap[sample_id] = sample_info
             residual_sample_origin_metadata[sample_id] = {}
             residual_sample_metadata[sample_id] = {}
         raw_origin_metadata_run_heap[run_id] = run_info["origin_tags"]
@@ -242,11 +245,12 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
     #print(json.dumps(residual_sample_origin_metadata, indent=4))
     #print(json.dumps(residual_global_origin_metadata, indent=4))
 
-    snapshot_md["runs"] = {}
+    snapshot_md["samples"] = {}
 
     for sample_id in samples:
-        snapshot_md["runs"][sample_id] = residual_sample_metadata[sample_id]
-        snapshot_md["runs"][sample_id]["origin_tags"] = residual_sample_origin_metadata[sample_id]
+        snapshot_md["samples"][sample_id] = residual_sample_metadata[sample_id]
+        snapshot_md["samples"][sample_id]["origin_tags"] = residual_sample_origin_metadata[sample_id]
+        snapshot_md["samples"][sample_id]["type"] = full_sample_metadata_heap[sample_id]["type"]
 
     for key in residual_global_metadata:
         snapshot_md[key] = residual_global_metadata[key]
@@ -261,13 +265,23 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
     get_couch()["crab_snapshots"][snapshot_uuid] = snapshot_md
 
     with io.BytesIO(json.dumps(snapshot_md, indent=4).encode()) as f:
-        get_s3_client().upload_fileobj(f, get_bucket_name(), "snapshots/" + snapshot_uuid + ".json")
+        get_s3_client().upload_fileobj(f, get_bucket_name(), "snapshots/" + snapshot_uuid + "/crab_metadata.json")
+
+    current_collection_md = get_couch()["crab_collections"][collection_info["_id"]]
+    if not "snapshots" in current_collection_md:
+        current_collection_md["snapshots"] = []
+    current_collection_md["snapshots"].append(snapshot_uuid)
+    get_couch()["crab_collections"][collection_info["_id"]] = current_collection_md
 
     current_job_md = get_couch()["crab_jobs"][job_uuid]
     current_job_md["progress"] = 0.6
     get_couch()["crab_jobs"][job_uuid] = current_job_md
 
-
+    for run_id in collection_info["runs"]:
+        run_info = get_couch()["crab_runs"][run_id]
+        for sample_id in run_info["samples"]:
+            sample_info = get_couch()["crab_samples"][sample_id]
+            get_s3_client().copy_object(Bucket=get_bucket_name(), CopySource="/" + get_bucket_name() + "/" + sample_info["path"], Key="snapshots/" + snapshot_uuid + "/raw_img/" + sample_id + ".tiff")
 
     current_job_md = get_couch()["crab_jobs"][job_uuid]
     current_job_md["status"] = "COMPLETE"

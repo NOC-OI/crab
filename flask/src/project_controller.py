@@ -91,11 +91,21 @@ def project_detail_screen(raw_uuid):
         for collection_id in project_data["collections"]:
             collection = get_couch()["crab_collections"][str(collection_id)]
             runs = []
-            for run_id in collection["runs"]:
-                runs.append(get_couch()["crab_runs"][str(run_id)])
+            if "runs" in collection:
+                for run_id in collection["runs"]:
+                    if run_id in get_couch()["crab_runs"]:
+                        runs.append(get_couch()["crab_runs"][run_id])
+            snapshots = []
+            if "snapshots" in collection:
+                for snapshot_id in collection["snapshots"]:
+                    if snapshot_id in get_couch()["crab_snapshots"]:
+                        snapshots.append(get_couch()["crab_snapshots"][snapshot_id])
+                        print(json.dumps(get_couch()["crab_snapshots"][snapshot_id], indent=2))
+
             collections.append({
                     "_id": collection["_id"],
                     "identifier": collection["identifier"],
+                    "snapshots": snapshots,
                     "runs": runs
                 })
 
