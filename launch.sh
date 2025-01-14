@@ -1,5 +1,6 @@
 #!/bin/bash
 source .env
+docker network create "public"
 docker compose down
 docker compose up -d minio
 docker compose up -d couchdb
