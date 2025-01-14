@@ -4,6 +4,6 @@ SHELL ["/bin/bash", "-c"]
 RUN pip install flask markdown gunicorn boto3 couchdb requests pillow numpy pyjwt cryptography pygments
 COPY src /app
 WORKDIR /app
-RUN mkdir temp
+RUN mkdir -p temp
 ENTRYPOINT ["gunicorn -w 4 -b 0.0.0.0 'main:app'"]
 STOPSIGNAL SIGQUIT
