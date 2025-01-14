@@ -82,7 +82,8 @@ def ifcb_unpack(run_uuid, workdir, namelist, metadata_template = {}):
 
             sample_transformed_metadata = {}
             for key in mapping:
-                sample_transformed_metadata[mapping[key]] = group_metadata[base_group][key]
+                if key in group_metadata:
+                    sample_transformed_metadata[mapping[key]] = group_metadata[base_group][key]
 
             sample_metadata = {
                 "path": ofn,
