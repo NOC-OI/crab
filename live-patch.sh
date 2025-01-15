@@ -1,5 +1,6 @@
 #!/bin/bash
 source .env
+./build.sh
 # Just bring UI down, leave everything else possible up
 docker compose down ui
 docker compose up -d minio

@@ -100,7 +100,7 @@ def project_detail_screen(raw_uuid):
                 for snapshot_id in collection["snapshots"]:
                     if snapshot_id in get_couch()["crab_snapshots"]:
                         snapshots.append(get_couch()["crab_snapshots"][snapshot_id])
-                        print(json.dumps(get_couch()["crab_snapshots"][snapshot_id], indent=2))
+                        #print(json.dumps(get_couch()["crab_snapshots"][snapshot_id], indent=2))
 
             collections.append({
                     "_id": collection["_id"],
@@ -143,7 +143,7 @@ def api_v1_get_projects():
     #            "sort": mango_sort,
 
     ret = requests.post(get_couch_base_uri() + "crab_projects/" + "_find", json=mango).json()
-    print(ret)
+    #print(ret)
     return Response(json.dumps(ret), status=200, mimetype='application/json')
 
 @project_api.route("/api/v1/projects/<raw_uuid>", methods=['GET'])
