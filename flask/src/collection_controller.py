@@ -328,6 +328,7 @@ def api_v1_create_snapshot(raw_uuid):
             #get_couch()["crab_collections"][str(uuid_obj)] = collection_data
             return Response(json.dumps({
                 "name": name,
+                "snapshot_id": str(snapshot_uuid),
                 "make_public": public_avail,
                 "job_id": str(job_uuid),
                 "collection": collection_data

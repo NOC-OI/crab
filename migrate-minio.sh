@@ -80,3 +80,4 @@ docker cp crab-policy.json crab-minio:/tmp/crab-policy.json
 docker exec -it crab-minio mc admin policy create $MC_ALIAS crab-policy /tmp/crab-policy.json
 docker exec -it crab-minio mc admin policy attach $MC_ALIAS crab-policy --user "$S3_ACCESS_KEY"
 rm crab-policy.json
+docker exec -it crab-minio mc anonymous set download $MC_ALIAS/$S3_BUCKET
