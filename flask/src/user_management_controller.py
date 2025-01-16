@@ -8,7 +8,7 @@ import urllib
 from flask import Blueprint, request, render_template, Response, make_response, redirect
 
 from utils import get_session_info, get_app_frontend_globals
-from db import get_couch
+from db import get_couch, get_couch_base_uri
 
 openid_config_uri = os.environ.get("CRAB_OPENID_CONFIG_URI")
 openid_client_id = os.environ.get("CRAB_OPENID_CLIENT_ID")
@@ -62,8 +62,36 @@ def login_inbound_redirect():
 
         session_info = get_couch()["crab_sessions"][session_uuid]
 
+
+        user_uuid = str(uuid.uuid4()) # Start with a random uid, overwrite with existing if possible
+
+        mango_selector = {
+                "openid_sub": openid_user_info["sub"]
+            }
+        mango = {
+                "selector": mango_selector,
+                "fields": ["_id", "openid_sub"]
+            }
+        user_search_resp = requests.post(get_couch_base_uri() + "crab_users/" + "_find", json=mango).json()
+
+        if len(user_search_resp["docs"]) > 0:
+            user_uuid = user_search_resp["docs"][0]["_id"]
+        else:
+            # Fallback to email if sub does not match
+            mango_selector = {
+                    "email": openid_user_info["email"]
+                }
+            mango = {
+                    "selector": mango_selector,
+                    "fields": ["_id", "openid_sub"]
+                }
+            user_search_resp = requests.post(get_couch_base_uri() + "crab_users/" + "_find", json=mango).json()
+            if len(user_search_resp["docs"]) > 0:
+                user_uuid = user_search_resp["docs"][0]["_id"]
+
+
         session_info["openid_info"] = openid_user_info
-        session_info["user_uuid"] = openid_user_info["sub"]
+        session_info["user_uuid"] = user_uuid
         session_info["auth_type"] = "OPENID"
         if "email" in openid_user_info:
             session_info["email"] = openid_user_info["email"]
@@ -92,6 +120,7 @@ def login_inbound_redirect():
         user_doc = {
                 "email": session_info["email"],
                 "name": session_info["name"],
+                "openid_sub": openid_user_info["sub"],
                 "short_name": session_info["short_name"]
             }
         if session_info["user_uuid"] in get_couch()["crab_users"]:
