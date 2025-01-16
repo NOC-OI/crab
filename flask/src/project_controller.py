@@ -12,12 +12,30 @@ from pygments.formatters import HtmlFormatter
 project_pages = Blueprint("project_pages", __name__)
 project_api = Blueprint("project_api", __name__)
 
+def can_view(project_uuid):
+    session_info = get_session_info()
+    project_data = get_couch()["crab_projects"][project_uuid]
+    if not session_info is None:
+        if session_info["user_uuid"] in project_data["collaborators"]:
+            return True
+    return project_data["public_visibility"]
+
+def can_edit(project_uuid):
+    session_info = get_session_info()
+    project_data = get_couch()["crab_projects"][project_uuid]
+    if not session_info is None:
+        if session_info["user_uuid"] in project_data["collaborators"]:
+            return True
+    return False
+
 @project_pages.route("/projects/new", methods=['GET'])
 def project_new_screen():
     session_info = get_session_info()
     if session_info is None:
         return redirect("/login", code=302)
     return render_template("project_new.html", global_vars=get_app_frontend_globals(), session_info=get_session_info())
+
+
 
 @project_pages.route("/projects/new", methods=['POST'])
 def unpack_upload():
@@ -41,6 +59,7 @@ def unpack_upload():
     document_template = {
             "identifier": identifier,
             "public_visibility": public_visibility,
+            "collaborators": [session_info["user_uuid"]],
             "description": description,
             "readme": readme,
             "creation_timestamp": timestamp,
@@ -66,10 +85,81 @@ def unpack_upload():
     response = make_response(redirect("/projects/" + project_uuid, code=302))
     return response
 
+@project_pages.route("/projects/<raw_uuid>/edit", methods=['GET'])
+def project_edit_screen(raw_uuid):
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_edit(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to edit this resource."
+                }), status=401, mimetype='application/json')
+
+        project_data = get_couch()["crab_projects"][str(uuid_obj)]
+        return render_template("project_edit.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), project_data=project_data)
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
+@project_pages.route("/projects/<raw_uuid>/edit", methods=['POST'])
+def project_edit_function(raw_uuid):
+    session_info = get_session_info()
+    if session_info is None:
+        return Response(json.dumps({
+            "error": "notLoggedIn",
+            "msg": "User is not logged in, or session has expired."
+            }), status=403, mimetype='application/json')
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_edit(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to edit this resource."
+                }), status=401, mimetype='application/json')
+
+        project_data = get_couch()["crab_projects"][str(uuid_obj)]
+
+        project_data["identifier"] = request.form.get("identifier", str(uuid_obj))
+        project_data["public_visibility"] = request.form.get("public_visibility", False)
+        project_data["description"] = request.form.get("description", "")
+        colabs_raw = request.form.get("collaborators", "").splitlines()
+        collaborators = []
+        if len(colabs_raw) == 0:
+            collaborators.append(session_info["user_uuid"])
+        for collaborator in colabs_raw:
+            try:
+                uuid_colab = uuid.UUID(collaborator, version=4)
+                collaborators.append(str(uuid_colab))
+            except ValueError:
+                pass
+        project_data["collaborators"] = collaborators
+        project_data["readme"] = request.form.get("readme", "")
+
+        get_couch()["crab_projects"][str(uuid_obj)] = project_data
+
+        response = make_response(redirect("/projects/" + str(uuid_obj), code=302))
+        return response
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
 @project_pages.route("/projects/<raw_uuid>", methods=['GET'])
 def project_detail_screen(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_view(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "readDenied",
+                "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
         project_data = get_couch()["crab_projects"][str(uuid_obj)]
         md_template_string = markdown.markdown(
             project_data["readme"], extensions=[
@@ -109,7 +199,7 @@ def project_detail_screen(raw_uuid):
                     "runs": runs
                 })
 
-        return render_template("project_info.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), project_data=project_data, project_readme=md_template, collections=collections)
+        return render_template("project_info.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), project_data=project_data, project_readme=md_template, collections=collections, can_edit=can_edit(str(uuid_obj)))
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
@@ -150,6 +240,13 @@ def api_v1_get_projects():
 def api_v1_get_project(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_view(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "readDenied",
+                "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
         project_data = get_couch()["crab_projects"][str(uuid_obj)]
         return Response(json.dumps(project_data), status=200, mimetype='application/json')
     except ValueError:

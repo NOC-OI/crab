@@ -64,6 +64,7 @@ def login_inbound_redirect():
 
         session_info["openid_info"] = openid_user_info
         session_info["user_uuid"] = openid_user_info["sub"]
+        session_info["auth_type"] = "OPENID"
         if "email" in openid_user_info:
             session_info["email"] = openid_user_info["email"]
             session_info["status"] = "ACTIVE"
