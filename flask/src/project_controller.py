@@ -228,6 +228,7 @@ def api_v1_get_projects():
             "selector": mango_selector,
             "fields": ["collaborators", "creation_timestamp", "_id", "identifier", "description", "collections"],
             "skip": page * limit,
+            "sort": mango_sort,
             "limit": limit
         }
     #            "sort": mango_sort,
