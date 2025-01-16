@@ -77,17 +77,18 @@ def login_inbound_redirect():
         if len(user_search_resp["docs"]) > 0:
             user_uuid = user_search_resp["docs"][0]["_id"]
         else:
-            # Fallback to email if sub does not match
-            mango_selector = {
-                    "email": openid_user_info["email"]
-                }
-            mango = {
-                    "selector": mango_selector,
-                    "fields": ["_id", "openid_sub"]
-                }
-            user_search_resp = requests.post(get_couch_base_uri() + "crab_users/" + "_find", json=mango).json()
-            if len(user_search_resp["docs"]) > 0:
-                user_uuid = user_search_resp["docs"][0]["_id"]
+            if "email" in openid_user_info:
+                # Fallback to email if sub does not match
+                mango_selector = {
+                        "email": openid_user_info["email"]
+                    }
+                mango = {
+                        "selector": mango_selector,
+                        "fields": ["_id", "openid_sub"]
+                    }
+                user_search_resp = requests.post(get_couch_base_uri() + "crab_users/" + "_find", json=mango).json()
+                if len(user_search_resp["docs"]) > 0:
+                    user_uuid = user_search_resp["docs"][0]["_id"]
 
 
         session_info["openid_info"] = openid_user_info
