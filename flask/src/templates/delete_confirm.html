@@ -10,8 +10,8 @@
 <form method="POST" action="{{ action_uri }}" enctype="multipart/form-data">
     <fieldset>
 
-        <input class="form-control" type="text" name="csrf_token" value="{{ csrf_token }}">
-        <input class="form-control" type="text" name="redirect" value="{{ redirect_uri }}">
+        <input class="form-control" type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input class="form-control" type="hidden" name="redirect" value="{{ redirect_uri }}">
 
         <div class="mb-3">
             <input class="btn btn-danger" type="submit" value="Delete object">

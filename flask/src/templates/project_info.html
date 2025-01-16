@@ -48,7 +48,7 @@
                 {% if can_edit %}
                 <a href="/collections/{{ collection._id }}/new-snapshot" class="btn btn-primary">Publish snapshot</a>
                 {% endif %}
-                {% for snapshot in collection.snapshots %}
+                {% for snapshot in collection.snapshots|reverse %}
                 <div class="mt-3">
                     <div class="card">
                         <div class="card-body">
@@ -67,7 +67,7 @@
                 {% if can_edit %}
                 <a href="/runs?connect_to={{ collection._id }}&connect_type=collection&finish_redirect=%2Fprojects%2F{{ project_data._id }}" class="btn btn-primary">Add data run</a>
                 {% endif %}
-                {% for run in collection.runs %}
+                {% for run in collection.runs|reverse %}
                 <div class="mt-3">
                     <div class="card">
                         <div class="card-body">
