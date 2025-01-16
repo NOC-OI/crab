@@ -20,7 +20,17 @@ def to_snake_case(str_in):
 
 def get_session_info():
     session_uuid = None
-    raw_session_id = request.cookies.get("sessionId")
+    raw_session_id = None
+    access_token = None
+    bearer_token = request.headers.get("authorization")
+    if not bearer_token is None:
+        bearer_token_components = bearer_token.split(".")
+        if len(bearer_token_components) > 1:
+            raw_session_id = bearer_token_components[0]
+            access_token = bearer_token_components[1]
+    if raw_session_id is None:
+        raw_session_id = request.cookies.get("sessionId")
+        access_token = request.cookies.get("sessionKey")
     if raw_session_id is None:
         return None
     try:
@@ -30,7 +40,7 @@ def get_session_info():
         return None
     session_info = get_couch()["crab_sessions"][session_uuid].copy()
     if session_info["status"] == "ACTIVE":
-        if session_info["access_token"] == request.cookies.get("sessionKey"):
+        if session_info["access_token"] == access_token:
             session_info["session_uuid"] = session_uuid
             return session_info
     return None

@@ -1,10 +1,11 @@
 from flask import Blueprint, request, render_template, Response, make_response, send_file, redirect
 import uuid
 import requests
-import datetime
+from datetime import datetime
 from multiprocessing import Process
 import io
 import os
+import jwt
 import zipfile
 import json
 from utils import get_session_info, get_app_frontend_globals, to_snake_case
@@ -13,12 +14,149 @@ from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bu
 snapshot_pages = Blueprint("snapshot_pages", __name__)
 snapshot_api = Blueprint("snapshot_api", __name__)
 
+csrf_secret_key = os.environ.get("CRAB_CSRF_SECRET_KEY")
+
+
+def can_view(snapshot_uuid):
+    session_info = get_session_info()
+    snapshot_data = get_couch()["crab_snapshots"][snapshot_uuid]
+    collection_data = get_couch()["crab_collections"][snapshot_data["collection"]]
+    project_data = get_couch()["crab_projects"][collection_data["project"]]
+    if not session_info is None:
+        if session_info["user_uuid"] in project_data["collaborators"]:
+            return True
+    override = False
+    if "public_visibility" in snapshot_data:
+        override = snapshot_data["public_visibility"]
+    return project_data["public_visibility"] or override
+
+def can_edit(snapshot_uuid):
+    session_info = get_session_info()
+    snapshot_data = get_couch()["crab_snapshots"][snapshot_uuid]
+    collection_data = get_couch()["crab_collections"][snapshot_data["collection"]]
+    project_data = get_couch()["crab_projects"][collection_data["project"]]
+    if not session_info is None:
+        if session_info["user_uuid"] in project_data["collaborators"]:
+            return True
+    return False
+
 @snapshot_pages.route("/snapshots/<raw_uuid>", methods=['GET'])
 def snapshot_info_page(raw_uuid):
+    session_info = get_session_info()
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_view(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "readDenied",
+                "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
         snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
-        return render_template("snapshot_info.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), snapshot_data=snapshot_data)
+        collection_data = get_couch()["crab_collections"][snapshot_data["collection"]]
+        project_data = get_couch()["crab_projects"][collection_data["project"]]
+        is_collaborator = False
+        if not session_info is None:
+            if session_info["user_uuid"] in project_data["collaborators"]:
+                is_collaborator = True
+        return render_template("snapshot_info.html", global_vars=get_app_frontend_globals(), session_info=session_info, snapshot_data=snapshot_data, is_collaborator=is_collaborator)
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
+@snapshot_pages.route("/snapshots/<raw_uuid>/delete", methods=['GET'])
+def snapshot_delete_page(raw_uuid):
+    session_info = get_session_info()
+    if session_info is None:
+        return Response(json.dumps({
+            "error": "notLoggedIn",
+            "msg": "User is not logged in, or session has expired."
+            }), status=403, mimetype='application/json')
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_edit(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to edit this resource."
+                }), status=401, mimetype='application/json')
+
+        snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
+        jwt_token_content = {
+                "iat": (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds(),
+                "sub": session_info["user_uuid"],
+                "targ": str(uuid_obj),
+                "prp": "csrf"
+            }
+        csrf_token = jwt.encode(jwt_token_content, csrf_secret_key, algorithm="HS256")
+        object_name = "snapshot"
+        project_id = get_couch()["crab_collections"][snapshot_data["collection"]]["project"]
+        action_uri = "/api/v1/snapshots/" + str(uuid_obj) + "/delete"
+        return render_template("delete_confirm.html", global_vars=get_app_frontend_globals(), session_info=session_info, object_name=object_name, csrf_token=csrf_token, action_uri=action_uri, redirect_uri="/projects/" + project_id)
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
+@snapshot_api.route("/api/v1/snapshots/<raw_uuid>/delete", methods=["POST", "DELETE"])
+def api_v1_snapshot_delete(raw_uuid):
+    session_info = get_session_info()
+    if session_info is None:
+        return Response(json.dumps({
+            "error": "notLoggedIn",
+            "msg": "User is not logged in, or session has expired."
+            }), status=403, mimetype='application/json')
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+        redirect_uri = request.form.get("redirect", "")
+
+
+
+        if not can_edit(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to edit this resource."
+                }), status=401, mimetype='application/json')
+
+
+        if session_info["auth_type"] == "OPENID":
+            # Only do CSRF checking on users authenticated via a browser
+            try:
+                csrf_token = jwt.decode(request.form.get("csrf_token", ""), csrf_secret_key, algorithms=["HS256"])
+                if not (csrf_token["prp"] == "csrf" and csrf_token["targ"] == str(uuid_obj) and csrf_token["sub"] == session_info["user_uuid"]):
+                    return Response(json.dumps({
+                        "error": "invalidCSRFToken",
+                        "msg": "CSRF token invalid for this use"
+                        }), status=401, mimetype='application/json')
+            except jwt.exceptions.InvalidSignatureError:
+                return Response(json.dumps({
+                    "error": "badCSRFToken",
+                    "msg": "CSRF token tampering detected"
+                    }), status=401, mimetype='application/json')
+
+
+        snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
+        collection_data = get_couch()["crab_collections"][snapshot_data["collection"]]
+        project_data = get_couch()["crab_projects"][collection_data["project"]]
+
+
+        collection_data["snapshots"].remove(str(uuid_obj))
+
+        get_s3_client().delete_object(Bucket=get_bucket_name(), Key="snapshots/" + str(uuid_obj))
+
+        get_couch()["crab_collections"][snapshot_data["collection"]] = collection_data
+        get_couch()["crab_snapshots"].delete(snapshot_data)
+
+        if len(redirect_uri) > 0:
+            return redirect(redirect_uri, code=302)
+        else:
+            return Response(json.dumps({
+                "msg": "objectDeleted"
+                }), status=200, mimetype='application/json')
+
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
@@ -29,6 +167,13 @@ def snapshot_info_page(raw_uuid):
 def api_v1_snapshot_download_package(raw_uuid, ptype):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_view(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "readDenied",
+                "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
         snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
         s3path = snapshot_data["packages"][ptype]["path"]
         temp_file = get_bucket_object(path=s3path)
@@ -47,6 +192,13 @@ def api_v1_snapshot_download_package(raw_uuid, ptype):
 def api_v1_get_snapshot(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_view(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "readDenied",
+                "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
         snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
         return Response(json.dumps(snapshot_data), status=200, mimetype='application/json')
     except ValueError:
@@ -125,6 +277,13 @@ def api_v1_create_snapshot(raw_uuid, p_type):
     p_type = p_type.lower()
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_edit(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to edit this resource."
+                }), status=401, mimetype='application/json')
+
         snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
         job_uuid = uuid.uuid4()
         job_md = {

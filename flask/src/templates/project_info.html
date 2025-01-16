@@ -10,21 +10,28 @@
         <span>{{ project_data.description }}</span>
 
         <div class="my-3">
+        {% if can_edit %}
         <a href="/projects/{{ project_data._id }}/edit" class="btn btn-outline-secondary">Edit project information <i class="bi bi-pencil-fill"></i></a>
+        {% endif %}
         </div>
 
 
         {{ project_readme|safe }}
     </div>
-
+{% if can_edit %}
     <form method="POST" action="" enctype="multipart/form-data">
         <fieldset>
             <div class="input-group mb-3">
                 <input type="text" class="form-control" placeholder="Collection name" aria-label="New collection name" aria-describedby="button-addon2">
+
                 <button class="btn btn-primary" type="button" id="button-addon2">Create new collection</button>
+
             </div>
         </fieldset>
     </form>
+    {% endif %}
+
+
 
     <div class="accordion" id="accordion-collections">
         {% for collection in collections %}
@@ -38,7 +45,9 @@
             <div class="accordion-body">
 
                 <h5>Snapshots</h5>
+                {% if can_edit %}
                 <a href="/collections/{{ collection._id }}/new-snapshot" class="btn btn-primary">Publish snapshot</a>
+                {% endif %}
                 {% for snapshot in collection.snapshots %}
                 <div class="mt-3">
                     <div class="card">
@@ -55,7 +64,9 @@
                 {% endfor %}
                 <hr class="my-3">
                 <h5>Samples</h5>
-                <a href="/runs?connect_to={{ collection._id }}&connect_type=collection" class="btn btn-primary">Add data run</a>
+                {% if can_edit %}
+                <a href="/runs?connect_to={{ collection._id }}&connect_type=collection&finish_redirect=%2Fprojects%2F{{ project_data._id }}" class="btn btn-primary">Add data run</a>
+                {% endif %}
                 {% for run in collection.runs %}
                 <div class="mt-3">
                     <div class="card">

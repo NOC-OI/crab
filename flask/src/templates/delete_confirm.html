@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Project{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+
+<h1>Really delete {{ object_name }}?</h1>
+
+<form method="POST" action="{{ action_uri }}" enctype="multipart/form-data">
+    <fieldset>
+
+        <input class="form-control" type="text" name="csrf_token" value="{{ csrf_token }}">
+        <input class="form-control" type="text" name="redirect" value="{{ redirect_uri }}">
+
+        <div class="mb-3">
+            <input class="btn btn-danger" type="submit" value="Delete object">
+            <a class="btn btn-primary" href="{{ redirect_uri }}">Cancel</a>
+        </div>
+    </fieldset>
+</form>
+
+</div>
+{% endblock %}

@@ -11,12 +11,41 @@ from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bu
 collection_pages = Blueprint("collection_pages", __name__)
 collection_api = Blueprint("collection_api", __name__)
 
+def can_view(collection_uuid):
+    session_info = get_session_info()
+    project_data = get_couch()["crab_projects"][get_couch()["crab_collections"][collection_uuid]["project"]]
+    if not session_info is None:
+        if session_info["user_uuid"] in project_data["collaborators"]:
+            return True
+    return project_data["public_visibility"]
+
+def can_edit(collection_uuid):
+    session_info = get_session_info()
+    project_data = get_couch()["crab_projects"][get_couch()["crab_collections"][collection_uuid]["project"]]
+    if not session_info is None:
+        if session_info["user_uuid"] in project_data["collaborators"]:
+            return True
+    return False
+
 @collection_pages.route("/collections/<raw_uuid>", methods=['GET'])
 def collection_detail_screen(raw_uuid):
+    session_info = get_session_info()
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_view(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "readDenied",
+                "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
         collection_data = get_couch()["crab_collections"][str(uuid_obj)]
-        return render_template("collection_info.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), collection_data=collection_data)
+        project_data = get_couch()["crab_projects"][get_couch()["crab_collections"][str(uuid_obj)]["project"]]
+        is_collaborator = False
+        if not session_info is None:
+            if session_info["user_uuid"] in project_data["collaborators"]:
+                is_collaborator = True
+        return render_template("collection_info.html", global_vars=get_app_frontend_globals(), session_info=session_info, collection_data=collection_data, is_collaborator=is_collaborator)
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
@@ -28,6 +57,13 @@ def collection_detail_screen(raw_uuid):
 def collection_new_snapshot(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_edit(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to edit this resource."
+                }), status=401, mimetype='application/json')
+
         collection_data = get_couch()["crab_collections"][str(uuid_obj)]
         return render_template("collection_new_snapshot.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), collection_data=collection_data)
     except ValueError:
@@ -65,12 +101,20 @@ def api_v1_get_collections():
 
     ret = requests.post(get_couch_base_uri() + "crab_collections/" + "_find", json=mango).json()
     #print(ret)
+
     return Response(json.dumps(ret), status=200, mimetype='application/json')
 
 @collection_api.route("/api/v1/collections/<raw_uuid>", methods=['GET'])
 def api_v1_get_collection(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_view(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "readDenied",
+                "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
         collection_data = get_couch()["crab_collections"][str(uuid_obj)]
         return Response(json.dumps(collection_data), status=200, mimetype='application/json')
     except ValueError:
@@ -83,6 +127,13 @@ def api_v1_get_collection(raw_uuid):
 def api_v1_add_collection_connection(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_edit(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to edit this resource."
+                }), status=401, mimetype='application/json')
+
         collection_data = get_couch()["crab_collections"][str(uuid_obj)]
         to_raw_uuid = request.args.get("to", None)
         to_uuid_obj = uuid.UUID(to_raw_uuid, version=4)
@@ -93,10 +144,15 @@ def api_v1_add_collection_connection(raw_uuid):
                 collection_data["runs"] = []
             collection_data["runs"].append(str(to_uuid_obj))
             get_couch()["crab_collections"][str(uuid_obj)] = collection_data
-            return Response(json.dumps({
-                "msg": "done",
-                "collection": collection_data
-                }), status=200, mimetype='application/json')
+
+            redirect_uri = request.args.get("redirect", "")
+            if len(redirect_uri) > 0:
+                return redirect(redirect_uri, code=302)
+            else:
+                return Response(json.dumps({
+                    "msg": "done",
+                    "collection": collection_data
+                    }), status=200, mimetype='application/json')
         else:
             return Response(json.dumps({
                 "error": "badType",
@@ -295,6 +351,13 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
 def api_v1_create_snapshot(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_edit(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to edit this resource."
+                }), status=401, mimetype='application/json')
+
         collection_data = get_couch()["crab_collections"][str(uuid_obj)]
         name = request.form.get("snapshot_name", "")
         if len(name) == 0:
@@ -304,6 +367,7 @@ def api_v1_create_snapshot(raw_uuid):
         snapshot_uuid = uuid.uuid4()
         snapshot_md = {
                 "identifier": name,
+                "public_visibility": public_avail,
                 "collection": str(uuid_obj)
             }
         job_uuid = uuid.uuid4()

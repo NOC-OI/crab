@@ -154,6 +154,7 @@ let renderPage = (docs, docClass, listView, page) => {
                 card.appendChild(cardBody);
                 let cardTitle = document.createElement("a");
                 let connectTo = findGetParameter("connect_to");
+                let redirect = findGetParameter("finish_redirect");
                 let connectToClass = findGetParameter("connect_type");
                 switch (docClass) {
                     default:
@@ -162,7 +163,7 @@ let renderPage = (docs, docClass, listView, page) => {
                         } else {
                             switch (connectToClass) {
                                 case "collection":
-                                    cardTitle.href = "/api/v1/collections/" + connectTo + "/connect?to=" + docInfo["_id"] + "&type=" + docClass;
+                                    cardTitle.href = "/api/v1/collections/" + connectTo + "/connect?to=" + docInfo["_id"] + "&type=" + docClass + "&redirect=" + redirect;
                                     break;
                                 default:
                                     cardTitle.href = "/" + docClass + "s/" + docInfo["_id"];

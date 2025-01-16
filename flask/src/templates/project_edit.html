@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Project{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+
+<form method="POST" action="" enctype="multipart/form-data">
+    <fieldset>
+
+        <div class="mb-3">
+            <label class="form-label" for="identifier">Project name</label>
+            <input class="form-control" type="text" name="identifier" value="{{ project_data.identifier }}">
+            <div class="form-text">Something short and simple that sums up the project</div>
+        </div>
+
+
+        <div class="mb-3">
+            <label class="form-label" for="project_uuid">Project UUID</label>
+            <input class="form-control" type="text" name="project_uuid" disabled value="{{ project_data._id }}">
+            <div class="form-text">This identifier is unique to this project and can't be changed.</div>
+        </div>
+
+        <div class="mb-3">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" name="public_visibility" id="public_visibility_checkbox" {% if project_data.public_visibility %}checked{% endif %}>
+                <label class="form-check-label" for="public_visibility_checkbox">Public visibility</label>
+            </div>
+            <div class="form-text">When enabled, this allows complete public read access to the project. Otherwise project will be visible to collaborators only. Regardless, you'll still need to add collaborators who need to write to or edit the project.</div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="collaborators">Collaborators</label>
+            <textarea class="form-control" name="collaborators">{% for collaborator in project_data.collaborators %}{{ collaborator }}
+{% endfor %}</textarea>
+            <div class="form-text">Enter each collaborator in a new line.</div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="description">Description <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
+            <textarea class="form-control" name="description">{{ project_data.description }}</textarea>
+            <div class="form-text">This short description will be displayed in the project's card on the browse page.</div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="readme">Readme <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
+            <textarea class="form-control" name="readme" style="font-family: monospace;">{{ project_data.readme }}</textarea>
+            <div class="form-text">This description will be shown on the main project page. Markdown is supported.</div>
+        </div>
+        <div class="mb-3">
+            <input class="btn btn-primary" type="submit" value="Save changes">
+        </div>
+    </fieldset>
+</form>
+
+</div>
+{% endblock %}

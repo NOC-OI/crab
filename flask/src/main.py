@@ -1,5 +1,8 @@
 from flask import Flask, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
+import os
+
+csrf_secret_key = os.environ.get("CRAB_CSRF_SECRET_KEY")
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
