@@ -14,14 +14,14 @@ from flask import Blueprint, request, render_template, Response, make_response, 
 from utils import get_session_info, get_app_frontend_globals, to_snake_case
 from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object
 
-browse_pages = Blueprint("browse_pages", __name__)
-browse_api = Blueprint("browse_api", __name__)
+run_pages = Blueprint("run_pages", __name__)
+run_api = Blueprint("run_api", __name__)
 
-@browse_pages.route("/runs", methods=['GET'])
-def run_browse_screen():
+@run_pages.route("/runs", methods=['GET'])
+def run_run_screen():
     return render_template("runs.html", global_vars=get_app_frontend_globals(), session_info=get_session_info())
 
-@browse_pages.route("/runs/<raw_uuid>", methods=['GET'])
+@run_pages.route("/runs/<raw_uuid>", methods=['GET'])
 def run_detail_screen(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
@@ -33,7 +33,7 @@ def run_detail_screen(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-@browse_api.route("/api/v1/runs", methods=["POST", "GET"])
+@run_api.route("/api/v1/runs", methods=["POST", "GET"])
 def api_v1_get_runs():
     raw_selector = json.dumps({})
     mango_selector = json.loads(raw_selector)
@@ -62,8 +62,8 @@ def api_v1_get_runs():
 
     return Response(json.dumps(ret), status=200, mimetype='application/json')
 
-#@browse_api.route("/api/v1/get_run/<raw_uuid>", methods=['GET'])
-@browse_api.route("/api/v1/runs/<raw_uuid>", methods=['GET'])
+#@run_api.route("/api/v1/get_run/<raw_uuid>", methods=['GET'])
+@run_api.route("/api/v1/runs/<raw_uuid>", methods=['GET'])
 def api_v1_get_run(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
@@ -75,7 +75,7 @@ def api_v1_get_run(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-@browse_api.route("/api/v1/runs/<raw_uuid>/as_zip", methods=['GET'])
+@run_api.route("/api/v1/runs/<raw_uuid>/as_zip", methods=['GET'])
 def api_v1_run_download(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
@@ -108,8 +108,8 @@ def api_v1_run_download(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-#@browse_api.route("/api/v1/get_user/<raw_uuid>", methods=['GET'])
-@browse_api.route("/api/v1/users/<raw_uuid>", methods=['GET'])
+#@run_api.route("/api/v1/get_user/<raw_uuid>", methods=['GET'])
+@run_api.route("/api/v1/users/<raw_uuid>", methods=['GET'])
 def api_v1_get_user(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
@@ -121,8 +121,8 @@ def api_v1_get_user(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-#@browse_api.route("/api/v1/get_sample_metadata/<raw_uuid>", methods=['GET'])
-@browse_api.route("/api/v1/samples/<raw_uuid>/metadata", methods=['GET'])
+#@run_api.route("/api/v1/get_sample_metadata/<raw_uuid>", methods=['GET'])
+@run_api.route("/api/v1/samples/<raw_uuid>/metadata", methods=['GET'])
 def api_v1_get_sample_metadata(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
@@ -134,8 +134,8 @@ def api_v1_get_sample_metadata(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-#@browse_api.route("/api/v1/get_sample/<raw_uuid>", methods=['GET'])
-@browse_api.route("/api/v1/samples/<raw_uuid>", methods=['GET'])
+#@run_api.route("/api/v1/get_sample/<raw_uuid>", methods=['GET'])
+@run_api.route("/api/v1/samples/<raw_uuid>", methods=['GET'])
 def api_v1_get_sample(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
@@ -153,8 +153,8 @@ def api_v1_get_sample(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-#@browse_api.route("/api/v1/get_sample_thumbnail/<raw_uuid>", methods=['GET'])
-@browse_api.route("/api/v1/samples/<raw_uuid>/thumbnail", methods=['GET'])
+#@run_api.route("/api/v1/get_sample_thumbnail/<raw_uuid>", methods=['GET'])
+@run_api.route("/api/v1/samples/<raw_uuid>/thumbnail", methods=['GET'])
 def api_v1_get_sample_thumbnail(raw_uuid):
     #try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)

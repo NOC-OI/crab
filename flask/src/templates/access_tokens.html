@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Access Tokens{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1>API tokens for {{ session_info.short_name }}</h1>
+    <div class="col-lg-8 px-0">
+
+        <a href="/account/new-access-token" class="btn btn-primary">Create new access token</a>
+
+        <hr class="my-4">
+
+        {% for token in token_list %}
+                <div class="mt-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Token</h5>
+                            <dl>
+                                <dt>Bearer token</dt>
+                                <dd>{{ token._id }}.{{ token.access_token }}</dd>
+
+                                {% if token.ip_addr %}
+                                <dt>Last connection IP</dt>
+                                <dd>{{ token.ip_addr }}</dd>
+                                {% endif %}
+
+                                <dt>Last activity</dt>
+                                {% if token.last_active %}
+                                <dd>{{ token.last_active }}</dd>
+                                {% else %}
+
+                                <dd><em>Never used</em></dd>
+                                {% endif %}
+                            </dl>
+                            <a class="btn btn-danger" href="/api/v1/sessions/{{ token._id }}/close?redirect=%2Faccount%2Faccess-tokens">Revoke token</a>
+                        </div>
+                    </div>
+                </div>
+        {% else %}
+
+                <div class="mt-3">
+                    <p>No tokens yet!</p>
+                </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

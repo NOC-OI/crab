@@ -5,6 +5,7 @@ import json
 import secrets
 import requests
 import urllib
+from datetime import datetime
 from flask import Blueprint, request, render_template, Response, make_response, redirect
 
 from utils import get_session_info, get_app_frontend_globals
@@ -25,13 +26,131 @@ openid_keys = jwt.PyJWKClient(openid_config["jwks_uri"])
 
 login_pages = Blueprint("login_pages", __name__)
 account_pages = Blueprint("account_pages", __name__)
+access_token_pages = Blueprint("access_token_pages", __name__)
+session_api = Blueprint("session_api", __name__)
 
 @account_pages.route("/account")
 def account_screen():
     session_info = get_session_info()
     if session_info is None:
         return redirect("/login", code=302)
-    return render_template("account.html", global_vars=get_app_frontend_globals(), session_info=session_info)
+
+
+    mango_selector = {
+            "user_uuid": session_info["user_uuid"],
+            "status": "ACTIVE",
+            "auth_type": "OPENID"
+        }
+    mango = {
+            "selector": mango_selector,
+            "fields": ["_id", "access_token", "ip_addr", "last_active"]
+        }
+    token_search_resp = requests.post(get_couch_base_uri() + "crab_sessions/" + "_find", json=mango).json()
+    sessions = token_search_resp["docs"]
+    for token in sessions:
+        if "last_active" in token:
+            token["last_active"] = datetime.fromtimestamp(token["last_active"]).strftime('%Y-%m-%d %H:%M:%S')
+
+    return render_template("account.html", global_vars=get_app_frontend_globals(), session_info=session_info, sessions=sessions)
+
+@access_token_pages.route("/account/access-tokens")
+def access_tokens_list():
+    session_info = get_session_info()
+    if session_info is None:
+        return redirect("/login", code=302)
+
+    mango_selector = {
+            "user_uuid": session_info["user_uuid"],
+            "status": "ACTIVE",
+            "auth_type": "TOKEN"
+        }
+    mango = {
+            "selector": mango_selector,
+            "fields": ["_id", "access_token", "ip_addr", "last_active"]
+        }
+    token_search_resp = requests.post(get_couch_base_uri() + "crab_sessions/" + "_find", json=mango).json()
+    tokens = token_search_resp["docs"]
+    for token in tokens:
+        if "last_active" in token:
+            token["last_active"] = datetime.fromtimestamp(token["last_active"]).strftime('%Y-%m-%d %H:%M:%S')
+    return render_template("access_tokens.html", global_vars=get_app_frontend_globals(), session_info=session_info, token_list=tokens)
+
+@access_token_pages.route("/account/new-access-token")
+def new_access_token():
+    session_info = get_session_info()
+    if session_info is None:
+        return redirect("/login", code=302)
+
+    token_uuid = str(uuid.uuid4())
+
+    access_token = secrets.token_urlsafe(48)
+
+    session_info = {
+            "access_token": access_token,
+            "user_uuid": session_info["user_uuid"],
+            "auth_type": "TOKEN",
+            "email": session_info["email"],
+            "status": "ACTIVE",
+            "name": session_info["name"],
+            "short_name": session_info["short_name"]
+        }
+
+
+    get_couch()["crab_sessions"][token_uuid] = session_info
+
+    return redirect("/account/access-tokens", code=302)
+
+@session_api.route("/api/v1/whoami")
+def api_v1_whoami():
+    session_info = get_session_info()
+    if session_info is None:
+        return Response(json.dumps({
+            "error": "notLoggedIn",
+            "msg": "User is not logged in, or session has expired."
+            }), status=403, mimetype='application/json')
+
+
+    return Response(json.dumps(get_couch()["crab_users"][session_info["user_uuid"]], indent=4), status=200, mimetype='application/json')
+
+
+
+@session_api.route("/api/v1/sessions/<raw_uuid>/close")
+def api_v1_close_session(raw_uuid):
+    session_info = get_session_info()
+    if session_info is None:
+        return Response(json.dumps({
+            "error": "notLoggedIn",
+            "msg": "User is not logged in, or session has expired."
+            }), status=403, mimetype='application/json')
+
+
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        session_data = get_couch()["crab_sessions"][str(uuid_obj)]
+        if not session_data["user_uuid"] == session_info["user_uuid"]:
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to destroy this resource."
+                }), status=401, mimetype='application/json')
+
+        session_data["status"] = "DESTROYED"
+        get_couch()["crab_sessions"][str(uuid_obj)] = session_data
+
+        redirect_uri = request.args.get("redirect", "")
+        if len(redirect_uri) > 0:
+            return redirect(redirect_uri, code=302)
+        else:
+            return Response(json.dumps({
+                "msg": "done",
+                "collection": collection_data
+                }), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
 
 @login_pages.route("/inbound-login")
 def login_inbound_redirect():
