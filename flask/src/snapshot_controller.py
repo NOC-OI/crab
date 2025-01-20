@@ -163,10 +163,41 @@ def api_v1_snapshot_delete(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-@snapshot_api.route("/api/v1/snapshots/<raw_uuid>/packages/<ptype>", methods=['GET'])
-def api_v1_snapshot_download_package(raw_uuid, ptype):
+@snapshot_api.route("/api/v1/snapshots/<snapshot_uuid>/packages/<package_type>", methods=['GET'])
+def api_v1_snapshot_download_package(snapshot_uuid, package_type):
+
+    """
+    Returns a snapshot package
+    ---
+    tags:
+        - Snapshots
+    parameters:
+        - name: snapshot_uuid
+          in: path
+          type: string
+          required: true
+
+        - name: package_type
+          in: path
+          type: string
+          enum: ["ifdo", "croissant"]
+          required: true
+
+    produces:
+        - application/zip
+
+    description: 'Returns a snapshot package. NOTE: The package must have already been created, see /api/v1/snapshots/{snapshot_uuid}/makepkg/{package_type} for how to create a package'
+    responses:
+        200:
+            description: Appropriate package will be returned as a .zip archive
+        401:
+            description: User does not have read permissions for the parent project and the project is private
+        400:
+            description: Invalid UUID
+    """
+
     try:
-        uuid_obj = uuid.UUID(raw_uuid, version=4)
+        uuid_obj = uuid.UUID(snapshot_uuid, version=4)
 
         if not can_view(str(uuid_obj)):
             return Response(json.dumps({
@@ -175,7 +206,7 @@ def api_v1_snapshot_download_package(raw_uuid, ptype):
                 }), status=401, mimetype='application/json')
 
         snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
-        s3path = snapshot_data["packages"][ptype]["path"]
+        s3path = snapshot_data["packages"][package_type]["path"]
         temp_file = get_bucket_object(path=s3path)
         return Response(
             temp_file['Body'].read(),
@@ -185,13 +216,50 @@ def api_v1_snapshot_download_package(raw_uuid, ptype):
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
-            "msg": "Invalid UUID " + raw_uuid
+            "msg": "Invalid UUID " + snapshot_uuid
             }), status=400, mimetype='application/json')
 
-@snapshot_api.route("/api/v1/snapshots/<raw_uuid>", methods=['GET'])
-def api_v1_get_snapshot(raw_uuid):
+@snapshot_api.route("/api/v1/snapshots/<snapshot_uuid>", methods=['GET'])
+def api_v1_get_snapshot(snapshot_uuid):
+
+    """
+    Returns snapshot metadata
+    ---
+    tags:
+        - Snapshots
+    parameters:
+        - name: snapshot_uuid
+          in: path
+          type: string
+          required: true
+
+    produces:
+        - application/json
+
+    description: Returns snapshot metadata
+    responses:
+        200:
+            examples:
+                application/json:
+                    _id: a6199552-6804-460a-b627-bc797bb2d5b2
+                    _rev: 5-f54d08b9b7588b8c2fd96d1d12fad921
+                    identifier: example
+                    public_visibility: true
+                    collection: d9f436e1-dbdc-43e0-b61e-a21921f0938a
+                    samples: {}
+                    origin_tags: {}
+                    packages:
+                        ifdo:
+                            path: snapshots/a6199552-6804-460a-b627-bc797bb2d5b2/ifdo_package.zip
+                            host: 'http://crab.noc.soton.ac.uk:9000/crab'
+
+        401:
+            description: User does not have read permissions for the parent project and the project is private
+        400:
+            description: Invalid UUID
+    """
     try:
-        uuid_obj = uuid.UUID(raw_uuid, version=4)
+        uuid_obj = uuid.UUID(snapshot_uuid, version=4)
 
         if not can_view(str(uuid_obj)):
             return Response(json.dumps({
@@ -204,7 +272,7 @@ def api_v1_get_snapshot(raw_uuid):
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
-            "msg": "Invalid UUID " + raw_uuid
+            "msg": "Invalid UUID " + snapshot_uuid
             }), status=400, mimetype='application/json')
 
 
@@ -272,11 +340,44 @@ def build_ifdo_package(job_uuid, snapshot_uuid, snapshot_info):
     print(f"Job thread {job_uuid} complete.")
 
 
-@snapshot_api.route("/api/v1/snapshots/<raw_uuid>/makepkg/<p_type>", methods=["GET"])
-def api_v1_create_snapshot(raw_uuid, p_type):
-    p_type = p_type.lower()
+@snapshot_api.route("/api/v1/snapshots/<snapshot_uuid>/makepkg/<package_type>", methods=["GET"])
+def api_v1_create_snapshot(snapshot_uuid, package_type):
+    """
+    Creates a new async package build job
+    ---
+    tags:
+        - Snapshots
+    parameters:
+        - name: snapshot_uuid
+          in: path
+          type: string
+          required: true
+
+        - name: package_type
+          in: path
+          type: string
+          enum: ["ifdo", "croissant"]
+          required: true
+
+    produces:
+        - application/json
+
+    description: Creates a new async package build job
+    responses:
+        200:
+            description: Job has been successfully created
+            examples:
+                application/json:
+                    job_id:
+                        052ea60f-2bda-4958-9ec4-39a475e4cd45
+        401:
+            description: User does not have write permissions for the parent project
+        400:
+            description: Invalid package type
+    """
+    p_type = package_type.lower()
     try:
-        uuid_obj = uuid.UUID(raw_uuid, version=4)
+        uuid_obj = uuid.UUID(snapshot_uuid, version=4)
 
         if not can_edit(str(uuid_obj)):
             return Response(json.dumps({
@@ -309,8 +410,7 @@ def api_v1_create_snapshot(raw_uuid, p_type):
                     }), status=400, mimetype='application/json')
             #get_couch()["crab_snapshots"][str(uuid_obj)] = snapshot_data
             return Response(json.dumps({
-                "job_id": str(job_uuid),
-                "snapshot": str(uuid_obj)
+                "job_id": str(job_uuid)
                 }), status=200, mimetype='application/json')
             #args": request.form.to_dict(),
     except ValueError as e:
@@ -318,5 +418,5 @@ def api_v1_create_snapshot(raw_uuid, p_type):
 
         return Response(json.dumps({
             "error": "badUUID",
-            "msg": "Invalid UUID " + raw_uuid
+            "msg": "Invalid UUID " + snapshot_uuid
             }), status=400, mimetype='application/json')

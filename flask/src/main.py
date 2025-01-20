@@ -1,11 +1,34 @@
 from flask import Flask, render_template
+from flasgger import Swagger
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 
 csrf_secret_key = os.environ.get("CRAB_CSRF_SECRET_KEY")
 
+
 app = Flask(__name__)
+
+crab_schemes = ["http"]
+crab_external_host = os.environ.get("CRAB_EXTERNAL_HOST") + ":" + os.environ.get("CRAB_EXTERNAL_PORT")
+if os.environ.get("CRAB_EXTERNAL_PORT") == "80":
+    crab_external_host = os.environ.get("CRAB_EXTERNAL_HOST")
+elif os.environ.get("CRAB_EXTERNAL_PORT") == "443":
+    crab_external_host = os.environ.get("CRAB_EXTERNAL_HOST")
+    crab_schemes = ["https"]
+
+app.config["SWAGGER"] = {
+    "title": "CRAB",
+    "description": "API for ocean image data",
+    "termsOfService": crab_schemes[0] + "://" + crab_external_host + "/tos",
+    "host": crab_external_host,
+    "schemes": crab_schemes,
+    "version": "1.0.0",
+    "uiversion": 3
+}
+
+swagger = Swagger(app)
 app.wsgi_app = ProxyFix(app.wsgi_app)
+
 
 from utils import get_session_info, get_app_frontend_globals
 from user_management_controller import login_pages, account_pages, access_token_pages, session_api
