@@ -4,6 +4,7 @@ import requests
 import datetime
 from multiprocessing import Process
 import io
+import zipfile
 import json
 from utils import get_session_info, get_app_frontend_globals, to_snake_case
 from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name
@@ -318,11 +319,6 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
     current_job_md["progress"] = 0.3
     get_couch()["crab_jobs"][job_uuid] = current_job_md
 
-    get_couch()["crab_snapshots"][snapshot_uuid] = snapshot_md
-
-    with io.BytesIO(json.dumps(snapshot_md, indent=4).encode()) as f:
-        get_s3_client().upload_fileobj(f, get_bucket_name(), "snapshots/" + snapshot_uuid + "/crab_metadata.json")
-
     current_collection_md = get_couch()["crab_collections"][collection_info["_id"]]
     if not "snapshots" in current_collection_md:
         current_collection_md["snapshots"] = []
@@ -337,7 +333,45 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
         run_info = get_couch()["crab_runs"][run_id]
         for sample_id in run_info["samples"]:
             sample_info = get_couch()["crab_samples"][sample_id]
-            get_s3_client().copy_object(Bucket=get_bucket_name(), CopySource="/" + get_bucket_name() + "/" + sample_info["path"], Key="snapshots/" + snapshot_uuid + "/raw_img/" + sample_id + ".tiff")
+            if "path" in sample_info:
+                get_s3_client().copy_object(Bucket=get_bucket_name(), CopySource="/" + get_bucket_name() + "/" + sample_info["path"], Key="snapshots/" + snapshot_uuid + "/raw_img/" + sample_id + ".tiff")
+            else:
+                print("Broken sample!:")
+                print(sample_info)
+
+    zip_buffer = io.BytesIO()
+    image_type = "image/tiff"
+    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zipper:
+        for sample_id in snapshot_md["samples"]:
+            raw_format = snapshot_md["samples"][sample_id]["type"]["format"].split("/", 1)
+            f_ext = "bin"
+            m_type = None
+            image_type = raw_format[0] + "/" + raw_format[1]
+            if raw_format[0] == "image":
+                if raw_format[1] == "tiff":
+                    f_ext = "tiff"
+                    m_type = "TIFF"
+            file_name = sample_id + "." + f_ext
+            image_path = "snapshots/" + snapshot_uuid + "/raw_img/" + sample_id + "." + f_ext
+            infile_object = get_bucket_object(path=image_path)
+            infile_content = infile_object['Body'].read()
+            zipper.writestr(file_name, infile_content)
+
+        zipper.writestr("metadata.json", json.dumps(snapshot_md, indent=4))
+
+    get_s3_client().put_object(Bucket=get_bucket_name(), Key="snapshots/" + snapshot_uuid + "/tiff_bundle.zip", Body=zip_buffer.getvalue())
+
+    snapshot_md["bundle"] = {
+            "type": "application/zip",
+            "image_type": image_type,
+            "path": "snapshots/" + snapshot_uuid + "/tiff_bundle.zip",
+            "host": get_bucket_uri()
+        }
+
+
+    with io.BytesIO(json.dumps(snapshot_md, indent=4).encode()) as f:
+        get_s3_client().upload_fileobj(f, get_bucket_name(), "snapshots/" + snapshot_uuid + "/crab_metadata.json")
+    get_couch()["crab_snapshots"][snapshot_uuid] = snapshot_md
 
     current_job_md = get_couch()["crab_jobs"][job_uuid]
     current_job_md["status"] = "COMPLETE"

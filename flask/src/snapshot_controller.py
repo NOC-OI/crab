@@ -8,7 +8,7 @@ import os
 import jwt
 import zipfile
 import json
-from utils import get_session_info, get_app_frontend_globals, to_snake_case
+from utils import get_session_info, get_app_frontend_globals, to_snake_case, get_crab_external_endpoint
 from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name
 
 snapshot_pages = Blueprint("snapshot_pages", __name__)
@@ -164,7 +164,7 @@ def api_v1_snapshot_delete(raw_uuid):
             }), status=400, mimetype='application/json')
 
 @snapshot_api.route("/api/v1/snapshots/<snapshot_uuid>/packages/<package_type>", methods=['GET'])
-def api_v1_snapshot_download_package(snapshot_uuid, package_type):
+def api_v1_snapshot_download_other_package(snapshot_uuid, package_type):
 
     """
     Returns a snapshot package
@@ -207,6 +207,56 @@ def api_v1_snapshot_download_package(snapshot_uuid, package_type):
 
         snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
         s3path = snapshot_data["packages"][package_type]["path"]
+        temp_file = get_bucket_object(path=s3path)
+        return Response(
+            temp_file['Body'].read(),
+            mimetype="application/zip",
+            headers={"Content-Disposition": "attachment;filename=" + os.path.basename(s3path)}
+            )
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + snapshot_uuid
+            }), status=400, mimetype='application/json')
+
+@snapshot_api.route("/api/v1/snapshots/<snapshot_uuid>/as_zip", methods=['GET'])
+def api_v1_snapshot_download_zip(snapshot_uuid):
+
+    """
+    Returns a snapshot as a zip file
+    ---
+    tags:
+        - Snapshots
+    parameters:
+        - name: snapshot_uuid
+          in: path
+          type: string
+          required: true
+
+    produces:
+        - application/zip
+
+    description: 'Returns a complete snapshot with data.'
+    responses:
+        200:
+            description: Appropriate bundle will be returned as a .zip archive
+        401:
+            description: User does not have read permissions for the parent project and the project is private
+        400:
+            description: Invalid UUID
+    """
+
+    try:
+        uuid_obj = uuid.UUID(snapshot_uuid, version=4)
+
+        if not can_view(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "readDenied",
+                "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
+        snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
+        s3path = snapshot_data["bundle"]["path"]
         temp_file = get_bucket_object(path=s3path)
         return Response(
             temp_file['Body'].read(),
@@ -275,7 +325,93 @@ def api_v1_get_snapshot(snapshot_uuid):
             "msg": "Invalid UUID " + snapshot_uuid
             }), status=400, mimetype='application/json')
 
+@snapshot_api.route("/api/v1/snapshots/<snapshot_uuid>/croissant", methods=['GET'])
+def api_v1_get_snapshot_croissant(snapshot_uuid):
 
+    """
+    Returns snapshot metadata as Croissant compatible JSON
+    ---
+    tags:
+        - Snapshots
+    parameters:
+        - name: snapshot_uuid
+          in: path
+          type: string
+          required: true
+
+    produces:
+        - application/json
+
+    description: Returns snapshot metadata
+    responses:
+        200:
+            examples:
+                application/json:
+                    _id: a6199552-6804-460a-b627-bc797bb2d5b2
+                    _rev: 5-f54d08b9b7588b8c2fd96d1d12fad921
+                    identifier: example
+                    public_visibility: true
+                    collection: d9f436e1-dbdc-43e0-b61e-a21921f0938a
+                    samples: {}
+                    origin_tags: {}
+                    packages:
+                        ifdo:
+                            path: snapshots/a6199552-6804-460a-b627-bc797bb2d5b2/ifdo_package.zip
+                            host: 'http://crab.noc.soton.ac.uk:9000/crab'
+
+        401:
+            description: User does not have read permissions for the parent project and the project is private
+        400:
+            description: Invalid UUID
+    """
+    try:
+        uuid_obj = uuid.UUID(snapshot_uuid, version=4)
+
+        if not can_view(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "readDenied",
+                "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
+        snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
+        collection_data = get_couch()["crab_collections"][snapshot_data["collection"]]
+        project_data = get_couch()["crab_projects"][collection_data["project"]]
+
+        croissant_data = {
+                "@context": {
+                    "@language": "en",
+                    "@vocab": "https://schema.org/"
+                },
+                "@type": "sc:Dataset",
+                "name": to_snake_case(project_data["identifier"]) + "_" + snapshot_data["identifier"],
+                "description": project_data["description"],
+                "distribution": [],
+                "creator": project_data["collaborators"],
+                "conformsTo": "http://mlcommons.org/croissant/1.0",
+                "url": get_crab_external_endpoint() + "projects/" + project_data["_id"]
+            }
+
+        croissant_data["distribution"].append({
+                "@type": "cr:FileObject",
+                "@id": project_data["_id"] + "-tiff-zip",
+                "contentUrl": get_crab_external_endpoint() + "api/v1/snapshots/" + snapshot_data["_id"] + "/as_zip",
+                "encodingFormat": "application/zip"
+            })
+
+        croissant_data["distribution"].append({
+                "@type": "cr:FileSet",
+                "@id": project_data["_id"] + "-tiff-zip",
+                "containedIn": {"@id": project_data["_id"] + "-tiff-zip"},
+                "encodingFormat": "image/tiff",
+                "includes": "*.tiff"
+            })
+
+        return Response(json.dumps(croissant_data), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + snapshot_uuid
+            }), status=400, mimetype='application/json')
 
 def build_ifdo_package(job_uuid, snapshot_uuid, snapshot_info):
     print(f"Starting package build thread {job_uuid}.")
