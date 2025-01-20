@@ -8,6 +8,7 @@
     <span>Snapshot UUID: {{ snapshot_data._id }}</span>
     <div class="my-3">
         <a href="/api/v1/snapshots/{{ snapshot_data._id }}/packages/ifdo" class="btn btn-primary">Download as IFDO package</a>
+        <a href="/api/v1/snapshots/{{ snapshot_data._id }}/croissant" class="btn btn-primary">Get Croissant metadata</a>
         {% if is_collaborator %}
         <a href="/snapshots/{{ snapshot_data._id }}/delete" class="btn btn-danger">Delete</a>
         {% endif %}

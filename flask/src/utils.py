@@ -1,5 +1,6 @@
 import uuid
 import re
+import os
 from datetime import datetime
 from flask import request
 from db import get_couch
@@ -8,6 +9,14 @@ global_vars = {
         "brand": "CRAB",
         "long_brand": "Centralised Repository for Annotations and BLOBs"
     }
+
+def get_crab_external_endpoint():
+    crab_external_endpoint = "http://" + os.environ.get("CRAB_EXTERNAL_HOST") + ":" + os.environ.get("CRAB_EXTERNAL_PORT") + "/"
+    if os.environ.get("CRAB_EXTERNAL_PORT") == "80":
+        crab_external_endpoint = "http://" + os.environ.get("CRAB_EXTERNAL_HOST") + "/"
+    elif os.environ.get("CRAB_EXTERNAL_PORT") == "443":
+        crab_external_endpoint = "https://" + os.environ.get("CRAB_EXTERNAL_HOST") + "/"
+    return crab_external_endpoint
 
 def get_app_frontend_globals():
     return global_vars
