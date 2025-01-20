@@ -237,8 +237,8 @@ def api_v1_get_projects():
     #print(ret)
     return Response(json.dumps(ret), status=200, mimetype='application/json')
 
-@project_api.route("/api/v1/projects/<raw_uuid>", methods=['GET'])
-def api_v1_get_project(raw_uuid):
+@project_api.route("/api/v1/projects/<raw_uuid>/new_collection", methods=["POST"])
+def api_v1_new_collection(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
 
@@ -246,6 +246,45 @@ def api_v1_get_project(raw_uuid):
             return Response(json.dumps({
                 "error": "readDenied",
                 "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
+        project_data = get_couch()["crab_projects"][str(uuid_obj)]
+        new_collection_id = str(uuid.uuid4())
+
+        collection_template = {
+            "runs": [],
+            "identifier": request.form.get("name","untitled"),
+            "project": str(uuid_obj)
+        }
+
+        project_data["collections"].append(new_collection_id)
+
+        get_couch()["crab_collections"][new_collection_id] = collection_template
+        get_couch()["crab_projects"][str(uuid_obj)] = project_data
+
+        redirect_uri = request.args.get("redirect", "")
+        if len(redirect_uri) > 0:
+            return redirect(redirect_uri, code=302)
+        else:
+            return Response(json.dumps({
+                "msg": "done",
+                "collection": collection_data
+                }), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
+@project_api.route("/api/v1/projects/<raw_uuid>", methods=['GET'])
+def api_v1_get_project(raw_uuid):
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_edit(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to edit this resource."
                 }), status=401, mimetype='application/json')
 
         project_data = get_couch()["crab_projects"][str(uuid_obj)]
