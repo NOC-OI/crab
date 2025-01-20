@@ -4,27 +4,32 @@
 
 {% block content %}
 <div class="container my-5">
+<div class="gx-3 row">
+    <div class="col-12 col-lg-8 mb-3">
+        <div class="p-4 border rounded">
+            <h1>{{ project_data.identifier if project_data.identifier is defined else "Untitled project" }}</h1>
+            <span>{{ project_data.description }}</span>
 
-    <div class="container p-4 my-3 border rounded">
-        <h1>{{ project_data.identifier if project_data.identifier is defined else "Untitled project" }}</h1>
-        <span>{{ project_data.description }}</span>
+            <div class="my-3">
+            {% if can_edit %}
+            <a href="/projects/{{ project_data._id }}/edit" class="btn btn-outline-secondary">Edit project information <i class="bi bi-pencil-fill"></i></a>
+            {% endif %}
+            </div>
 
-        <div class="my-3">
-        {% if can_edit %}
-        <a href="/projects/{{ project_data._id }}/edit" class="btn btn-outline-secondary">Edit project information <i class="bi bi-pencil-fill"></i></a>
-        {% endif %}
+
+            {{ project_readme|safe }}
         </div>
-
-
-        {{ project_readme|safe }}
     </div>
-{% if can_edit %}
-    <form method="POST" action="" enctype="multipart/form-data">
+
+
+    <div class="col-12 col-lg-4">
+    {% if can_edit %}
+    <form method="POST" action="/api/v1/projects/{{ project_data._id }}/new_collection?redirect=%2Fprojects%2F{{ project_data._id }}" enctype="multipart/form-data">
         <fieldset>
             <div class="input-group mb-3">
-                <input type="text" class="form-control" placeholder="Collection name" aria-label="New collection name" aria-describedby="button-addon2">
+                <input type="text" name="name" class="form-control" placeholder="Collection name" aria-label="New collection name" aria-describedby="button-addon2">
 
-                <button class="btn btn-primary" type="button" id="button-addon2">Create new collection</button>
+                <input class="btn btn-primary" type="submit" id="button-addon2" value="Create new collection">
 
             </div>
         </fieldset>
@@ -90,6 +95,8 @@
         </div>
         {% endfor %}
     </div>
+    </div>
 
+</div>
 </div>
 {% endblock %}
