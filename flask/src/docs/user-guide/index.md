@@ -13,4 +13,4 @@ CRAB organises most data into projects. Think of a project as a self-contained c
 
 ## Exporting data
 
-CRAB presents many different ways to access your data. A common use case is exporting datasets to machine learning libraries such as [Keras](https://keras.io/). To support this use case, CRAB generates [croissant files](https://docs.mlcommons.org/croissant/) which can be accessed from a project's page after a snapshot has been taken.
+CRAB presents many different ways to access your data. A common use case is exporting datasets to machine learning libraries such as [Keras](https://keras.io/). To support this use case, CRAB generates [Croissant files](https://docs.mlcommons.org/croissant/) which can be accessed from a project's page after a snapshot has been taken.

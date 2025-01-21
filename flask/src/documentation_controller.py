@@ -8,6 +8,8 @@ from utils import get_session_info, get_app_frontend_globals, to_snake_case
 documentation_pages = Blueprint("documentation_pages", __name__)
 
 def markdown_page(path):
+    if path.endswith(".md"):
+        path = path[:-3]
     split_path = path.split("/")
     sanit_path = ""
     for ele in split_path:
