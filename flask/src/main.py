@@ -38,6 +38,7 @@ from project_controller import project_pages, project_api
 from collection_controller import collection_pages, collection_api
 from job_controller import job_pages, job_api
 from snapshot_controller import snapshot_pages, snapshot_api
+from documentation_controller import documentation_pages
 
 app.register_blueprint(login_pages)
 app.register_blueprint(account_pages)
@@ -54,6 +55,7 @@ app.register_blueprint(job_pages)
 app.register_blueprint(job_api)
 app.register_blueprint(snapshot_pages)
 app.register_blueprint(snapshot_api)
+app.register_blueprint(documentation_pages)
 
 @app.errorhandler(404)
 def not_found_error_handler(e):
