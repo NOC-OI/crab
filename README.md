@@ -25,7 +25,7 @@ CRAB should now be avaliable on `http://localhost:8080`
 
 ## Documentation
 
-For futher notes on [installation](./flask/src/docs/admin-guide/index.md), [using the software](./flask/src/docs/user-guide/index.md), and [connecting to the CRAB API](./flask/src/docs/api-reference/index.md), head to the [docs folder](./flask/src/docs/index.md). These markdown documents are also avaliable on an installed instance under the "Help" tab.
+For futher notes on [installation](./flask/src/docs/admin-guide.md), [using the software](./flask/src/docs/user-guide.md), and [connecting to the CRAB API](./flask/src/docs/api-reference.md), head to the [docs folder](./flask/src/docs/index.md). These markdown documents are also avaliable on an installed instance under the "Help" tab.
 
 ## License
 CRAB is free software under the AGPL-3.0 license.
