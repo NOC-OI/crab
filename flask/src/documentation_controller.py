@@ -20,7 +20,7 @@ def markdown_page(path):
     doc_path = "docs" + sanit_path
     doc_path = doc_path.replace("_", "-")
 
-    print(doc_path)
+    #print(doc_path)
 
     if os.path.isfile(doc_path + ".md"):
         with open(doc_path + ".md") as f:

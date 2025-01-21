@@ -2,7 +2,7 @@
 
 ## Authentication
 
-CRAB uses bearer tokens to authenticate programmatic access. These tokens are usable on *all* endpoints, not only ones intended for machine readability. This is intentional functionality. Obtain a new access token from the web UI by going to the [access token page](/account/access-tokens). Use this token to access protected endpoints as your user account. This token will provide full access to your account on CRAB. If you want to limit access to that of a contibutor, you need to [create a service account](../user-guide/create-service-account) and use that account instead.
+CRAB uses bearer tokens to authenticate programmatic access. These tokens are usable on *all* endpoints, not only ones intended for machine readability. This is intentional functionality. Obtain a new access token from the web UI by going to the [access token page](/account/access-tokens). Use this token to access protected endpoints as your user account. This token will provide full access to your account on CRAB. If you want to limit access to that of a contibutor, you need to [create a service account](/docs/user-guide/create-service-account) and use that account instead.
 
 An convenient way to test if your access token works is by using cURL and the dedicated [whoami](
 /api/v1/whoami) endpoint:

@@ -5,6 +5,7 @@
 Start by making a Zip archive of your raw data. Leave the files exactly as they are coming off your instrument. CRAB will convert your data into TIFF images and JSON metadata automatically.
 
 The currently installed version of CRAB supports data from the following devices:
+
 - [McLane Labs IFCB](https://mclanelabs.com/imaging-flowcytobot/)
 
 ## Building a project
