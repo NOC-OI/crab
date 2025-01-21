@@ -23,11 +23,9 @@ Run `init-db.sh` to prepare your databases automatically.
 Finally, run `launch.sh` to start your instance.
 CRAB should now be avaliable on `http://localhost:8080`
 
-## Configuration
+## Documentation
 
-### HTTPS
-
-While normally, a seperate reverse proxy on the host machine would be used, one can enable SSL on the included nginx container. Edit the config template in `templates/nginx.conf` to enable SSL before launching.
+For futher notes on [installation](./flask/src/docs/admin-guide/index.md), [using the software](./flask/src/docs/user-guide/index.md), and [connecting to the CRAB API](./flask/src/docs/api-reference/index.md), head to the [docs folder](./flask/src/docs/index.md). These markdown documents are also avaliable on an installed instance under the "Help" tab.
 
 ## License
 CRAB is free software under the AGPL-3.0 license.
