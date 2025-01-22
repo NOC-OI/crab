@@ -5,6 +5,7 @@ import datetime
 from multiprocessing import Process
 import io
 import zipfile
+import hashlib
 import json
 from utils import get_session_info, get_app_frontend_globals, to_snake_case
 from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name
@@ -361,10 +362,21 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
 
     get_s3_client().put_object(Bucket=get_bucket_name(), Key="snapshots/" + snapshot_uuid + "/tiff_bundle.zip", Body=zip_buffer.getvalue())
 
+    sha256 = hashlib.sha256()
+    BUF_SIZE = 65536 # 64kb
+    zip_buffer.seek(0)
+
+    while True:
+        data = zip_buffer.read(BUF_SIZE)
+        if not data:
+            break
+        sha256.update(data)
+
     snapshot_md["bundle"] = {
             "type": "application/zip",
             "image_type": image_type,
             "path": "snapshots/" + snapshot_uuid + "/tiff_bundle.zip",
+            "sha256": sha256.hexdigest(),
             "host": get_bucket_uri()
         }
 
