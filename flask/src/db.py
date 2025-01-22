@@ -1,5 +1,6 @@
 import boto3
 import couchdb
+import couchpotato
 import os
 
 s3_region = os.environ.get("S3_REGION")
@@ -34,6 +35,9 @@ couch = couchdb.Server(couch_base_uri)
 
 def get_couch():
     return couch
+
+def get_couchpotato():
+    return couchpotato.Client(couch_base_uri)
 
 # Sometimes needed if we want to directly interface with couchdb
 def get_couch_base_uri():

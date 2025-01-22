@@ -8,7 +8,7 @@ import zipfile
 import hashlib
 import json
 from utils import get_session_info, get_app_frontend_globals, to_snake_case
-from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name
+from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name, get_couchpotato
 
 collection_pages = Blueprint("collection_pages", __name__)
 collection_api = Blueprint("collection_api", __name__)
@@ -172,10 +172,17 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
 
     #print(json.dumps(get_couch()["crab_jobs"][job_uuid]))
 
-    current_job_md = get_couch()["crab_jobs"][job_uuid]
-    current_job_md["status"] = "ACTIVE"
-    current_job_md["progress"] = 0
-    get_couch()["crab_jobs"][job_uuid] = current_job_md
+    #current_job_md = get_couch()["crab_jobs"][job_uuid]
+    #current_job_md["status"] = "ACTIVE"
+    #current_job_md["progress"] = 0
+    #get_couch()["crab_jobs"][job_uuid] = current_job_md
+
+    couch_client = get_couchpotato()
+
+    couch_client.patch_document("crab_jobs", job_uuid, {
+            "status": "ACTIVE",
+            "progress": 0
+        })
 
     creators = []
     creator_map = {}
@@ -200,7 +207,8 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
 
     #run_info = []
     for run_id in collection_info["runs"]:
-        run_info = get_couch()["crab_runs"][run_id]
+        #run_info = get_couch()["crab_runs"][run_id]
+        run_info = couch_client.get_document("crab_runs", run_id)
         for sample_id in run_info["samples"]:
             samples.append(sample_id)
             creators.append(run_info["creator"]["uuid"])
@@ -210,7 +218,8 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
                     "from_run": run_id,
                     "ingest_timestamp": run_info["ingest_timestamp"]
                 }
-            sample_info = get_couch()["crab_samples"][sample_id]
+            #sample_info = get_couch()["crab_samples"][sample_id]
+            sample_info = couch_client.get_document("crab_samples", sample_id)
             #print(json.dumps(sample_info, indent=4))
             if not "tags" in sample_info:
                 sample_info["tags"] = {}
@@ -289,7 +298,8 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
     #print(json.dumps(residual_run_origin_metadata, indent=4))
 
     for run_id in residual_run_origin_metadata:
-        run_samples = get_couch()["crab_runs"][run_id]["samples"]
+        #run_samples = get_couch()["crab_runs"][run_id]["samples"]
+        run_samples = couch_client.get_document("crab_runs", run_id)["samples"]
         for sample_id in run_samples:
             residual_sample_metadata[sample_id] = residual_run_metadata[run_id]
             residual_sample_origin_metadata[sample_id] = residual_run_origin_metadata[run_id]
@@ -316,24 +326,28 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
 
     #print(json.dumps(snapshot_md, indent=4))
 
-    current_job_md = get_couch()["crab_jobs"][job_uuid]
-    current_job_md["progress"] = 0.3
-    get_couch()["crab_jobs"][job_uuid] = current_job_md
+    #current_job_md = get_couch()["crab_jobs"][job_uuid]
+    #current_job_md["progress"] = 0.3
+    #get_couch()["crab_jobs"][job_uuid] = current_job_md
 
-    current_collection_md = get_couch()["crab_collections"][collection_info["_id"]]
+    couch_client.patch_document("crab_jobs", job_uuid, {"progress": 0.3})
+
+    current_collection_md = couch_client.get_document("crab_collections", collection_info["_id"]) #get_couch()["crab_collections"][collection_info["_id"]]
     if not "snapshots" in current_collection_md:
         current_collection_md["snapshots"] = []
     current_collection_md["snapshots"].append(snapshot_uuid)
-    get_couch()["crab_collections"][collection_info["_id"]] = current_collection_md
+    couch_client.put_document("crab_collections", collection_info["_id"], current_collection_md)
 
-    current_job_md = get_couch()["crab_jobs"][job_uuid]
-    current_job_md["progress"] = 0.6
-    get_couch()["crab_jobs"][job_uuid] = current_job_md
+    #current_job_md = get_couch()["crab_jobs"][job_uuid]
+    #current_job_md["progress"] = 0.6
+    #get_couch()["crab_jobs"][job_uuid] = current_job_md
+
+    couch_client.patch_document("crab_jobs", job_uuid, {"progress": 0.6})
 
     for run_id in collection_info["runs"]:
-        run_info = get_couch()["crab_runs"][run_id]
+        run_info = couch_client.get_document("crab_runs", run_id)#get_couch()["crab_runs"][run_id]
         for sample_id in run_info["samples"]:
-            sample_info = get_couch()["crab_samples"][sample_id]
+            sample_info = couch_client.get_document("crab_samples", sample_id) #get_couch()["crab_samples"][sample_id]
             if "path" in sample_info:
                 get_s3_client().copy_object(Bucket=get_bucket_name(), CopySource="/" + get_bucket_name() + "/" + sample_info["path"], Key="snapshots/" + snapshot_uuid + "/raw_img/" + sample_id + ".tiff")
             else:
@@ -383,12 +397,18 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
 
     with io.BytesIO(json.dumps(snapshot_md, indent=4).encode()) as f:
         get_s3_client().upload_fileobj(f, get_bucket_name(), "snapshots/" + snapshot_uuid + "/crab_metadata.json")
-    get_couch()["crab_snapshots"][snapshot_uuid] = snapshot_md
+    #get_couch()["crab_snapshots"][snapshot_uuid] = snapshot_md
+    couch_client.put_document("crab_snapshots", snapshot_uuid, snapshot_md)
 
-    current_job_md = get_couch()["crab_jobs"][job_uuid]
-    current_job_md["status"] = "COMPLETE"
-    current_job_md["progress"] = 1
-    get_couch()["crab_jobs"][job_uuid] = current_job_md
+    #current_job_md = get_couch()["crab_jobs"][job_uuid]
+    #current_job_md["status"] = "COMPLETE"
+    #current_job_md["progress"] = 1
+    #get_couch()["crab_jobs"][job_uuid] = current_job_md
+
+    couch_client.patch_document("crab_jobs", job_uuid, {
+        "status": "COMPLETE",
+        "progress": 1
+    })
 
     print(f"Job thread {job_uuid} complete.")
 

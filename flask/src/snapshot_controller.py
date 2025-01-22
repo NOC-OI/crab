@@ -465,8 +465,8 @@ def api_v1_get_snapshot_croissant(snapshot_uuid):
 
         croissant_data["recordSet"].append({
                 "@type": "cr:RecordSet",
-                "@id": project_data["_id"] + "-image-data",
-                "name": project_data["_id"] + "-image-data",
+                "@id": "default",
+                "name": "default",
                 "field": [
                         {
                             "@type": "cr:Field",
