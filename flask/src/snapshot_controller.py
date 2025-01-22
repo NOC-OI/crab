@@ -377,16 +377,70 @@ def api_v1_get_snapshot_croissant(snapshot_uuid):
         collection_data = get_couch()["crab_collections"][snapshot_data["collection"]]
         project_data = get_couch()["crab_projects"][collection_data["project"]]
 
+        collaborators = []
+
+        for collaborator_id in project_data["collaborators"]:
+            collaborator_data = get_couch()["crab_users"][collaborator_id]
+
+            collaborator = {
+                    "@type": "sc:Person",
+                    "name": collaborator_data["name"],
+                    "email": collaborator_data["email"]
+                }
+            collaborators.append(collaborator)
+
         croissant_data = {
                 "@context": {
                     "@language": "en",
-                    "@vocab": "https://schema.org/"
+                    "@vocab": "https://schema.org/",
+                    "citeAs": "cr:citeAs",
+                    "column": "cr:column",
+                    "conformsTo": "dct:conformsTo",
+                    "cr": "http://mlcommons.org/croissant/",
+                    "rai": "http://mlcommons.org/croissant/RAI/",
+                    "data": {
+                        "@id": "cr:data",
+                        "@type": "@json"
+                    },
+                    "dataType": {
+                        "@id": "cr:dataType",
+                        "@type": "@vocab"
+                    },
+                    "dct": "http://purl.org/dc/terms/",
+                    "examples": {
+                        "@id": "cr:examples",
+                        "@type": "@json"
+                    },
+                    "extract": "cr:extract",
+                    "field": "cr:field",
+                    "fileProperty": "cr:fileProperty",
+                    "fileObject": "cr:fileObject",
+                    "fileSet": "cr:fileSet",
+                    "format": "cr:format",
+                    "includes": "cr:includes",
+                    "isLiveDataset": "cr:isLiveDataset",
+                    "jsonPath": "cr:jsonPath",
+                    "key": "cr:key",
+                    "md5": "cr:md5",
+                    "parentField": "cr:parentField",
+                    "path": "cr:path",
+                    "recordSet": "cr:recordSet",
+                    "references": "cr:references",
+                    "regex": "cr:regex",
+                    "repeated": "cr:repeated",
+                    "replace": "cr:replace",
+                    "sc": "https://schema.org/",
+                    "separator": "cr:separator",
+                    "source": "cr:source",
+                    "subField": "cr:subField",
+                    "transform": "cr:transform"
                 },
                 "@type": "sc:Dataset",
                 "name": to_snake_case(project_data["identifier"]) + "_" + snapshot_data["identifier"],
                 "description": project_data["description"],
                 "distribution": [],
-                "creator": project_data["collaborators"],
+                "recordSet": [],
+                "creators": collaborators,
                 "conformsTo": "http://mlcommons.org/croissant/1.0",
                 "url": get_crab_external_endpoint() + "projects/" + project_data["_id"]
             }
@@ -394,17 +448,56 @@ def api_v1_get_snapshot_croissant(snapshot_uuid):
         croissant_data["distribution"].append({
                 "@type": "cr:FileObject",
                 "@id": project_data["_id"] + "-tiff-zip",
+                "description": "A ZIP archive containing the dataset.",
                 "contentUrl": get_crab_external_endpoint() + "api/v1/snapshots/" + snapshot_data["_id"] + "/as_zip",
+                "sha256": snapshot_data["bundle"]["sha256"],
                 "encodingFormat": "application/zip"
             })
 
         croissant_data["distribution"].append({
                 "@type": "cr:FileSet",
-                "@id": project_data["_id"] + "-tiff-zip",
+                "@id": project_data["_id"] + "-tiffs",
+                "description": "TIFF images of dataset",
                 "containedIn": {"@id": project_data["_id"] + "-tiff-zip"},
                 "encodingFormat": "image/tiff",
                 "includes": "*.tiff"
             })
+
+        croissant_data["recordSet"].append({
+                "@type": "cr:RecordSet",
+                "@id": project_data["_id"] + "-image-data",
+                "name": project_data["_id"] + "-image-data",
+                "field": [
+                        {
+                            "@type": "cr:Field",
+                            "@id": "images/filename",
+                            "dataType": "sc:Text",
+                            "source": {
+                                "fileSet": {
+                                    "@id": project_data["_id"] + "-tiffs",
+                                },
+                                "extract": {
+                                    "fileProperty": "filename"
+                                }
+                            }
+                        },
+                        {
+                            "@type": "cr:Field",
+                            "@id": "images/content",
+                            "dataType": "sc:ImageObject",
+                            "source": {
+                                "fileSet": {
+                                    "@id": project_data["_id"] + "-tiffs",
+                                },
+                                "extract": {
+                                    "fileProperty": "content"
+                                }
+                            }
+                        }
+                    ]
+            })
+
+        # REF: https://github.com/mlcommons/croissant/issues/651
 
         return Response(json.dumps(croissant_data), status=200, mimetype='application/json')
     except ValueError:
