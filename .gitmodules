@@ -1,3 +1,0 @@
-[submodule "flask/src/deps/microtiff"]
-	path = flask/src/deps/microtiff
-	url = git@github.com:NOC-OI/microtiff.git

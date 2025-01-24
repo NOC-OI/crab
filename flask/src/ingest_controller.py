@@ -4,7 +4,9 @@ import re
 import json
 from datetime import datetime
 import os
+from PIL import Image
 import microtiff.ifcb
+import microtiff.lisst_holo
 from flask import Blueprint, request, render_template, Response, make_response, redirect
 
 from utils import get_session_info, get_app_frontend_globals, to_snake_case
@@ -20,10 +22,139 @@ def raw_image_unpack(run_uuid, workdir, namelist, metadata_template = {}):
         in_file_s = os.path.splitext(in_file)
         if in_file_s[1] == ".png" or in_file_s[1] == ".jpg" or in_file_s[1] == ".jpeg" or in_file_s[1] == ".tif" or in_file_s[1] == ".tiff":
             targets.append(in_file)
-    for target in targets:
-        print("Ingesting " + workdir + "/" + target)
 
-    return {"samples": len(targets)}
+    targets = list(set(targets))
+
+    run_dblist = get_couch()["crab_runs"]
+    sample_dblist = get_couch()["crab_samples"]
+    samples = []
+
+    run_metadata = {}
+    mapping = {}
+
+    for target in targets:
+        im = Image.open(workdir + "/" + target)
+        sample_uuid = str(uuid.uuid4())
+        ofn = "runs/" + run_uuid + "/" + sample_uuid + ".tiff"
+        ifn = workdir + "/" + in_file + ".tiff"
+        im.save(ifn)
+        get_bucket().upload_file(ifn, ofn)
+        print(ofn)
+
+        sample_raw_metadata = {
+                "filename": target
+            }
+
+        for key in mapping:
+            sample_transformed_metadata[mapping[key]] = sample_raw_metadata[key]
+
+        sample_transformed_metadata = {}
+
+        mode_to_bpp = {'1':1, 'L':8, 'P':8, 'RGB':24, 'RGBA':32, 'CMYK':32, 'YCbCr':24, 'I':32, 'F':32}
+
+        sample_metadata = {
+            "path": ofn,
+            "host": get_bucket_uri(),
+            "type": {
+                    "dimensions": 2,
+                    "format": "image/tiff",
+                    "channels": [
+                            {
+                                "type": im.mode,
+                                "bit_depth": mode_to_bpp[im.mode]
+                            }
+                        ]
+                },
+            "origin_tags": sample_raw_metadata,
+            "tags": sample_transformed_metadata
+        }
+        sample_dblist[sample_uuid] = sample_metadata
+        samples.append(sample_uuid)
+
+    run_transformed_metadata = {}
+
+    for key in mapping:
+        run_transformed_metadata[mapping[key]] = run_metadata[key]
+
+    current_unix_timestamp = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
+
+    metadata_template["origin_tags"] = run_metadata
+    metadata_template["tags"] = run_transformed_metadata
+    metadata_template["ingest_timestamp"] = current_unix_timestamp
+    metadata_template["sensor"] = "RAW_IMAGE"
+    metadata_template["samples"] = samples
+
+    run_dblist[run_uuid] = metadata_template
+
+    return {"samples": len(samples)}
+
+def lisst_holo_unpack(run_uuid, workdir, namelist, metadata_template = {}):
+    targets = []
+    for in_file in namelist:
+        in_file_s = os.path.splitext(in_file)
+        if in_file_s[1] == ".pgm":
+            targets.append(in_file_s[0])
+    targets = list(set(targets))
+
+    run_dblist = get_couch()["crab_runs"]
+    sample_dblist = get_couch()["crab_samples"]
+    samples = []
+
+    run_metadata = {}
+
+    for target in targets:
+        microtiff.lisst_holo.extract_image(workdir + "/" + target)
+
+    mapping = {}
+
+    for target in targets:
+        ofn = "runs/" + run_uuid + "/" + target + ".tiff"
+        print(ofn)
+        get_bucket().upload_file(workdir + "/" + in_file, ofn)
+        sample_uuid = str(uuid.uuid4())
+
+        sample_raw_metadata = {}
+
+        for key in mapping:
+            sample_transformed_metadata[mapping[key]] = sample_raw_metadata[key]
+
+        sample_transformed_metadata = {}
+
+        sample_metadata = {
+            "path": ofn,
+            "host": get_bucket_uri(),
+            "type": {
+                    "dimensions": 2,
+                    "format": "image/tiff",
+                    "channels": [
+                            {
+                                "type": "L",
+                                "bit_depth": 8
+                            }
+                        ]
+                },
+            "origin_tags": sample_raw_metadata,
+            "tags": sample_transformed_metadata
+        }
+        sample_dblist[sample_uuid] = sample_metadata
+        samples.append(sample_uuid)
+
+    run_transformed_metadata = {}
+
+    for key in mapping:
+        run_transformed_metadata[mapping[key]] = run_metadata[key]
+
+    current_unix_timestamp = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
+
+    metadata_template["origin_tags"] = run_metadata
+    metadata_template["tags"] = run_transformed_metadata
+    metadata_template["ingest_timestamp"] = current_unix_timestamp
+    metadata_template["sensor"] = "LISST_HOLO"
+    metadata_template["samples"] = samples
+
+    run_dblist[run_uuid] = metadata_template
+
+    return {"samples": len(samples)}
 
 def ifcb_unpack(run_uuid, workdir, namelist, metadata_template = {}):
     targets = []
@@ -48,7 +179,7 @@ def ifcb_unpack(run_uuid, workdir, namelist, metadata_template = {}):
             for gmk in group_metadata[target]:
                 if not run_metadata[gmk] == group_metadata[target][gmk]:
                     run_metadata[gmk] = []
-        microtiff.ifcb.extract_ifcb_images(workdir + "/" + target)
+        microtiff.ifcb.extract_images(workdir + "/" + target)
 
     for group in group_metadata:
         for gmk in group_metadata[group]:
@@ -161,6 +292,9 @@ def unpack_upload():
     if profile == "ifcb":
         print("IFCB profile!")
         ret["unpacker_output"] = ifcb_unpack(run_uuid, workdir, namelist, metadata_template)
+    elif profile == "lisst-holo":
+        print("LISST-Holo profile!")
+        ret["unpacker_output"] = lisst_holo_unpack(run_uuid, workdir, namelist, metadata_template)
     elif profile == "raw-image":
         print("Raw-Image profile!")
         ret["unpacker_output"] = raw_image_unpack(run_uuid, workdir, namelist, metadata_template)
