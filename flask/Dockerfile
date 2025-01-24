@@ -1,7 +1,7 @@
 FROM python:3.9.20-bookworm
 WORKDIR /app
 SHELL ["/bin/bash", "-c"]
-RUN pip install flask markdown gunicorn boto3 couchdb requests pillow numpy pyjwt cryptography pygments flasgger 
+RUN pip install flask markdown gunicorn boto3 couchdb requests pillow numpy pyjwt cryptography pygments flasgger microtiff
 COPY src /app
 WORKDIR /app
 RUN mkdir -p temp

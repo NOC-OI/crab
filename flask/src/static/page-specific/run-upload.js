@@ -22,6 +22,11 @@ let setSensorType = (type) => {
             document.getElementById("sensor_selector_flowcam").classList.add("active");
             document.getElementById("sensor_selector_flowcam").style.display = "";
             break;
+        case "lisst-holo":
+            document.getElementById("sensor_selector_hf").value = "lisst-holo"
+            document.getElementById("sensor_selector_lisst_holo").classList.add("active");
+            document.getElementById("sensor_selector_lisst_holo").style.display = "";
+            break;
         case "pre-classified":
             document.getElementById("sensor_selector_hf").value = "pre-classified"
             document.getElementById("sensor_selector_pre_classified").classList.add("active");
@@ -75,6 +80,10 @@ let analyseMetadata = (form, response) => {
                 }
             }
         }
+        if (fileList[i].endsWith(".pgm")) {
+            console.log("PGM FOUND " + fileList[i]);
+            detectedType = "lisst-holo";
+        }
     }
 
     if (detectedType == null) {
@@ -88,6 +97,10 @@ let analyseMetadata = (form, response) => {
         case "ifcb":
             note.classList.add("alert-success");
             note.appendChild(document.createTextNode("Upload succeeded, IFCB data detected."));
+            break;
+        case "lisst-holo":
+            note.classList.add("alert-success");
+            note.appendChild(document.createTextNode("Upload succeeded, PGM data detected, importing using LISST-Holo extractor."));
             break;
         case "pre-classified":
             note.classList.add("alert-success");

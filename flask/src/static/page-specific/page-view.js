@@ -145,7 +145,9 @@ let renderPage = (docs, docClass, listView, page) => {
                 let cardImage = document.createElement("img");
                 cardImage.classList.add("card-img-top");
                 if (docClass == "run") {
-                    cardImage.src = "/api/v1/samples/" + docInfo["samples"]["0"] + "/thumbnail";
+                    if (docInfo.hasOwnProperty("samples")) {
+                        cardImage.src = "/api/v1/samples/" + docInfo["samples"]["0"] + "/thumbnail";
+                    }
                 }
                 card.appendChild(cardImage);
 
