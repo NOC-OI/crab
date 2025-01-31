@@ -170,7 +170,7 @@ let uploadFile = (then = () => {}, onError = () => {}, uri = "/runs/upload") => 
     xhr.send(data);
 }
 
-let confirmMetadata = (then = () => {}, onError = () => {}, uri = "/api/v1/apply_mapping") => {
+let confirmMetadata = (then = () => {}, onError = () => {}, uri = "/api/v1/runs/<run_uuid>/apply_upload_profile") => {
     event.preventDefault();
     const method = 'post';
     const xhr = new XMLHttpRequest();
@@ -182,19 +182,21 @@ let confirmMetadata = (then = () => {}, onError = () => {}, uri = "/api/v1/apply
     const spinnerContainer = form.querySelector(".spinner-container");
     fieldset.disabled = true;
     spinnerContainer.style.display = "";
-    xhr.open(method, uri);
+    xhr.open(method, uri.replace("<run_uuid>", data.get("run_uuid")));
     xhr.addEventListener('loadend', () => {
         if (xhr.status === 200) {
 
-            modalAlert("Upload succeeded", "You can now close this page.");
+            //modalAlert("Upload succeeded", "You can now close this page. The profile will be applied in the background.");
             progressBar.aria_valuenow = 0;
             progressBar.style.width = 0;
             progressBar.classList.remove("bg-success");
             //form.before(note);
             spinnerContainer.style.display = "none";
-            then(form, JSON.parse(xhr.responseText));
+            resp = JSON.parse(xhr.responseText)
+            then(form, resp);
+            console.log(resp)
 
-            window.location.href = "/runs/" + data.get("run_uuid");
+            window.location.href = "/jobs/" + resp["job_id"];
         } else {
             onError(xhr.status);
             modalAlert("Unpacking archive failed", "Please try again");

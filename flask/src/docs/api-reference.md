@@ -61,7 +61,21 @@ Applies a sensor mapping to an uploaded staged run.
 
 `/api/v1/samples/<sample_uuid>`
 
-Returns a lossless TIFF file representing the sample image .
+`/api/v1/samples/<sample_uuid>.tiff`
+
+`/api/v1/samples/<sample_uuid>.tif`
+
+Returns the lossless TIFF file, as stored in the database.
+
+`/api/v1/samples/<sample_uuid>.png`
+
+Returns a lossless* PNG file converted from the original TIFF file. Conversion is done for each request. May result in some downsampling. Use the original TIFF format if possible for data analysis.
+
+`/api/v1/samples/<sample_uuid>.jpeg`
+
+`/api/v1/samples/<sample_uuid>.jpg`
+
+Returns a lossy JPEG file converted from the original TIFF file. Conversion is done for each request. Will result in downsampling. Use the original TIFF format if possible for data analysis. Intended for display over network connections only.
 
 `/api/v1/samples/<sample_uuid>/metadata`
 
@@ -69,7 +83,7 @@ Returns metadata associated with the individual sample.
 
 `/api/v1/samples/<sample_uuid>/thumbnail`
 
-Returns a converted JPEG of the underlying sample image.
+Returns a converted JPEG of the sample image. Uses a low quality (50) for fast network transfer. Not inteded for use other than as a thumbnail. Conversion is cached (TODO), so is prefereable to use for performance reasons.
 
 ## Projects
 

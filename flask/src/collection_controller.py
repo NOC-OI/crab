@@ -8,7 +8,7 @@ import zipfile
 import hashlib
 import json
 from utils import get_session_info, get_app_frontend_globals, to_snake_case
-from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name, get_couchpotato
+from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name, get_couch_client
 
 collection_pages = Blueprint("collection_pages", __name__)
 collection_api = Blueprint("collection_api", __name__)
@@ -125,6 +125,107 @@ def api_v1_get_collection(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
+@collection_api.route("/api/v1/collections/<raw_uuid>/via_annotation_project", methods=['GET'])
+def api_v1_get_collection_via_proj(raw_uuid):
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_view(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "readDenied",
+                "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
+        couch_client = get_couch_client()
+
+        collection_info = couch_client.get_document("crab_collections", str(uuid_obj))
+
+        via_config = {
+                "file": {
+                "loc_prefix": {"1": "","2": "","3": "","4": ""}},
+                "ui": {
+                    "file_content_align": "center",
+                    "file_metadata_editor_visible": True,
+                    "spatial_metadata_editor_visible": True,
+                    "temporal_segment_metadata_editor_visible": False,
+                    "spatial_region_label_attribute_id": "",
+                    "gtimeline_visible_row_count": "4"
+                }
+            }
+
+        #via_attributes = {
+        #        "1": {
+        #        "aname": "beans",
+        #        "anchor_id": "FILE1_Z0_XY1",
+        #        "type": 2,
+        #        "desc": "",
+        #        "options": {
+        #            "0": "is_beans"
+        #        },
+        #        "default_option_id": ""
+        #        }
+        #    }
+
+        via_attributes = {}
+        via_views = {}
+        via_files = {}
+
+        sample_ids = []
+        for run_id in collection_info["runs"]:
+            run_info = couch_client.get_document("crab_runs", run_id)
+            for sample_id in run_info["samples"]:
+                sample_ids.append(sample_id)
+
+        sample_ids.sort() # Used to make sure order is easy to parse for end users!
+
+        idx = 1
+        for sample_id in sample_ids:
+            via_files[str(idx)] = {
+                    "fid": str(idx),
+                    "fname": sample_id,
+                    "type": 2,
+                    "loc": 2,
+                    "src": "/api/v1/samples/" + sample_id + ".jpeg"
+                }
+            via_views[str(idx)] = {
+                    "fid_list": [
+                        str(idx)
+                    ]
+                }
+            idx += 1
+
+        vid_list = []
+        for key in via_views:
+            vid_list.append(key)
+
+        via_project = {
+            "pid": str(uuid_obj),
+            "rev": "1",
+            "rev_timestamp": "1738233380656",
+            "pname": "beans",
+            "creator": "CRAB (https://github.com/NOC-OI/crab)",
+            "created": 1738233184858,
+            "vid_list": vid_list
+        }
+
+        via_metadata = {}
+
+        via_data = {
+                "project": via_project,
+                "config": via_config,
+                "attribute": via_attributes,
+                "file": via_files,
+                "metadata": {},
+                "view": via_views
+            }
+
+        return Response(json.dumps(via_data), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
 @collection_api.route("/api/v1/collections/<raw_uuid>/connect", methods=["GET"])
 def api_v1_add_collection_connection(raw_uuid):
     try:
@@ -177,7 +278,7 @@ def build_collection_snapshot(job_uuid, snapshot_uuid, collection_info, snapshot
     #current_job_md["progress"] = 0
     #get_couch()["crab_jobs"][job_uuid] = current_job_md
 
-    couch_client = get_couchpotato()
+    couch_client = get_couch_client()
 
     couch_client.patch_document("crab_jobs", job_uuid, {
             "status": "ACTIVE",

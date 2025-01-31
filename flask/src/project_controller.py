@@ -7,6 +7,7 @@ from utils import get_session_info, get_app_frontend_globals, to_snake_case
 from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object
 import markdown
 from pygments.formatters import HtmlFormatter
+from base64 import urlsafe_b64encode
 
 
 project_pages = Blueprint("project_pages", __name__)
@@ -192,9 +193,14 @@ def project_detail_screen(raw_uuid):
                         snapshots.append(get_couch()["crab_snapshots"][snapshot_id])
                         #print(json.dumps(get_couch()["crab_snapshots"][snapshot_id], indent=2))
 
+            via_project_string = urlsafe_b64encode(json.dumps({
+                    "remote_project": "/api/v1/collections/" + collection["_id"] + "/via_annotation_project"
+                }).encode("utf-8")).decode("utf-8")
+
             collections.append({
                     "_id": collection["_id"],
                     "identifier": collection["identifier"],
+                    "via_project_string": via_project_string,
                     "snapshots": snapshots,
                     "runs": runs
                 })

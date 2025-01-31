@@ -48,7 +48,12 @@
             </h2>
             <div id="collapse-{{ collection._id }}" class="accordion-collapse collapse show" aria-labelledby="heading-{{ collection._id }}" data-bs-parent="#accordion-collections">
             <div class="accordion-body">
+                {% if can_edit %}
+                <h5>Collection actions</h5>
+                <a href="/static/image-annotator.html#{{ collection.via_project_string }}" class="btn btn-primary">Annotate dataset</a>
 
+                <hr class="my-3">
+                {% endif %}
                 <h5>Snapshots</h5>
                 {% if can_edit %}
                 <a href="/collections/{{ collection._id }}/new-snapshot" class="btn btn-primary">Publish snapshot</a>

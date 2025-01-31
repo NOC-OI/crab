@@ -136,6 +136,8 @@ def api_v1_get_sample_metadata(raw_uuid):
 
 #@run_api.route("/api/v1/get_sample/<raw_uuid>", methods=['GET'])
 @run_api.route("/api/v1/samples/<raw_uuid>", methods=['GET'])
+@run_api.route("/api/v1/samples/<raw_uuid>.tiff", methods=['GET'])
+@run_api.route("/api/v1/samples/<raw_uuid>.tif", methods=['GET'])
 def api_v1_get_sample(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
@@ -152,6 +154,43 @@ def api_v1_get_sample(raw_uuid):
             "error": "badUUID",
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
+
+@run_api.route("/api/v1/samples/<raw_uuid>.jpeg", methods=['GET'])
+@run_api.route("/api/v1/samples/<raw_uuid>.jpg", methods=['GET'])
+def api_v1_get_sample_jpeg(raw_uuid):
+    #try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+        sample_metadata = get_couch()["crab_samples"][str(uuid_obj)]
+        in_temp_file = get_bucket_object(path=sample_metadata["path"])
+        #return send_file(fh, download_name=os.path.basename(sample_metadata["path"]))
+        out_temp_file = io.BytesIO()
+        #print(in_temp_file['Body'].read())
+        im = Image.open(io.BytesIO(in_temp_file['Body'].read())) # Open with PIL to convert to jpeg
+        im.save(out_temp_file, "JPEG", quality=90)
+        out_bytearray = out_temp_file.getvalue()
+        return Response(
+            out_bytearray,
+            mimetype="image/jpeg",
+            headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(sample_metadata["path"]))[0] + ".jpg"}
+        )
+
+@run_api.route("/api/v1/samples/<raw_uuid>.png", methods=['GET'])
+def api_v1_get_sample_png(raw_uuid):
+    #try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+        sample_metadata = get_couch()["crab_samples"][str(uuid_obj)]
+        in_temp_file = get_bucket_object(path=sample_metadata["path"])
+        #return send_file(fh, download_name=os.path.basename(sample_metadata["path"]))
+        out_temp_file = io.BytesIO()
+        #print(in_temp_file['Body'].read())
+        im = Image.open(io.BytesIO(in_temp_file['Body'].read())) # Open with PIL to convert to jpeg
+        im.save(out_temp_file, "PNG")
+        out_bytearray = out_temp_file.getvalue()
+        return Response(
+            out_bytearray,
+            mimetype="image/png",
+            headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(sample_metadata["path"]))[0] + ".png"}
+        )
 
 #@run_api.route("/api/v1/get_sample_thumbnail/<raw_uuid>", methods=['GET'])
 @run_api.route("/api/v1/samples/<raw_uuid>/thumbnail", methods=['GET'])

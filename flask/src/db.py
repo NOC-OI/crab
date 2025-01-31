@@ -1,7 +1,10 @@
 import boto3
 import couchdb
-import couchpotato
+import couchbeans
 import os
+import pika
+import uuid
+import sys
 
 s3_region = os.environ.get("S3_REGION")
 s3_endpoint = os.environ.get("S3_ENDPOINT")
@@ -33,11 +36,23 @@ couch_port = os.environ.get("COUCHDB_PORT", 5984)
 couch_base_uri = "http://" + couch_user + ":" + couch_password + "@" + couch_host + ":" + str(couch_port) + "/"
 couch = couchdb.Server(couch_base_uri)
 
+rabbitmq_credentials = pika.PlainCredentials(os.environ.get("RABBITMQ_DEFAULT_USER"), os.environ.get("RABBITMQ_DEFAULT_PASS"))
+
+# Both for backwards compat
 def get_couch():
     return couch
-
 def get_couchpotato():
-    return couchpotato.Client(couch_base_uri)
+    return couchbeans.CouchClient(couch_base_uri)
+
+def get_couch_client():
+    return couchbeans.CouchClient(couch_base_uri)
+
+def advertise_job(job_id):
+    connection = pika.BlockingConnection(pika.ConnectionParameters("localhost", 5672, "/", rabbitmq_credentials))
+    channel = connection.channel()
+    channel.queue_declare(queue="crab_jobs")
+    channel.basic_publish(exchange="", routing_key="crab_jobs", body=job_id)
+    connection.close()
 
 # Sometimes needed if we want to directly interface with couchdb
 def get_couch_base_uri():
