@@ -5,256 +5,19 @@ import json
 from datetime import datetime
 import os
 from PIL import Image
-import microtiff.ifcb
-import microtiff.lisst_holo
 from flask import Blueprint, request, render_template, Response, make_response, redirect
 
 from utils import get_session_info, get_app_frontend_globals, to_snake_case
-from db import get_couch, get_bucket, get_bucket_uri
+from db import get_couch, get_bucket, get_bucket_uri, get_couch_client, advertise_job
 
 temp_loc = "temp"
 
 ingest_pages = Blueprint("ingest_pages", __name__)
 
-def raw_image_unpack(run_uuid, workdir, namelist, metadata_template = {}):
-    targets = []
-    for in_file in namelist:
-        in_file_s = os.path.splitext(in_file)
-        if in_file_s[1] == ".png" or in_file_s[1] == ".jpg" or in_file_s[1] == ".jpeg" or in_file_s[1] == ".tif" or in_file_s[1] == ".tiff":
-            targets.append(in_file)
-
-    targets = list(set(targets))
-
-    run_dblist = get_couch()["crab_runs"]
-    sample_dblist = get_couch()["crab_samples"]
-    samples = []
-
-    run_metadata = {}
-    mapping = {}
-
-    for target in targets:
-        im = Image.open(workdir + "/" + target)
-        sample_uuid = str(uuid.uuid4())
-        ofn = "runs/" + run_uuid + "/" + sample_uuid + ".tiff"
-        ifn = workdir + "/" + in_file + ".tiff"
-        im.save(ifn)
-        get_bucket().upload_file(ifn, ofn)
-        print(ofn)
-
-        sample_raw_metadata = {
-                "filename": target
-            }
-
-        for key in mapping:
-            sample_transformed_metadata[mapping[key]] = sample_raw_metadata[key]
-
-        sample_transformed_metadata = {}
-
-        mode_to_bpp = {'1':1, 'L':8, 'P':8, 'RGB':24, 'RGBA':32, 'CMYK':32, 'YCbCr':24, 'I':32, 'F':32}
-
-        sample_metadata = {
-            "path": ofn,
-            "host": get_bucket_uri(),
-            "type": {
-                    "dimensions": 2,
-                    "format": "image/tiff",
-                    "channels": [
-                            {
-                                "type": im.mode,
-                                "bit_depth": mode_to_bpp[im.mode]
-                            }
-                        ]
-                },
-            "origin_tags": sample_raw_metadata,
-            "tags": sample_transformed_metadata
-        }
-        sample_dblist[sample_uuid] = sample_metadata
-        samples.append(sample_uuid)
-
-    run_transformed_metadata = {}
-
-    for key in mapping:
-        run_transformed_metadata[mapping[key]] = run_metadata[key]
-
-    current_unix_timestamp = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
-
-    metadata_template["origin_tags"] = run_metadata
-    metadata_template["tags"] = run_transformed_metadata
-    metadata_template["ingest_timestamp"] = current_unix_timestamp
-    metadata_template["sensor"] = "RAW_IMAGE"
-    metadata_template["samples"] = samples
-
-    run_dblist[run_uuid] = metadata_template
-
-    return {"samples": len(samples)}
-
-def lisst_holo_unpack(run_uuid, workdir, namelist, metadata_template = {}):
-    targets = []
-    for in_file in namelist:
-        in_file_s = os.path.splitext(in_file)
-        if in_file_s[1] == ".pgm":
-            targets.append(in_file_s[0])
-    targets = list(set(targets))
-
-    run_dblist = get_couch()["crab_runs"]
-    sample_dblist = get_couch()["crab_samples"]
-    samples = []
-
-    run_metadata = {}
-
-    for target in targets:
-        microtiff.lisst_holo.extract_image(workdir + "/" + target)
-
-    mapping = {}
-
-    for target in targets:
-        ofn = "runs/" + run_uuid + "/" + target + ".tiff"
-        print(ofn)
-        get_bucket().upload_file(workdir + "/" + in_file, ofn)
-        sample_uuid = str(uuid.uuid4())
-
-        sample_raw_metadata = {}
-
-        for key in mapping:
-            sample_transformed_metadata[mapping[key]] = sample_raw_metadata[key]
-
-        sample_transformed_metadata = {}
-
-        sample_metadata = {
-            "path": ofn,
-            "host": get_bucket_uri(),
-            "type": {
-                    "dimensions": 2,
-                    "format": "image/tiff",
-                    "channels": [
-                            {
-                                "type": "L",
-                                "bit_depth": 8
-                            }
-                        ]
-                },
-            "origin_tags": sample_raw_metadata,
-            "tags": sample_transformed_metadata
-        }
-        sample_dblist[sample_uuid] = sample_metadata
-        samples.append(sample_uuid)
-
-    run_transformed_metadata = {}
-
-    for key in mapping:
-        run_transformed_metadata[mapping[key]] = run_metadata[key]
-
-    current_unix_timestamp = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
-
-    metadata_template["origin_tags"] = run_metadata
-    metadata_template["tags"] = run_transformed_metadata
-    metadata_template["ingest_timestamp"] = current_unix_timestamp
-    metadata_template["sensor"] = "LISST_HOLO"
-    metadata_template["samples"] = samples
-
-    run_dblist[run_uuid] = metadata_template
-
-    return {"samples": len(samples)}
-
-def ifcb_unpack(run_uuid, workdir, namelist, metadata_template = {}):
-    targets = []
-    for in_file in os.listdir(workdir):
-        in_file_s = os.path.splitext(in_file)
-        if in_file_s[1] == ".adc" or in_file_s[1] == ".hdr" or in_file_s[1] == ".roi":
-            targets.append(in_file_s[0])
-    targets = list(set(targets))
-    #print(targets)
-    run_metadata = None
-    group_metadata = {}
-    for target in targets:
-        with open(workdir + "/" + target + ".hdr") as f:
-            header_lines = f.readlines()
-            extracted_metadata = microtiff.ifcb.header_file_to_dict(header_lines)
-            filtered_metadata = {}
-            for key in extracted_metadata:
-                filtered_metadata[to_snake_case(key)] = extracted_metadata[key]
-            group_metadata[target] = filtered_metadata
-            if run_metadata is None:
-                run_metadata = group_metadata[target].copy()
-            for gmk in group_metadata[target]:
-                if not run_metadata[gmk] == group_metadata[target][gmk]:
-                    run_metadata[gmk] = []
-        microtiff.ifcb.extract_images(workdir + "/" + target)
-
-    for group in group_metadata:
-        for gmk in group_metadata[group]:
-            #print(gmk)
-            if type(run_metadata[gmk]) is list:
-                #print(group_metadata[group][gmk])
-                run_metadata[gmk].append(group_metadata[group][gmk])
-            else:
-                group_metadata[group][gmk] = None
-        group_metadata[group] = {k: v for k, v in group_metadata[group].items() if v is not None}
-    run_metadata = {k: v for k, v in run_metadata.items() if v is not None}
-
-    run_dblist = get_couch()["crab_runs"]
-    sample_dblist = get_couch()["crab_samples"]
-    samples = []
-
-    mapping = {
-            "software_version": "source_software",
-            "analog_firmware_version": "firmware_version",
-            "sample_time": "sample_time",
-            "imager_id": "vendor_issued_hardware_id"
-        }
-
-    for in_file in os.listdir(workdir):
-        in_file_s = os.path.splitext(in_file)
-        if in_file_s[1] == ".tiff":
-            base_group = in_file_s[0].split("_TN")[0]
-            ofn = "runs/" + run_uuid + "/" + in_file_s[0] + ".tiff"
-            get_bucket().upload_file(workdir + "/" + in_file, ofn)
-            sample_uuid = str(uuid.uuid4())
-
-            sample_transformed_metadata = {}
-            for key in mapping:
-                if key in group_metadata:
-                    sample_transformed_metadata[mapping[key]] = group_metadata[base_group][key]
-
-            sample_metadata = {
-                "path": ofn,
-                "host": get_bucket_uri(),
-                "type": {
-                        "dimensions": 2,
-                        "format": "image/tiff",
-                        "channels": [
-                                {
-                                    "type": "L",
-                                    "bit_depth": 8
-                                }
-                            ]
-                    },
-                "tags": sample_transformed_metadata,
-                "origin_tags": group_metadata[base_group].copy()
-            }
-            sample_dblist[sample_uuid] = sample_metadata
-            samples.append(sample_uuid)
-
-    run_transformed_metadata = {}
-
-    for key in mapping:
-        run_transformed_metadata[mapping[key]] = run_metadata[key]
-
-    current_unix_timestamp = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
-
-    metadata_template["origin_tags"] = run_metadata
-    metadata_template["tags"] = run_transformed_metadata
-    metadata_template["ingest_timestamp"] = current_unix_timestamp
-    metadata_template["sensor"] = "MCLANE_IFCB"
-    metadata_template["samples"] = samples
-
-    run_dblist[run_uuid] = metadata_template
-
-    return {"samples": len(samples)}
-
-#@ingest_pages.route('/applyMapping', methods=['POST']) # Legacy endpoint
-@ingest_pages.route('/api/v1/apply_mapping', methods=['POST'])
-def unpack_upload():
+#@ingest_pages.route('/applyMapping', methods=['POST']) # Legacy legacy endpoint
+#@ingest_pages.route('/api/v1/apply_mapping', methods=['POST']) # Legacy endpoint
+@ingest_pages.route('/api/v1/runs/<raw_uuid>/apply_upload_profile', methods=['POST'])
+def unpack_upload(raw_uuid):
     session_info = get_session_info()
     if session_info is None:
         return Response(json.dumps({
@@ -264,22 +27,19 @@ def unpack_upload():
     archive = None
     run_uuid = None
     try:
-        uuid_obj = uuid.UUID(request.form["run_uuid"], version=4)
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
         archive = temp_loc + "/" + str(uuid_obj) + ".zip"
         run_uuid = str(uuid_obj)
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
-            "msg": "Invalid UUID " + request.form["run_uuid"]
+            "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
     get_bucket().upload_file(archive, "raw_uploads/" + run_uuid + ".zip")
     profile = request.form["sensor"]
     ret = {"uuid": run_uuid, "profile": profile}
-    workdir = temp_loc + "/" + run_uuid + "-unpacked"
-    namelist = None
-    with zipfile.ZipFile(archive) as zipf:
-        namelist = zipf.namelist()
-        zipf.extractall(workdir)
+    #workdir = temp_loc + "/" + run_uuid + "-unpacked"
+
     metadata_template = {
         "creator": {
             "uuid": session_info["user_uuid"],
@@ -289,20 +49,41 @@ def unpack_upload():
     print(request.form)
     if "identifier" in request.form:
         metadata_template["identifier"] = request.form["identifier"]
+
+
+    job_uuid = uuid.uuid4()
+    job_args = {
+            "input_md": metadata_template
+        }
+
     if profile == "ifcb":
         print("IFCB profile!")
-        ret["unpacker_output"] = ifcb_unpack(run_uuid, workdir, namelist, metadata_template)
+        job_args["profile"] = "IFCB"
+        #ret["unpacker_output"] = ifcb_unpack(run_uuid, workdir, namelist, metadata_template)
     elif profile == "lisst-holo":
         print("LISST-Holo profile!")
-        ret["unpacker_output"] = lisst_holo_unpack(run_uuid, workdir, namelist, metadata_template)
+        job_args["profile"] = "LISST_HOLO"
+        #ret["unpacker_output"] = lisst_holo_unpack(run_uuid, workdir, namelist, metadata_template)
     elif profile == "raw-image":
         print("Raw-Image profile!")
-        ret["unpacker_output"] = raw_image_unpack(run_uuid, workdir, namelist, metadata_template)
+        job_args["profile"] = "RAW_IMAGE"
+        #ret["unpacker_output"] = raw_image_unpack(run_uuid, workdir, namelist, metadata_template)
     else:
         return Response(json.dumps({
             "error": "badProfile",
             "msg": "Invalid Profile " + profile
             }), status=400, mimetype='application/json')
+
+    job_md = {
+            "type": "RUN_APPLY_UPLOAD_PROFILE",
+            "target_id": run_uuid,
+            "status": "PENDING",
+            "progress": 0.0,
+            "job_args": job_args
+        }
+    get_couch_client().put_document("crab_jobs", str(job_uuid), job_md)
+    ret["job_id"] = str(job_uuid)
+    advertise_job(str(job_uuid))
 
     return Response(json.dumps(ret), status=200, mimetype='application/json')
 

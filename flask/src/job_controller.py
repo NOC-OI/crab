@@ -23,3 +23,14 @@ def api_v1_get_job(raw_uuid):
             "error": "badUUID",
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
+
+@job_pages.route("/jobs/<raw_uuid>", methods=['GET'])
+def get_job_status(raw_uuid):
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+        return render_template("job_view.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), job_id=str(uuid_obj))
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
