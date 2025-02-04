@@ -100,7 +100,6 @@ let takeSnapshot = () => {
                     progressBar.style.width = "0";
                     spinnerContainer.style.display = "none";
                 }, (prog) => {
-                    console.log(prog)
                     progressBar.aria_valuenow = 50 + (prog * 50);
                     progressBar.style.width = (50 + (prog * 50)) + "%";
                 });
@@ -110,7 +109,6 @@ let takeSnapshot = () => {
                 progressBar.style.width = "0";
                 spinnerContainer.style.display = "none";
             }, (prog) => {
-                console.log(prog)
                 progressBar.aria_valuenow = (prog * 50); // Reserve 50% of the progress bar for the initial snapshot job
                 progressBar.style.width = (prog * 50) + "%";
             });
