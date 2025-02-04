@@ -10,6 +10,9 @@ global_vars = {
         "long_brand": "Centralised Repository for Annotations and BLOBs"
     }
 
+def get_csrf_secret_key():
+    return os.environ.get("CRAB_CSRF_SECRET_KEY")
+
 def get_crab_external_endpoint():
     crab_external_endpoint = "http://" + os.environ.get("CRAB_EXTERNAL_HOST") + ":" + os.environ.get("CRAB_EXTERNAL_PORT") + "/"
     if os.environ.get("CRAB_EXTERNAL_PORT") == "80":

@@ -498,6 +498,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
     <script src="../js/_via_editor.js"></script>
     <script src="../js/_via_debug_project.js"></script>
+
+    <script src="../js/_via_cm_addon.js"></script>
     <script src="../js/_via.js"></script>
 
     <!-- Used by external programs (e.g. imfind) to create VIA3 application that automatically loads a project file -->
@@ -508,6 +510,7 @@ POSSIBILITY OF SUCH DAMAGE.
     <script>
       //__ENABLED_BY_PACK_SCRIPT__var _VIA_DEBUG = false;
       var via_container = document.getElementById('via_container');
+      var _via_load_submodules = via_cm_addon_init;
       var via = new _via(via_container);
       //__ENABLED_BY_DEMO_PACK_SCRIPT___via_util_page_show('page_demo_instructions');
     </script>

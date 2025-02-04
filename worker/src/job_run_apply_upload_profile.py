@@ -8,6 +8,7 @@ import tempfile
 import json
 import io
 import os
+import time
 import uuid
 from datetime import datetime
 
@@ -33,14 +34,19 @@ class RunApplyUploadProfileJob:
         run_metadata = {}
         mapping = {}
 
+        targets_len = len(targets)
+        i = 0
+        last_push_time = time.time()
+
         for target in targets:
             im = Image.open(workdir + "/" + target)
             sample_uuid = str(uuid.uuid4())
             ofn = "runs/" + run_uuid + "/" + sample_uuid + ".tiff"
             ifn = workdir + "/" + in_file + ".tiff"
             im.save(ifn)
-            get_bucket().upload_file(ifn, ofn)
-            print(ofn)
+            #get_bucket().upload_file(ifn, ofn)
+            get_s3_client(self.s3_profile).upload_file(ifn, get_s3_bucket_name(self.s3_profile), ofn)
+            #print(ofn)
 
             sample_raw_metadata = {
                     "filename": target
@@ -71,6 +77,10 @@ class RunApplyUploadProfileJob:
             }
             couch_client.put_document("crab_samples", sample_uuid, sample_metadata)
             samples.append(sample_uuid)
+            i += 1
+            if (last_push_time + 5) < time.time():
+                last_push_time = time.time()
+                self.progress_func(i/targets_len)
 
         run_transformed_metadata = {}
 
@@ -97,6 +107,10 @@ class RunApplyUploadProfileJob:
                 targets.append(in_file_s[0])
         targets = list(set(targets))
 
+        targets_len = len(targets)
+        i = 0
+        last_push_time = time.time()
+
         couch_client = get_couch_client()
         samples = []
 
@@ -109,8 +123,9 @@ class RunApplyUploadProfileJob:
 
         for target in targets:
             ofn = "runs/" + run_uuid + "/" + target + ".tiff"
-            print(ofn)
-            get_bucket().upload_file(workdir + "/" + in_file, ofn)
+            #print(ofn)
+            ifn = workdir + "/" + in_file
+            get_s3_client(self.s3_profile).upload_file(ifn, get_s3_bucket_name(self.s3_profile), ofn)
             sample_uuid = str(uuid.uuid4())
 
             sample_raw_metadata = {}
@@ -138,6 +153,10 @@ class RunApplyUploadProfileJob:
             }
             couch_client.put_document("crab_samples", sample_uuid, sample_metadata)
             samples.append(sample_uuid)
+            i += 1
+            if (last_push_time + 5) < time.time():
+                last_push_time = time.time()
+                self.progress_func(i/targets_len)
 
         run_transformed_metadata = {}
 
@@ -163,7 +182,9 @@ class RunApplyUploadProfileJob:
             if in_file_s[1] == ".adc" or in_file_s[1] == ".hdr" or in_file_s[1] == ".roi":
                 targets.append(in_file_s[0])
         targets = list(set(targets))
-        print(targets)
+
+
+        #print(targets)
         run_metadata = None
         group_metadata = {}
         for target in targets:
@@ -202,6 +223,10 @@ class RunApplyUploadProfileJob:
                 "imager_id": "vendor_issued_hardware_id"
             }
 
+        targets_len = len(os.listdir(workdir))
+        i = 0
+        last_push_time = time.time()
+
         for in_file in os.listdir(workdir):
             in_file_s = os.path.splitext(in_file)
             if in_file_s[1] == ".tiff":
@@ -233,6 +258,10 @@ class RunApplyUploadProfileJob:
                 }
                 couch_client.put_document("crab_samples", sample_uuid, sample_metadata)
                 samples.append(sample_uuid)
+                i += 1
+                if (last_push_time + 5) < time.time():
+                    last_push_time = time.time()
+                    self.progress_func(i/targets_len)
 
         run_transformed_metadata = {}
 
@@ -272,16 +301,11 @@ class RunApplyUploadProfileJob:
                     namelist = zipf.namelist()
                     zipf.extractall(workdir)
 
-            print(profile)
-
             if profile == "IFCB":
-                print("IFCB profile!")
                 patch["unpacker_output"] = self.ifcb_unpack(run_uuid, workdir, namelist, metadata_template)
             elif profile == "LISST_HOLO":
-                print("LISST-Holo profile!")
                 patch["unpacker_output"] = self.lisst_holo_unpack(run_uuid, workdir, namelist, metadata_template)
             else:
-                print("Raw-Image profile!")
                 patch["unpacker_output"] = self.raw_image_unpack(run_uuid, workdir, namelist, metadata_template)
 
         return patch

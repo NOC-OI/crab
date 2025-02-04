@@ -37,6 +37,8 @@ couch_base_uri = "http://" + couch_user + ":" + couch_password + "@" + couch_hos
 couch = couchdb.Server(couch_base_uri)
 
 rabbitmq_credentials = pika.PlainCredentials(os.environ.get("RABBITMQ_DEFAULT_USER"), os.environ.get("RABBITMQ_DEFAULT_PASS"))
+rabbitmq_host = os.environ.get("RABBITMQ_HOST")
+rabbitmq_port = os.environ.get("RABBITMQ_PORT", 5672)
 
 # Both for backwards compat
 def get_couch():
@@ -48,7 +50,7 @@ def get_couch_client():
     return couchbeans.CouchClient(couch_base_uri)
 
 def advertise_job(job_id):
-    connection = pika.BlockingConnection(pika.ConnectionParameters("localhost", 5672, "/", rabbitmq_credentials))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(rabbitmq_host, rabbitmq_port, "/", rabbitmq_credentials))
     channel = connection.channel()
     channel.queue_declare(queue="crab_jobs")
     channel.basic_publish(exchange="", routing_key="crab_jobs", body=job_id)

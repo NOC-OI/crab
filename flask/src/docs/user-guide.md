@@ -6,7 +6,8 @@ Start by making a Zip archive of your raw data. Leave the files exactly as they 
 
 The currently installed version of CRAB supports data from the following devices:
 
-- [McLane Labs IFCB](https://mclanelabs.com/imaging-flowcytobot/)
+- [Sequoia LISST-Holo2](https://mclanelabs.com/imaging-flowcytobot/)
+- [McLane Labs IFCB](https://www.sequoiasci.com/product/lisst-holo/)
 
 ## Building a project
 

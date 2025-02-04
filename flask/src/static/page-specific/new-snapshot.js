@@ -27,7 +27,7 @@ let checkJob = (jobId, then = () => {}, onError = () => {}, onProgress = () => {
                     //console.log(response["progress"])
                 }
                 setTimeout(() => {
-                    checkJob(jobId, then, onError);
+                    checkJob(jobId, then, onError, onProgress);
                 }, 1000);
             }
 
@@ -37,7 +37,7 @@ let checkJob = (jobId, then = () => {}, onError = () => {}, onProgress = () => {
             //then(form, JSON.parse(xhr.responseText));
         } else {
             setTimeout(() => {
-                checkJob(jobId, then, onError);
+                checkJob(jobId, then, onError, onProgress);
             }, 1000);
         }
     });
@@ -100,6 +100,7 @@ let takeSnapshot = () => {
                     progressBar.style.width = "0";
                     spinnerContainer.style.display = "none";
                 }, (prog) => {
+                    console.log(prog)
                     progressBar.aria_valuenow = 50 + (prog * 50);
                     progressBar.style.width = (50 + (prog * 50)) + "%";
                 });

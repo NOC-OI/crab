@@ -8,15 +8,30 @@
     <span>Run UUID: {{ run_data._id }}</span>
     <div class="my-3">
         <a href="/api/v1/runs/{{ run_data._id }}/as_zip" class="btn btn-primary">Download raw data</a>
+        {% if can_edit %}
         <a href="/runs/{{ run_data._id }}/delete" class="btn btn-danger">Delete</a>
+        {% endif %}
     </div>
     <hr class="my-3">
 
+    <h2>Run metadata</h2>
+    <form method="PUT" action="/api/v1/runs/{{ run_data._id }}/put_metadata">
+        <div class="mb-3">
+            <textarea class="form-control" rows="8" name="metadata">{{ run_data_raw }}</textarea>
+        </div>
+        {% if can_edit %}
+        <input class="btn btn-primary" type="submit" value="Save changes to metadata">
+        {% endif %}
+    </form>
 
-
-
+    <hr class="my-3">
 
     <div id="list_view" class="row gx-3">
+        {% if run_data.sample_count > 10 %}
+            <p>{{ run_data.sample_count }} total samples in dataset. 10 shown below as a sample.</p>
+        {% else %}
+            <p>{{ run_data.sample_count }} samples in dataset.</p>
+        {% endif %}
         {% for sample in run_data.samples %}
         <div class="mb-3 mr-3 col-lg-3 col-md-4 col-sm-12 col-12 col">
             <div class="card bg-light"><img class="card-img-top" src="/api/v1/samples/{{ sample }}/thumbnail">

@@ -37,7 +37,7 @@ services:
 
 
   rabbitmq:
-    image: rabbitmq:4.0.5
+    image: rabbitmq:3-management
     container_name: crab-rabbitmq
     healthcheck:
       test: rabbitmq-diagnostics -q ping
@@ -48,6 +48,7 @@ services:
       - 5672:5672
     env_file:
       - ./.env
+    command: ["bash", "-c", "chmod 400 /var/lib/rabbitmq/.erlang.cookie; rabbitmq-server"]
     networks:
       - private
 
@@ -83,7 +84,20 @@ services:
     depends_on:
       - minio
       - keycloak
+      - rabbitmq
     entrypoint: ["gunicorn", "-w", "${GUNICORN_WORKERS}", "main:app", "-b", "0.0.0.0:8957"]
+    env_file:
+      - ./.env
+    networks:
+      - private
+
+  worker:
+    image: crab/worker
+    restart: on-failure
+    depends_on:
+      - minio
+      - rabbitmq
+    entrypoint: ["python3", "main.py"]
     env_file:
       - ./.env
     networks:
@@ -100,3 +114,4 @@ volumes:
   minio:
   couchdb:
   keycloak:
+  rabbitmq:
