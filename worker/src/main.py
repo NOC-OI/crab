@@ -6,6 +6,7 @@ import time
 import datetime
 from utils import get_couch_client
 from job_run_apply_upload_profile import RunApplyUploadProfileJob
+from job_take_snapshot import TakeSnapshotJob
 import json
 import hashlib
 import traceback
@@ -27,7 +28,8 @@ def main():
         log(f"Handling job {uuid_str}")
 
         worker_mapping = {
-                "RUN_APPLY_UPLOAD_PROFILE": RunApplyUploadProfileJob
+                "RUN_APPLY_UPLOAD_PROFILE": RunApplyUploadProfileJob,
+                "TAKE_SNAPSHOT": TakeSnapshotJob
             }
 
         try:

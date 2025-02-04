@@ -28,6 +28,7 @@ login_pages = Blueprint("login_pages", __name__)
 account_pages = Blueprint("account_pages", __name__)
 access_token_pages = Blueprint("access_token_pages", __name__)
 session_api = Blueprint("session_api", __name__)
+users_api = Blueprint("users_api", __name__)
 
 @account_pages.route("/account")
 def account_screen():
@@ -113,6 +114,18 @@ def api_v1_whoami():
     return Response(json.dumps(get_couch()["crab_users"][session_info["user_uuid"]], indent=4), status=200, mimetype='application/json')
 
 
+#@run_api.route("/api/v1/get_user/<raw_uuid>", methods=['GET'])
+@users_api.route("/api/v1/users/<raw_uuid>", methods=['GET'])
+def api_v1_get_user(raw_uuid):
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+        user_data = get_couch()["crab_users"][str(uuid_obj)]
+        return Response(json.dumps(user_data), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
 
 @session_api.route("/api/v1/sessions/<raw_uuid>/close")
 def api_v1_close_session(raw_uuid):

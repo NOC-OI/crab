@@ -46,7 +46,7 @@ def unpack_upload(raw_uuid):
             "email": session_info["email"]
         }
     }
-    print(request.form)
+    #print(request.form)
     if "identifier" in request.form:
         metadata_template["identifier"] = request.form["identifier"]
 
@@ -57,15 +57,15 @@ def unpack_upload(raw_uuid):
         }
 
     if profile == "ifcb":
-        print("IFCB profile!")
+        #print("IFCB profile!")
         job_args["profile"] = "IFCB"
         #ret["unpacker_output"] = ifcb_unpack(run_uuid, workdir, namelist, metadata_template)
     elif profile == "lisst-holo":
-        print("LISST-Holo profile!")
+        #print("LISST-Holo profile!")
         job_args["profile"] = "LISST_HOLO"
         #ret["unpacker_output"] = lisst_holo_unpack(run_uuid, workdir, namelist, metadata_template)
     elif profile == "raw-image":
-        print("Raw-Image profile!")
+        #print("Raw-Image profile!")
         job_args["profile"] = "RAW_IMAGE"
         #ret["unpacker_output"] = raw_image_unpack(run_uuid, workdir, namelist, metadata_template)
     else:

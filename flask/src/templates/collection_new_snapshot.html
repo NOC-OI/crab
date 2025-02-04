@@ -13,7 +13,7 @@
             <p class="mb-0">Snapshots cannot be edited. Make sure the collection contains all desired metadata and image data before creating your snapshot. You can delete snapshots, and change visibility settings, but nothing else.</p>
         </div>
         <hr class="my-4">
-        <form method="POST" action="" enctype="multipart/form-data">
+        <form method="POST" action="/api/v1/collections/{{ collection_data._id }}/take_snapshot" enctype="multipart/form-data">
             <fieldset>
                 <input type="hidden" name="redirect_on_success" value="/projects/{{ collection_data.project }}">
                 <div class="mb-3">

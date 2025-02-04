@@ -31,7 +31,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 
 
 from utils import get_session_info, get_app_frontend_globals
-from user_management_controller import login_pages, account_pages, access_token_pages, session_api
+from user_management_controller import login_pages, account_pages, access_token_pages, session_api, users_api
 from ingest_controller import ingest_pages
 from run_controller import run_pages, run_api
 from project_controller import project_pages, project_api
