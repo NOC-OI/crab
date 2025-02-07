@@ -31,26 +31,11 @@ done
 echo ""
 echo "MinIO started!"
 MC_ALIAS="local"
-if [[ -z "$S3_ACCESS_KEY" ]]; then
-S3_REGION="us-east-1"
-S3_ENDPOINT="http://minio:9000"
-S3_BUCKET="crab"
-S3_ACCESS_KEY="crabsystem"
-S3_SECRET_KEY="$(mktemp -u XXXXXXXXXXXXXXXXXXXXXXXX)"
-echo "S3_REGION=\"$S3_REGION\"" >> .env
-echo "S3_ENDPOINT=\"$S3_ENDPOINT\"" >> .env
-echo "S3_ENDPOINT_LOCAL=\"http://localhost:9000\""
-echo "S3_BUCKET=\"$S3_BUCKET\"" >> .env
-echo "S3_ACCESS_KEY=\"$S3_ACCESS_KEY\"" >> .env
-echo "S3_SECRET_KEY=\"$S3_SECRET_KEY\"" >> .env
-else
 MC_ALIAS="remote"
-echo "Existing configutation for \"$S3_ENDPOINT\" as S3 backend found, skipping autoconf for MinIO"
-fi
-if [[ "$S3_ENDPOINT" = "http://localhost:9000" ]]; then
+if [[ "$DEFAULT_S3_ENDPOINT" = "http://localhost:9000" ]]; then
 echo "Local MinIO specified, applying policy automatically"
 ./migrate-minio.sh
 fi
-docker exec -it crab-minio mc alias set $MC_ALIAS "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY"
+docker exec -it crab-minio mc alias set $MC_ALIAS "$DEFAULT_S3_ENDPOINT" "$DEFAULT_S3_ACCESS_KEY" "$DEFAULT_S3_SECRET_KEY"
 echo "Done bucket setup"
 ./migrate-couchdb.sh

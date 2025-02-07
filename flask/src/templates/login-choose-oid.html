@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+
+<div class="container my-5">
+    <h1>Login with OpenID</h1>
+    <div class="col-lg-8 px-0">
+        <p class="fs-5">Choose the correct identity provider for your organisation.</p>
+
+        <hr class="my-4">
+
+        {% for provider in providers %}
+        <a href="/api/v1/openid/{{ provider.id }}/egress" class="btn btn-primary">{{ provider.name }}</a>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

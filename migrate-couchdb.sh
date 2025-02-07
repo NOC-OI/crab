@@ -36,6 +36,7 @@ docker exec -it crab-couchdb curl -X PUT "http://$COUCHDB_ROOT_USER:$COUCHDB_ROO
 docker exec -it crab-couchdb curl -X PUT "http://$COUCHDB_ROOT_USER:$COUCHDB_ROOT_PASSWORD@localhost:5984/crab_collections"
 docker exec -it crab-couchdb curl -X PUT "http://$COUCHDB_ROOT_USER:$COUCHDB_ROOT_PASSWORD@localhost:5984/crab_projects"
 docker exec -it crab-couchdb curl -X PUT "http://$COUCHDB_ROOT_USER:$COUCHDB_ROOT_PASSWORD@localhost:5984/crab_snapshots"
+docker exec -it crab-couchdb curl -X PUT "http://$COUCHDB_ROOT_USER:$COUCHDB_ROOT_PASSWORD@localhost:5984/crab_annotations"
 docker exec -it crab-couchdb curl -X POST -H "Content-Type: application/json" -d "{\"name\":\"upload_time\",\"type\":\"json\",\"index\":{\"fields\": [\"ingest_timestamp\"]}}" "http://$COUCHDB_ROOT_USER:$COUCHDB_ROOT_PASSWORD@localhost:5984/crab_runs/_index"
 docker exec -it crab-couchdb curl -X POST -H "Content-Type: application/json" -d "{\"name\":\"ingest_timestamp\",\"type\":\"json\",\"index\":{\"fields\": [\"ingest_timestamp\"]}}" "http://$COUCHDB_ROOT_USER:$COUCHDB_ROOT_PASSWORD@localhost:5984/crab_runs/_index"
 docker exec -it crab-couchdb curl -X POST -H "Content-Type: application/json" -d "{\"name\":\"creator\",\"type\":\"json\",\"index\":{\"fields\": [\"creator.uuid\"]}}" "http://$COUCHDB_ROOT_USER:$COUCHDB_ROOT_PASSWORD@localhost:5984/crab_runs/_index"

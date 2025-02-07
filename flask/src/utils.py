@@ -6,6 +6,7 @@ from flask import request
 from db import get_couch
 import random
 import string
+import secrets
 import json
 
 config_file_loc = os.environ.get("CRAB_CONFIG_FILE", "config.json")
@@ -15,19 +16,14 @@ with open(config_file_loc, "r") as f:
 
 def try_get_config_prop(property_name, alternate=None):
     if property_name in crab_config:
-        return crab_config["property_name"]
+        return crab_config[property_name]
     return alternate
-
-def random_alphanumeric(length=32):
-    return "".join(random.choices(string.ascii_letters + string.digits, k=length))
-
-
 
 csrf_secret_key = os.environ.get("CRAB_CSRF_SECRET_KEY", try_get_config_prop("csrf_secret_key"))
 if csrf_secret_key == None:
     if not os.path.isfile(".crab_temp_csrf_secretkey"):
         with open(".crab_temp_csrf_secretkey", "w") as f:
-            f.write(random_alphanumeric(32))
+            f.write(secrets.token_urlsafe(24))
     with open(".crab_temp_csrf_secretkey", "r") as f:
         csrf_secret_key = f.read()
 
