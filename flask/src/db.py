@@ -5,46 +5,58 @@ import os
 import pika
 import uuid
 import sys
+import json
 
-s3_region = os.environ.get("S3_REGION")
-s3_endpoint = os.environ.get("S3_ENDPOINT")
-s3_bucket = os.environ.get("S3_BUCKET")
-s3_access_key = os.environ.get("S3_ACCESS_KEY")
-s3_secret_key = os.environ.get("S3_SECRET_KEY")
-s3 = boto3.resource("s3",
-    endpoint_url=s3_endpoint,
-    aws_access_key_id=s3_access_key,
-    aws_secret_access_key=s3_secret_key,
-    aws_session_token=None,
-    config=boto3.session.Config(signature_version='s3v4'),
-    verify=False
-)
+config_file_loc = os.environ.get("CRAB_CONFIG_FILE", "config.json")
+crab_config = {}
+with open(config_file_loc, "r") as f:
+    crab_config = json.load(f)
 
-s3client = boto3.client("s3",
-    endpoint_url=s3_endpoint,
-    aws_access_key_id=s3_access_key,
-    aws_secret_access_key=s3_secret_key,
-    aws_session_token=None,
-    config=boto3.session.Config(signature_version='s3v4'),
-    verify=False
-)
+def try_get_config_prop(property_name, alternate=None):
+    if property_name in crab_config:
+        return crab_config["property_name"]
+    return alternate
 
-couch_user = os.environ.get("COUCHDB_ROOT_USER")
-couch_password = os.environ.get("COUCHDB_ROOT_PASSWORD")
-couch_host = os.environ.get("COUCHDB_HOST")
-couch_port = os.environ.get("COUCHDB_PORT", 5984)
+couch_user = os.environ.get("COUCHDB_ROOT_USER", try_get_config_prop("couchdb_user"))
+couch_password = os.environ.get("COUCHDB_ROOT_PASSWORD", try_get_config_prop("couchdb_password"))
+couch_host = os.environ.get("COUCHDB_HOST", try_get_config_prop("couchdb_host", "localhost"))
+couch_port = os.environ.get("COUCHDB_PORT", try_get_config_prop("couchdb_port", 5984))
 couch_base_uri = "http://" + couch_user + ":" + couch_password + "@" + couch_host + ":" + str(couch_port) + "/"
 couch = couchdb.Server(couch_base_uri)
 
-rabbitmq_credentials = pika.PlainCredentials(os.environ.get("RABBITMQ_DEFAULT_USER"), os.environ.get("RABBITMQ_DEFAULT_PASS"))
-rabbitmq_host = os.environ.get("RABBITMQ_HOST")
-rabbitmq_port = os.environ.get("RABBITMQ_PORT", 5672)
+rabbitmq_credentials = pika.PlainCredentials(os.environ.get("RABBITMQ_DEFAULT_USER", try_get_config_prop("rabbitmq_user")), os.environ.get("RABBITMQ_DEFAULT_PASS", try_get_config_prop("rabbitmq_password")))
+rabbitmq_host = os.environ.get("RABBITMQ_HOST", try_get_config_prop("rabbitmq_host", "localhost"))
+rabbitmq_port = os.environ.get("RABBITMQ_PORT", try_get_config_prop("rabbitmq_port", 5672))
 
-# Both for backwards compat
+# Provided for backwards compatibility
+# References to these functions should be removed as code is updated
 def get_couch():
     return couch
 def get_couchpotato():
     return couchbeans.CouchClient(couch_base_uri)
+def get_s3_resource(profile=None):
+    profile = get_s3_profile(profile)
+    resource = boto3.resource("s3",
+        endpoint_url=profile["endpoint"],
+        aws_access_key_id=profile["access_key"],
+        aws_secret_access_key=profile["secret_key"],
+        aws_session_token=None,
+        config=boto3.session.Config(signature_version='s3v4'),
+        verify=False
+    )
+    return resource
+def get_bucket():
+    return get_s3_resource().Bucket(get_s3_bucket_name())
+def get_bucket_object(full_path = None, path = None):
+    return get_s3_client().get_object(Bucket=get_s3_bucket_name(), Key=path)
+def get_bucket_name():
+    return get_s3_bucket_name()
+def get_bucket_uri():
+    return get_s3_bucket_uri()
+def get_couch_base_uri():
+    return couch_base_uri
+
+
 
 def get_couch_client():
     return couchbeans.CouchClient(couch_base_uri)
@@ -56,21 +68,30 @@ def advertise_job(job_id):
     channel.basic_publish(exchange="", routing_key="crab_jobs", body=job_id)
     connection.close()
 
-# Sometimes needed if we want to directly interface with couchdb
-def get_couch_base_uri():
-    return couch_base_uri
+def get_s3_client(profile=None):
+    profile = get_s3_profile(profile)
+    client = boto3.client("s3",
+        endpoint_url=profile["endpoint"],
+        aws_access_key_id=profile["access_key"],
+        aws_secret_access_key=profile["secret_key"],
+        aws_session_token=None,
+        config=boto3.session.Config(signature_version='s3v4'),
+        verify=False
+    )
+    return client
 
-def get_bucket():
-    return s3.Bucket(s3_bucket)
+def get_s3_profile(profile=None):
+    if profile == None:
+        profile = crab_config["default_s3_bucket"]
+    if profile in crab_config["s3_buckets"]:
+        return crab_config["s3_buckets"][profile]
+    raise KeyError("Missing S3 profile: " + str(profile))
 
-def get_bucket_object(full_path = None, path = None):
-    return s3client.get_object(Bucket=s3_bucket, Key=path)
+def get_s3_bucket_name(profile=None):
+    return get_s3_profile(profile)["bucket"]
 
-def get_bucket_name():
-    return s3_bucket
+def get_s3_bucket_endpoint(profile=None):
+    return get_s3_profile(profile)["endpoint"]
 
-def get_s3_client():
-    return s3client
-
-def get_bucket_uri():
-    return s3_endpoint + "/" + s3_bucket
+def get_s3_bucket_uri(profile=None):
+    return get_s3_bucket_endpoint(profile) + "/" + get_s3_bucket_name(profile)
