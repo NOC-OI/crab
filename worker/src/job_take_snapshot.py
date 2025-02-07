@@ -83,6 +83,8 @@ class TakeSnapshotJob:
             residual_run_metadata[run_id] = {}
             #print(json.dumps(run_info, indent=4))
 
+        self.progress_func(0.1)
+
         for run_id in raw_metadata_run_heap:
             for key in raw_metadata_run_heap[run_id]:
                 value = raw_metadata_run_heap[run_id][key]
@@ -236,6 +238,8 @@ class TakeSnapshotJob:
                     last_push_time = time.time()
                     self.progress_func(0.5 + ((i/samples_len) * 0.3))
 
+            self.progress_func(0.8)
+
             zipper.writestr("metadata.json", json.dumps(snapshot_md, indent=4))
 
         get_s3_client(self.s3_profile).put_object(Bucket=get_s3_bucket_name(self.s3_profile), Key="snapshots/" + snapshot_uuid + "/tiff_bundle.zip", Body=zip_buffer.getvalue())
@@ -258,7 +262,7 @@ class TakeSnapshotJob:
                 "host": get_s3_bucket_uri(self.s3_profile)
             }
 
-        self.progress_func(0.8)
+        self.progress_func(0.9)
 
         with io.BytesIO(json.dumps(snapshot_md, indent=4).encode()) as f:
             get_s3_client(self.s3_profile).upload_fileobj(f, get_s3_bucket_name(self.s3_profile), "snapshots/" + snapshot_uuid + "/crab_metadata.json")

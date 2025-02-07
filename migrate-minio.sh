@@ -32,9 +32,9 @@ echo ""
 echo "MinIO started!"
 MC_ALIAS="local"
 source .env
-docker exec -it crab-minio mc alias set $MC_ALIAS "$S3_ENDPOINT" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
-docker exec -it crab-minio mc admin user add $MC_ALIAS "$S3_ACCESS_KEY" "$S3_SECRET_KEY"
-docker exec -it crab-minio mc mb $MC_ALIAS/$S3_BUCKET
+docker exec -it crab-minio mc alias set $MC_ALIAS "$DEFAULT_S3_ENDPOINT" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+docker exec -it crab-minio mc admin user add $MC_ALIAS "$DEFAULT_S3_ACCESS_KEY" "$DEFAULT_S3_SECRET_KEY"
+docker exec -it crab-minio mc mb $MC_ALIAS/$DEFAULT_S3_BUCKET
 cat > crab-policy.json << EOF
 {
   "Version": "2012-10-17",
@@ -52,7 +52,7 @@ cat > crab-policy.json << EOF
         "s3:ListBucketMultipartUploads"
       ],
       "Resource": [
-        "arn:aws:s3:::$S3_BUCKET"
+        "arn:aws:s3:::$DEFAULT_S3_BUCKET"
       ]
     },
     {
@@ -70,7 +70,7 @@ cat > crab-policy.json << EOF
         "s3:PutObject"
       ],
       "Resource": [
-        "arn:aws:s3:::$S3_BUCKET/*"
+        "arn:aws:s3:::$DEFAULT_S3_BUCKET/*"
       ]
     }
   ]
@@ -78,6 +78,6 @@ cat > crab-policy.json << EOF
 EOF
 docker cp crab-policy.json crab-minio:/tmp/crab-policy.json
 docker exec -it crab-minio mc admin policy create $MC_ALIAS crab-policy /tmp/crab-policy.json
-docker exec -it crab-minio mc admin policy attach $MC_ALIAS crab-policy --user "$S3_ACCESS_KEY"
+docker exec -it crab-minio mc admin policy attach $MC_ALIAS crab-policy --user "$DEFAULT_S3_ACCESS_KEY"
 rm crab-policy.json
-docker exec -it crab-minio mc anonymous set download $MC_ALIAS/$S3_BUCKET
+docker exec -it crab-minio mc anonymous set download $MC_ALIAS/$DEFAULT_S3_BUCKET

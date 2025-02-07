@@ -8,12 +8,12 @@ import urllib
 from datetime import datetime
 from flask import Blueprint, request, render_template, Response, make_response, redirect
 
-from utils import get_session_info, get_app_frontend_globals
-from db import get_couch, get_couch_base_uri
+from utils import get_session_info, get_app_frontend_globals, try_get_config_prop
+from db import get_couch, get_couch_client, get_couch_base_uri
 
-openid_config_uri = os.environ.get("CRAB_OPENID_CONFIG_URI")
-openid_client_id = os.environ.get("CRAB_OPENID_CLIENT_ID")
-openid_client_secret = os.environ.get("CRAB_OPENID_CLIENT_SECRET")
+#openid_config_uri = os.environ.get("CRAB_OPENID_CONFIG_URI")
+#openid_client_id = os.environ.get("CRAB_OPENID_CLIENT_ID")
+#openid_client_secret = os.environ.get("CRAB_OPENID_CLIENT_SECRET")
 
 crab_external_endpoint = "http://" + os.environ.get("CRAB_EXTERNAL_HOST") + ":" + os.environ.get("CRAB_EXTERNAL_PORT") + "/"
 if os.environ.get("CRAB_EXTERNAL_PORT") == "80":
@@ -21,8 +21,18 @@ if os.environ.get("CRAB_EXTERNAL_PORT") == "80":
 elif os.environ.get("CRAB_EXTERNAL_PORT") == "443":
     crab_external_endpoint = "https://" + os.environ.get("CRAB_EXTERNAL_HOST") + "/"
 
-openid_config = requests.get(openid_config_uri).json()
-openid_keys = jwt.PyJWKClient(openid_config["jwks_uri"])
+openid_config = {}
+all_oid_providers_conf_info = try_get_config_prop("openid_providers")
+for provider in all_oid_providers_conf_info:
+    oid_conf_file = requests.get(all_oid_providers_conf_info[provider]["oid_config_uri"]).json()
+    oid_keys = jwt.PyJWKClient(oid_conf_file["jwks_uri"])
+    openid_config[provider] = {
+            "name": all_oid_providers_conf_info[provider]["name"],
+            "src_config": oid_conf_file,
+            "client_id": all_oid_providers_conf_info[provider]["oid_client_id"],
+            "client_secret": all_oid_providers_conf_info[provider]["oid_client_secret"],
+            "keys": oid_keys
+        }
 
 login_pages = Blueprint("login_pages", __name__)
 account_pages = Blueprint("account_pages", __name__)
@@ -177,28 +187,36 @@ def login_inbound_redirect():
             "msg": "Invalid UUID " + request.args.get("state")
             }), status=400, mimetype='application/json')
 
+    couch_client = get_couch_client()
+
+    session_info = couch_client.get_document("crab_sessions", session_uuid)
+    if not session_info["oid_provider"] in openid_config:
+        return Response(json.dumps({
+            "error": "invalidProvider",
+            "msg": session_info["oid_provider"] + " is not a registered OpenID provider on this CRAB installation."
+            }), status=400, mimetype='application/json')
+    oid_config = openid_config[session_info["oid_provider"]]
+
     data = {
-            "client_secret": openid_client_secret,
-            "client_id": openid_client_id,
-            "redirect_uri": get_couch()["crab_sessions"][session_uuid]["login_redirect_uri"],
+            "client_secret": oid_config["client_secret"],
+            "client_id": oid_config["client_id"],
+            "redirect_uri": session_info["login_redirect_uri"],
             "code": request.args.get("code"),
             "grant_type": "authorization_code"
         }
 
-    openid_response = requests.post(openid_config["token_endpoint"], data=data).json()
+    openid_response = requests.post(oid_config["src_config"]["token_endpoint"], data=data).json()
 
     if "scope" in openid_response:
         jwt_header = jwt.get_unverified_header(openid_response["access_token"])
-        jwt_key = openid_keys.get_signing_key_from_jwt(openid_response["access_token"])
+        jwt_key = oid_config["keys"].get_signing_key_from_jwt(openid_response["access_token"])
         openid_user_info = jwt.decode(openid_response["access_token"], key=jwt_key, algorithms=[jwt_header["alg"]], options={"verify_aud": False, "verify_signature": True})
-
-        session_info = get_couch()["crab_sessions"][session_uuid]
 
 
         user_uuid = str(uuid.uuid4()) # Start with a random uid, overwrite with existing if possible
 
         mango_selector = {
-                "openid_sub": openid_user_info["sub"]
+                "openid_sub": session_info["oid_provider"] + ":" + openid_user_info["sub"]
             }
         mango = {
                 "selector": mango_selector,
@@ -253,9 +271,11 @@ def login_inbound_redirect():
         user_doc = {
                 "email": session_info["email"],
                 "name": session_info["name"],
-                "openid_sub": openid_user_info["sub"],
+                "openid_sub": session_info["oid_provider"] + ":" + openid_user_info["sub"],
                 "short_name": session_info["short_name"]
             }
+
+        # TODO update to couchbeans
         if session_info["user_uuid"] in get_couch()["crab_users"]:
             user_doc["_rev"] = get_couch()["crab_users"][session_info["user_uuid"]]["_rev"]
         get_couch()["crab_users"][session_info["user_uuid"]] = user_doc
@@ -284,8 +304,31 @@ def logout_outbound_redirect():
     response.delete_cookie("sessionKey")
     return response
 
+
 @login_pages.route("/login")
-def login_outbound_redirect():
+def login_choose_provider_page():
+    providers = []
+    for prov in openid_config:
+        providers.append({
+                "id": prov,
+                "name": openid_config[prov]["name"]
+            })
+
+    if len(providers) == 1:
+        return redirect("/api/v1/openid/" + providers[0]["id"] + "/egress", code=302)
+    else:
+        return render_template("login-choose-oid.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), providers=providers)
+
+@login_pages.route("/api/v1/openid/<provider>/egress")
+def login_outbound_redirect(provider):
+    if not provider in openid_config:
+        return Response(json.dumps({
+            "error": "invalidProvider",
+            "msg": provider + " is not a registered OpenID provider on this CRAB installation."
+            }), status=400, mimetype='application/json')
+
+    oid_config = openid_config[provider]
+
     state = str(uuid.uuid4())
     nonce = str(uuid.uuid4())
 
@@ -293,8 +336,9 @@ def login_outbound_redirect():
     get_couch()["crab_sessions"][state] = {
             "status": "PENDING_AUTH",
             "origin_ip": request.remote_addr,
-            "login_redirect_uri": redirect_uri
+            "login_redirect_uri": redirect_uri,
+            "oid_provider": provider
         }
-    tokens = "response_type=code&scope=basic+email&prompt=select_account&response_mode=query&state=" + state + "&nonce=" + nonce + "&redirect_uri=" + urllib.parse.quote_plus(redirect_uri) + "&client_id=" + urllib.parse.quote_plus(openid_client_id)
-    return redirect(openid_config["authorization_endpoint"] + "?" + tokens, code=302)
+    tokens = "response_type=code&scope=basic+email&prompt=select_account&response_mode=query&state=" + state + "&nonce=" + nonce + "&redirect_uri=" + urllib.parse.quote_plus(redirect_uri) + "&client_id=" + urllib.parse.quote_plus(oid_config["client_id"])
+    return redirect(oid_config["src_config"]["authorization_endpoint"] + "?" + tokens, code=302)
 
