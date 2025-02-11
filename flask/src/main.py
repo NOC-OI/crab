@@ -43,6 +43,7 @@ from documentation_controller import documentation_pages
 app.register_blueprint(login_pages)
 app.register_blueprint(account_pages)
 app.register_blueprint(access_token_pages)
+app.register_blueprint(users_api)
 app.register_blueprint(session_api)
 app.register_blueprint(ingest_pages)
 app.register_blueprint(run_pages)

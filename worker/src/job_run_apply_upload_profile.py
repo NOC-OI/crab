@@ -61,7 +61,7 @@ class RunApplyUploadProfileJob:
 
             sample_metadata = {
                 "path": ofn,
-                "host": get_s3_bucket_uri(self.s3_profile),
+                "s3_profile": self.s3_profile,
                 "type": {
                         "dimensions": 2,
                         "format": "image/tiff",
@@ -137,7 +137,7 @@ class RunApplyUploadProfileJob:
 
             sample_metadata = {
                 "path": ofn,
-                "host": get_s3_bucket_uri(self.s3_profile),
+                "s3_profile": self.s3_profile,
                 "type": {
                         "dimensions": 2,
                         "format": "image/tiff",
@@ -242,7 +242,7 @@ class RunApplyUploadProfileJob:
 
                 sample_metadata = {
                     "path": ofn,
-                    "host": get_s3_bucket_uri(self.s3_profile),
+                    "s3_profile": self.s3_profile,
                     "type": {
                             "dimensions": 2,
                             "format": "image/tiff",
@@ -288,7 +288,7 @@ class RunApplyUploadProfileJob:
         metadata_template = job_md["job_args"]["input_md"]
         run_uuid = job_md["target_id"]
 
-        self.s3_profile = "default"
+        self.s3_profile = job_md["job_args"]["s3_profile"]
 
         patch = {}
 

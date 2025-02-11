@@ -22,10 +22,17 @@
                     <div class="form-text">If you have an internal naming scheme for releases, use your identifier here. You can leave this blank, and it will be autofilled with the current date.</div>
                 </div>
 
+                <input type="hidden" name="collection_uuid" id="form_collection_uuid" value="{{ collection_data._id }}" />
+
                 <div class="mb-3">
-                    <label class="form-label" for="collection_uuid">Collection UUID</label>
-                    <input class="form-control" type="text" name="collection_uuid" value="{{ collection_data._id }}" id="form_collection_uuid" disabled>
-                    <div class="form-text">This identifier is unique to this upload and can't be changed.</div>
+                    <label class="form-label" for="s3_profile">S3 Profile</label>
+                    <select class="form-select" name="s3_profile" id="form_s3_profile" aria-label="S3 Profile">
+                        <option value="" selected>Default</option>
+                        {% for profile in s3_profiles %}
+                        <option value="{{ profile.id }}">{{ profile.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">This will affect where your data is physically stored.</div>
                 </div>
 
                 <div class="mb-3">

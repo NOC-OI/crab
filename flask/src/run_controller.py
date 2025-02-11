@@ -14,7 +14,7 @@ from PIL import Image
 from flask import Blueprint, request, render_template, Response, make_response, send_file, redirect
 
 from utils import get_session_info, get_app_frontend_globals, to_snake_case, get_csrf_secret_key
-from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_couch_client
+from db import get_couch, get_s3_client, get_s3_bucket_uri, get_s3_bucket_name, get_couch_base_uri, get_couch_client
 
 run_pages = Blueprint("run_pages", __name__)
 run_api = Blueprint("run_api", __name__)
@@ -225,9 +225,17 @@ def api_v1_run_download(raw_uuid):
                 sample_metadata = get_couch()["crab_samples"][str(uuid.UUID(sample, version=4))] # This parsing is to throw an error on malformed input - it should not be removed!
                 zip_fo.writestr("samples/" + sample + ".json", json.dumps(sample_metadata, indent=4))
 
-                sample_bucket_obj = get_bucket_object(path=sample_metadata["path"])
-                sample_temp_file = io.BytesIO(sample_bucket_obj['Body'].read())
-                zip_fo.writestr("samples/" + sample + ".tiff", sample_temp_file.getvalue())
+                #sample_bucket_obj = get_bucket_object(path=sample_metadata["path"])
+                #sample_temp_file = io.BytesIO(sample_bucket_obj['Body'].read())
+
+
+
+                with io.BytesIO() as img_fp:
+                    get_s3_client(sample_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(sample_metadata["s3_profile"]), sample_metadata["path"], img_fp)
+                    img_fp.seek(0)
+                    zip_fo.writestr("samples/" + sample + ".tiff", img_fp.read())
+
+                #zip_fo.writestr("samples/" + sample + ".tiff", sample_temp_file.getvalue())
 
             zip_fo.close()
             out_bytearray = zip_fp.getvalue()
@@ -263,13 +271,18 @@ def api_v1_get_sample(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
         sample_metadata = get_couch()["crab_samples"][str(uuid_obj)]
-        temp_file = get_bucket_object(path=sample_metadata["path"])
+
+        #temp_file = get_bucket_object(path=sample_metadata["path"])
         #return send_file(fh, download_name=os.path.basename(sample_metadata["path"]))
-        return Response(
-            temp_file['Body'].read(),
-            mimetype=sample_metadata["type"]["format"],
-            headers={"Content-Disposition": "attachment;filename=" + os.path.basename(sample_metadata["path"])}
-        )
+                    #temp_file['Body'].read(),
+        with io.BytesIO() as img_fp:
+            get_s3_client(sample_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(sample_metadata["s3_profile"]), sample_metadata["path"], img_fp)
+            img_fp.seek(0)
+            return Response(
+                img_fp.read(),
+                mimetype=sample_metadata["type"]["format"],
+                headers={"Content-Disposition": "attachment;filename=" + os.path.basename(sample_metadata["path"])}
+            )
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
@@ -282,36 +295,46 @@ def api_v1_get_sample_jpeg(raw_uuid):
     #try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
         sample_metadata = get_couch()["crab_samples"][str(uuid_obj)]
-        in_temp_file = get_bucket_object(path=sample_metadata["path"])
-        #return send_file(fh, download_name=os.path.basename(sample_metadata["path"]))
-        out_temp_file = io.BytesIO()
-        #print(in_temp_file['Body'].read())
-        im = Image.open(io.BytesIO(in_temp_file['Body'].read())) # Open with PIL to convert to jpeg
-        im.save(out_temp_file, "JPEG", quality=90)
-        out_bytearray = out_temp_file.getvalue()
-        return Response(
-            out_bytearray,
-            mimetype="image/jpeg",
-            headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(sample_metadata["path"]))[0] + ".jpg"}
-        )
+
+        #in_temp_file = get_bucket_object(path=sample_metadata["path"])
+        with io.BytesIO() as in_temp_file:
+            get_s3_client(sample_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(sample_metadata["s3_profile"]), sample_metadata["path"], in_temp_file)
+            in_temp_file.seek(0)
+
+            #return send_file(fh, download_name=os.path.basename(sample_metadata["path"]))
+            out_temp_file = io.BytesIO()
+            #print(in_temp_file['Body'].read())
+            im = Image.open(in_temp_file) # Open with PIL to convert to jpeg
+            im.save(out_temp_file, "JPEG", quality=90)
+            out_bytearray = out_temp_file.getvalue()
+            return Response(
+                out_bytearray,
+                mimetype="image/jpeg",
+                headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(sample_metadata["path"]))[0] + ".jpg"}
+            )
 
 @run_api.route("/api/v1/samples/<raw_uuid>.png", methods=['GET'])
 def api_v1_get_sample_png(raw_uuid):
     #try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
         sample_metadata = get_couch()["crab_samples"][str(uuid_obj)]
-        in_temp_file = get_bucket_object(path=sample_metadata["path"])
+        #in_temp_file = get_bucket_object(path=sample_metadata["path"])
         #return send_file(fh, download_name=os.path.basename(sample_metadata["path"]))
-        out_temp_file = io.BytesIO()
-        #print(in_temp_file['Body'].read())
-        im = Image.open(io.BytesIO(in_temp_file['Body'].read())) # Open with PIL to convert to jpeg
-        im.save(out_temp_file, "PNG")
-        out_bytearray = out_temp_file.getvalue()
-        return Response(
-            out_bytearray,
-            mimetype="image/png",
-            headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(sample_metadata["path"]))[0] + ".png"}
-        )
+
+        with io.BytesIO() as in_temp_file:
+            get_s3_client(sample_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(sample_metadata["s3_profile"]), sample_metadata["path"], in_temp_file)
+            in_temp_file.seek(0)
+
+            out_temp_file = io.BytesIO()
+            #print(in_temp_file['Body'].read())
+            im = Image.open(in_temp_file) # Open with PIL to convert to jpeg
+            im.save(out_temp_file, "PNG")
+            out_bytearray = out_temp_file.getvalue()
+            return Response(
+                out_bytearray,
+                mimetype="image/png",
+                headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(sample_metadata["path"]))[0] + ".png"}
+            )
 
 #@run_api.route("/api/v1/get_sample_thumbnail/<raw_uuid>", methods=['GET'])
 @run_api.route("/api/v1/samples/<raw_uuid>/thumbnail", methods=['GET'])
@@ -319,21 +342,26 @@ def api_v1_get_sample_thumbnail(raw_uuid):
     #try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
         sample_metadata = get_couch()["crab_samples"][str(uuid_obj)]
-        in_temp_file = get_bucket_object(path=sample_metadata["path"])
+        #in_temp_file = get_bucket_object(path=sample_metadata["path"])
         #return send_file(fh, download_name=os.path.basename(sample_metadata["path"]))
-        out_temp_file = io.BytesIO()
-        #print(in_temp_file['Body'].read())
-        im = Image.open(io.BytesIO(in_temp_file['Body'].read())) # Open with PIL to convert to jpeg
-        im.save(out_temp_file, "JPEG", quality=50) # Only intended for a thumbnail - we can skimp on quality
-        out_bytearray = out_temp_file.getvalue()
-        return Response(
-            out_bytearray,
-            mimetype="image/jpeg",
-            headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(sample_metadata["path"]))[0] + ".jpg"}
-        )
-        # switch to inline
-    #except ValueError:
-        #return Response(json.dumps({
-            #"error": "badUUID",
-            #"msg": "Invalid UUID " + raw_uuid
-            #}), status=400, mimetype='application/json')
+
+        with io.BytesIO() as in_temp_file:
+            get_s3_client(sample_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(sample_metadata["s3_profile"]), sample_metadata["path"], in_temp_file)
+            in_temp_file.seek(0)
+
+            out_temp_file = io.BytesIO()
+            #print(in_temp_file['Body'].read())
+            im = Image.open(in_temp_file) # Open with PIL to convert to jpeg
+            im.save(out_temp_file, "JPEG", quality=50) # Only intended for a thumbnail - we can skimp on quality
+            out_bytearray = out_temp_file.getvalue()
+            return Response(
+                out_bytearray,
+                mimetype="image/jpeg",
+                headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(sample_metadata["path"]))[0] + ".jpg"}
+            )
+            # switch to inline
+        #except ValueError:
+            #return Response(json.dumps({
+                #"error": "badUUID",
+                #"msg": "Invalid UUID " + raw_uuid
+                #}), status=400, mimetype='application/json')

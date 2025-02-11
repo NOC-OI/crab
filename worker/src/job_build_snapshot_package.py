@@ -25,6 +25,8 @@ class BuildSnapshotPackageJob:
 
         snapshot_info = couch_client.get_document("crab_snapshots", snapshot_uuid)
 
+        self.s3_profile = snapshot_info["s3_profile"]
+
         # minimal ifdo interpretation
         ifdo_metadata = {
                 "image-set-header": {
@@ -61,7 +63,7 @@ class BuildSnapshotPackageJob:
                 #zipper.writestr(file_name, infile_content)
 
                 with io.BytesIO() as img_fp:
-                    get_s3_client(self.s3_profile).download_fileobj(get_s3_bucket_name(self.s3_profile), image_path, img_fp)
+                    get_s3_client(snapshot_info["s3_profile"]).download_fileobj(get_s3_bucket_name(snapshot_info["s3_profile"]), image_path, img_fp)
                     img_fp.seek(0)
                     zipper.writestr(file_name, img_fp.read())
 
@@ -81,7 +83,7 @@ class BuildSnapshotPackageJob:
             snapshot_info["packages"] = {}
         snapshot_info["packages"]["ifdo"] = {
                 "path": "snapshots/" + snapshot_uuid + "/ifdo_package.zip",
-                "host": get_s3_bucket_uri(self.s3_profile)
+                "s3_profile": get_s3_bucket_uri(self.s3_profile)
             }
         couch_client.put_document("crab_snapshots", snapshot_uuid, snapshot_info)
 
@@ -91,7 +93,8 @@ class BuildSnapshotPackageJob:
         #print(json.dumps(job_md, indent=4))
         snapshot_uuid = job_md["target_id"]
 
-        self.s3_profile = "default"
+        #self.s3_profile = "default"
+        #self.s3_profile = job_md["job_args"]["s3_profile"]
 
 
         patch = {}
