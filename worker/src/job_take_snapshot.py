@@ -198,7 +198,13 @@ class TakeSnapshotJob:
             for sample_id in run_info["samples"]:
                 sample_info = couch_client.get_document("crab_samples", sample_id) #get_couch()["crab_samples"][sample_id]
                 if "path" in sample_info:
-                    get_s3_client(self.s3_profile).copy_object(Bucket=get_s3_bucket_name(self.s3_profile), CopySource="/" + get_s3_bucket_name(self.s3_profile) + "/" + sample_info["path"], Key="snapshots/" + snapshot_uuid + "/raw_img/" + sample_id + ".tiff")
+                    #get_s3_client(self.s3_profile).copy_object(Bucket=get_s3_bucket_name(self.s3_profile), CopySource="/" + get_s3_bucket_name(self.s3_profile) + "/" + sample_info["path"], Key="snapshots/" + snapshot_uuid + "/raw_img/" + sample_id + ".tiff")
+                    file_name, file_ext = os.path.splitext(sample_info["path"])
+
+                    with io.BytesIO() as temp_file:
+                        get_s3_client(sample_info["s3_profile"]).download_fileobj(get_s3_bucket_name(sample_info["s3_profile"]), sample_info["path"], temp_file)
+                        temp_file.seek(0)
+                        get_s3_client(self.s3_profile).put_object(Bucket=get_s3_bucket_name(self.s3_profile), Key="snapshots/" + snapshot_uuid + "/raw_img/" + sample_id + file_ext, Body=temp_file.read())
                 else:
                     print("Broken sample!:")
                     print(sample_info)
@@ -285,8 +291,8 @@ class TakeSnapshotJob:
         #print(json.dumps(job_md, indent=4))
         snapshot_uuid = job_md["target_id"]
 
-        self.s3_profile = "default"
-
+        #self.s3_profile = "default"
+        self.s3_profile = job_md["job_args"]["s3_profile"]
 
         patch = {}
 

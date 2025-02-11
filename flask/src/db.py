@@ -80,8 +80,16 @@ def get_s3_client(profile=None):
     )
     return client
 
+def get_default_s3_profile_name():
+    return crab_config["default_s3_bucket"]
+
+def get_s3_profiles():
+    return crab_config["s3_buckets"]
+
 def get_s3_profile(profile=None):
     if profile == None:
+        profile = crab_config["default_s3_bucket"]
+    if len(profile) == 0:
         profile = crab_config["default_s3_bucket"]
     if profile in crab_config["s3_buckets"]:
         return crab_config["s3_buckets"][profile]

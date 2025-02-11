@@ -28,7 +28,7 @@ if csrf_secret_key == None:
         csrf_secret_key = f.read()
 
 def get_csrf_secret_key():
-    print(csrf_secret_key)
+    #print(csrf_secret_key)
     return csrf_secret_key
 
 def get_crab_external_endpoint():

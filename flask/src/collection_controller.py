@@ -8,7 +8,7 @@ import zipfile
 import hashlib
 import json
 from utils import get_session_info, get_app_frontend_globals, to_snake_case
-from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name, get_couch_client, advertise_job
+from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name, get_couch_client, advertise_job, get_s3_profiles, get_s3_profile
 
 collection_pages = Blueprint("collection_pages", __name__)
 collection_api = Blueprint("collection_api", __name__)
@@ -65,9 +65,14 @@ def collection_new_snapshot(raw_uuid):
                 "error": "writeDenied",
                 "msg": "User is not allowed to edit this resource."
                 }), status=401, mimetype='application/json')
-
+        s3_profiles = []
+        for profile_id in get_s3_profiles():
+            s3_profiles.append({
+                    "id": profile_id,
+                    "name": get_s3_profile(profile_id)["name"]
+                })
         collection_data = get_couch()["crab_collections"][str(uuid_obj)]
-        return render_template("collection_new_snapshot.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), collection_data=collection_data)
+        return render_template("collection_new_snapshot.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), collection_data=collection_data, s3_profiles=s3_profiles)
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
@@ -292,7 +297,8 @@ def api_v1_create_snapshot(raw_uuid):
         snapshot_md = {
                 "identifier": name,
                 "public_visibility": public_avail,
-                "collection": str(uuid_obj)
+                "collection": str(uuid_obj),
+                "s3_profile": request.form.get("s3_profile", None)
             }
         job_uuid = uuid.uuid4()
         if collection_data is None:

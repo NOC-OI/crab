@@ -17,6 +17,16 @@
                     <input class="form-control" type="file" name="file" accept=".zip">
                 </div>
                 <div class="mb-3">
+                    <label class="form-label" for="s3_profile">S3 Profile</label>
+                    <select class="form-select" name="s3_profile" id="form_s3_profile" aria-label="S3 Profile">
+                        <option value="" selected>Default</option>
+                        {% for profile in s3_profiles %}
+                        <option value="{{ profile.id }}">{{ profile.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">This will affect where your data is physically stored.</div>
+                </div>
+                <div class="mb-3">
                     <div class="progress">
                         <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
                     </div>
@@ -57,11 +67,8 @@
                             <a href="#" onclick="setSensorType('pre-classified');" id="sensor_selector_pre_classified" class="list-group-item list-group-item-action"><span>Pre-classified images in subfolders (.jpg/jpeg, .png, .tif/tiff)</span></a>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="run_uuid">Run UUID</label>
-                        <input class="form-control" type="text" name="run_uuid" id="form_run_uuid" disabled>
-                        <div class="form-text">This identifier is unique to this upload and can't be changed.</div>
-                    </div>
+                    <input type="hidden" name="run_uuid" id="form_run_uuid">
+                    <input type="hidden" name="s3_profile" id="second_form_s3_profile">
                     <div class="mb-3">
                         <label class="form-label" for="identifier">Sample identifier <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
                         <input class="form-control" type="text" name="identifier">
@@ -76,6 +83,7 @@
                         <label class="form-label" for="add_info">Additional information <span class="badge text-bg-secondary rounded-pill">Optional</span></label>
                         <textarea class="form-control" name="add_info"></textarea>
                     </div -->
+                    <!--
                     <div class="mb-3">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" checked>
@@ -86,6 +94,7 @@
                             <label class="form-check-label" for="flexSwitchCheckChecked">Keep duplicate metadata within image files</label>
                         </div>
                     </div>
+                    -->
                     <div class="mb-3">
                         <div class="progress">
                             <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>

@@ -9,7 +9,7 @@ import jwt
 import zipfile
 import json
 from utils import get_session_info, get_app_frontend_globals, to_snake_case, get_crab_external_endpoint, get_csrf_secret_key
-from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name, get_couch_client, advertise_job
+from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name, get_couch_client, advertise_job, get_s3_bucket_name, get_s3_client
 
 snapshot_pages = Blueprint("snapshot_pages", __name__)
 snapshot_api = Blueprint("snapshot_api", __name__)
@@ -207,12 +207,18 @@ def api_v1_snapshot_download_other_package(snapshot_uuid, package_type):
 
         snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
         s3path = snapshot_data["packages"][package_type]["path"]
-        temp_file = get_bucket_object(path=s3path)
-        return Response(
-            temp_file['Body'].read(),
-            mimetype="application/zip",
-            headers={"Content-Disposition": "attachment;filename=" + os.path.basename(s3path)}
-            )
+        #temp_file = get_bucket_object(path=s3path)
+        #temp_file['Body'].read()
+
+        with io.BytesIO() as in_temp_file:
+            get_s3_client(snapshot_data["s3_profile"]).download_fileobj(get_s3_bucket_name(snapshot_data["s3_profile"]), snapshot_data["packages"][package_type]["path"], in_temp_file)
+            in_temp_file.seek(0)
+
+            return Response(
+                in_temp_file.read(),
+                mimetype="application/zip",
+                headers={"Content-Disposition": "attachment;filename=" + os.path.basename(s3path)}
+                )
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
@@ -257,12 +263,21 @@ def api_v1_snapshot_download_zip(snapshot_uuid):
 
         snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
         s3path = snapshot_data["bundle"]["path"]
-        temp_file = get_bucket_object(path=s3path)
-        return Response(
-            temp_file['Body'].read(),
-            mimetype="application/zip",
-            headers={"Content-Disposition": "attachment;filename=" + os.path.basename(s3path)}
-            )
+        #temp_file = get_bucket_object(path=s3path)
+        #return Response(
+        #    temp_file['Body'].read(),
+        #    mimetype="application/zip",
+        #    headers={"Content-Disposition": "attachment;filename=" + os.path.basename(s3path)}
+        #    )
+        with io.BytesIO() as in_temp_file:
+            get_s3_client(snapshot_data["s3_profile"]).download_fileobj(get_s3_bucket_name(snapshot_data["s3_profile"]), s3path, in_temp_file)
+            in_temp_file.seek(0)
+
+            return Response(
+                in_temp_file.read(),
+                mimetype="application/zip",
+                headers={"Content-Disposition": "attachment;filename=" + os.path.basename(s3path)}
+                )
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",

@@ -2,21 +2,17 @@ import boto3
 import couchbeans
 import os
 import re
+import json
 
-s3_region = os.environ.get("S3_REGION")
-s3_endpoint = os.environ.get("S3_ENDPOINT")
-s3_bucket = os.environ.get("S3_BUCKET")
-s3_access_key = os.environ.get("S3_ACCESS_KEY")
-s3_secret_key = os.environ.get("S3_SECRET_KEY")
+config_file_loc = os.environ.get("CRAB_CONFIG_FILE", "config.json")
+crab_config = {}
+with open(config_file_loc, "r") as f:
+    crab_config = json.load(f)
 
-s3client = boto3.client("s3",
-    endpoint_url=s3_endpoint,
-    aws_access_key_id=s3_access_key,
-    aws_secret_access_key=s3_secret_key,
-    aws_session_token=None,
-    config=boto3.session.Config(signature_version='s3v4'),
-    verify=False
-)
+def try_get_config_prop(property_name, alternate=None):
+    if property_name in crab_config:
+        return crab_config["property_name"]
+    return alternate
 
 couch_user = os.environ.get("COUCHDB_ROOT_USER")
 couch_password = os.environ.get("COUCHDB_ROOT_PASSWORD")
@@ -28,13 +24,40 @@ def get_couch_client():
     return couchbeans.CouchClient(couch_base_uri)
 
 def get_s3_client(profile=None):
-    return s3client
+    profile = get_s3_profile(profile)
+    client = boto3.client("s3",
+        endpoint_url=profile["endpoint"],
+        aws_access_key_id=profile["access_key"],
+        aws_secret_access_key=profile["secret_key"],
+        aws_session_token=None,
+        config=boto3.session.Config(signature_version='s3v4'),
+        verify=False
+    )
+    return client
+
+def get_default_s3_profile_name():
+    return crab_config["default_s3_bucket"]
+
+def get_s3_profiles():
+    return crab_config["s3_buckets"]
+
+def get_s3_profile(profile=None):
+    if profile == None:
+        profile = crab_config["default_s3_bucket"]
+    if len(profile) == 0:
+        profile = crab_config["default_s3_bucket"]
+    if profile in crab_config["s3_buckets"]:
+        return crab_config["s3_buckets"][profile]
+    raise KeyError("Missing S3 profile: " + str(profile))
 
 def get_s3_bucket_name(profile=None):
-    return s3_bucket
+    return get_s3_profile(profile)["bucket"]
+
+def get_s3_bucket_endpoint(profile=None):
+    return get_s3_profile(profile)["endpoint"]
 
 def get_s3_bucket_uri(profile=None):
-    return s3_endpoint + "/" + s3_bucket
+    return get_s3_bucket_endpoint(profile) + "/" + get_s3_bucket_name(profile)
 
 def to_snake_case(str_in):
     str_out = re.sub("(?<!^)(?<![A-Z])(?=[A-Z]+)", "_", str_in).lower() # Prepend all strings of uppercase with an underscore

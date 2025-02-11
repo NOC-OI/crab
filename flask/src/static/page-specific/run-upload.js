@@ -125,6 +125,7 @@ let uploadFile = (then = () => {}, onError = () => {}, uri = "/runs/upload") => 
     const data = new FormData(form);
     const progressBar = form.querySelector(".progress-bar");
     const spinnerContainer = form.querySelector(".spinner-container");
+    document.getElementById("second_form_s3_profile").value = data.get("s3_profile");
     fieldset.disabled = true;
     spinnerContainer.style.display = "";
     xhr.open(method, uri);

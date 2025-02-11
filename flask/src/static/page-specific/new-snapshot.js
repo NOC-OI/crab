@@ -21,6 +21,8 @@ let checkJob = (jobId, then = () => {}, onError = () => {}, onProgress = () => {
 
             if (response["status"] == "COMPLETE") {
                 then();
+            } else if (response["status"] == "ERROR") {
+                onError(response);
             } else {
                 if (response.hasOwnProperty("progress")) {
                     onProgress(response["progress"]);
@@ -72,6 +74,7 @@ let takeSnapshot = () => {
     const collectionUuid = form.querySelector("#form_collection_uuid").value;
     fieldset.disabled = true;
     spinnerContainer.style.display = "";
+    //console.log(data.get("s3_profile"))
     xhr.open(method, "/api/v1/collections/" + collectionUuid + "/snapshot");
     xhr.addEventListener('loadend', () => {
         if (xhr.status === 200) {
