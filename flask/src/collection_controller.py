@@ -175,22 +175,22 @@ def api_v1_get_collection_via_proj(raw_uuid):
         via_views = {}
         via_files = {}
 
-        sample_ids = []
+        observation_ids = []
         for run_id in collection_info["runs"]:
             run_info = couch_client.get_document("crab_runs", run_id)
-            for sample_id in run_info["samples"]:
-                sample_ids.append(sample_id)
+            for observation_id in run_info["observations"]:
+                observation_ids.append(observation_id)
 
-        sample_ids.sort() # Used to make sure order is easy to parse for end users!
+        observation_ids.sort() # Used to make sure order is easy to parse for end users!
 
         idx = 1
-        for sample_id in sample_ids:
+        for observation_id in observation_ids:
             via_files[str(idx)] = {
                     "fid": str(idx),
-                    "fname": sample_id,
+                    "fname": observation_id,
                     "type": 2,
                     "loc": 2,
-                    "src": "/api/v1/samples/" + sample_id + ".jpeg"
+                    "src": "/api/v1/observations/" + observation_id + ".jpeg"
                 }
             via_views[str(idx)] = {
                     "fid_list": [
