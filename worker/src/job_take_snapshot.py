@@ -34,49 +34,49 @@ class TakeSnapshotJob:
 
         creators = []
         creator_map = {}
-        samples = []
+        observations = []
         metadata_map = {}
 
         raw_metadata_run_heap = {}
-        raw_metadata_sample_heap = {}
+        raw_metadata_observation_heap = {}
         raw_origin_metadata_run_heap = {}
-        raw_origin_metadata_sample_heap = {}
+        raw_origin_metadata_observation_heap = {}
 
         collection_global_metadata = {}
         residual_global_metadata = {}
         residual_run_metadata = {}
-        residual_sample_metadata = {}
+        residual_observation_metadata = {}
         collection_global_origin_metadata = {}
         residual_global_origin_metadata = {}
         residual_run_origin_metadata = {}
-        residual_sample_origin_metadata = {}
+        residual_observation_origin_metadata = {}
 
-        full_sample_metadata_heap = {}
+        full_observation_metadata_heap = {}
 
         #run_info = []
         for run_id in collection_info["runs"]:
             #run_info = get_couch()["crab_runs"][run_id]
             run_info = couch_client.get_document("crab_runs", run_id)
-            for sample_id in run_info["samples"]:
-                samples.append(sample_id)
+            for observation_id in run_info["observations"]:
+                observations.append(observation_id)
                 creators.append(run_info["creator"]["uuid"])
-                metadata_map[sample_id] = {
+                metadata_map[observation_id] = {
                         "creator": run_info["creator"],
                         "sensor": run_info["sensor"],
                         "from_run": run_id,
                         "ingest_timestamp": run_info["ingest_timestamp"]
                     }
-                #sample_info = get_couch()["crab_samples"][sample_id]
-                sample_info = couch_client.get_document("crab_samples", sample_id)
-                #print(json.dumps(sample_info, indent=4))
-                if not "tags" in sample_info:
-                    sample_info["tags"] = {}
+                #observation_info = get_couch()["crab_observations"][observation_id]
+                observation_info = couch_client.get_document("crab_observations", observation_id)
+                #print(json.dumps(observation_info, indent=4))
+                if not "tags" in observation_info:
+                    observation_info["tags"] = {}
 
-                raw_origin_metadata_sample_heap[sample_id] = sample_info["origin_tags"]
-                raw_metadata_sample_heap[sample_id] = sample_info["tags"]
-                full_sample_metadata_heap[sample_id] = sample_info
-                residual_sample_origin_metadata[sample_id] = {}
-                residual_sample_metadata[sample_id] = {}
+                raw_origin_metadata_observation_heap[observation_id] = observation_info["origin_tags"]
+                raw_metadata_observation_heap[observation_id] = observation_info["tags"]
+                full_observation_metadata_heap[observation_id] = observation_info
+                residual_observation_origin_metadata[observation_id] = {}
+                residual_observation_metadata[observation_id] = {}
             raw_origin_metadata_run_heap[run_id] = run_info["origin_tags"]
             raw_metadata_run_heap[run_id] = run_info["tags"]
             residual_run_origin_metadata[run_id] = {}
@@ -106,9 +106,9 @@ class TakeSnapshotJob:
                     collection_global_origin_metadata[key] = [value]
 
 
-        for sample_id in raw_metadata_sample_heap:
-            for key in raw_metadata_sample_heap[sample_id]:
-                value = raw_metadata_sample_heap[sample_id][key]
+        for observation_id in raw_metadata_observation_heap:
+            for key in raw_metadata_observation_heap[observation_id]:
+                value = raw_metadata_observation_heap[observation_id][key]
                 if not type(value) is list:
                     if key in collection_global_metadata:
                         if not value in collection_global_metadata[key]:
@@ -116,9 +116,9 @@ class TakeSnapshotJob:
                     else:
                         collection_global_metadata[key] = [value]
 
-        for sample_id in raw_origin_metadata_sample_heap:
-            for key in raw_origin_metadata_sample_heap[sample_id]:
-                value = raw_origin_metadata_sample_heap[sample_id][key]
+        for observation_id in raw_origin_metadata_observation_heap:
+            for key in raw_origin_metadata_observation_heap[observation_id]:
+                value = raw_origin_metadata_observation_heap[observation_id][key]
                 if not type(value) is list:
                     if key in collection_global_origin_metadata:
                         if not value in collection_global_origin_metadata[key]:
@@ -148,27 +148,27 @@ class TakeSnapshotJob:
         #print(json.dumps(residual_run_origin_metadata, indent=4))
 
         for run_id in residual_run_origin_metadata:
-            #run_samples = get_couch()["crab_runs"][run_id]["samples"]
-            run_samples = couch_client.get_document("crab_runs", run_id)["samples"]
-            for sample_id in run_samples:
-                residual_sample_metadata[sample_id] = residual_run_metadata[run_id]
-                residual_sample_origin_metadata[sample_id] = residual_run_origin_metadata[run_id]
+            #run_observations = get_couch()["crab_runs"][run_id]["observations"]
+            run_observations = couch_client.get_document("crab_runs", run_id)["observations"]
+            for observation_id in run_observations:
+                residual_observation_metadata[observation_id] = residual_run_metadata[run_id]
+                residual_observation_origin_metadata[observation_id] = residual_run_origin_metadata[run_id]
 
-        for sample_id in samples:
-            for key in raw_metadata_sample_heap[sample_id]:
-                residual_sample_metadata[sample_id][key] = raw_metadata_sample_heap[sample_id][key]
-            for key in raw_origin_metadata_sample_heap[sample_id]:
-                residual_sample_origin_metadata[sample_id][key] = raw_origin_metadata_sample_heap[sample_id][key]
+        for observation_id in observations:
+            for key in raw_metadata_observation_heap[observation_id]:
+                residual_observation_metadata[observation_id][key] = raw_metadata_observation_heap[observation_id][key]
+            for key in raw_origin_metadata_observation_heap[observation_id]:
+                residual_observation_origin_metadata[observation_id][key] = raw_origin_metadata_observation_heap[observation_id][key]
 
-        #print(json.dumps(residual_sample_origin_metadata, indent=4))
+        #print(json.dumps(residual_observation_origin_metadata, indent=4))
         #print(json.dumps(residual_global_origin_metadata, indent=4))
 
-        snapshot_md["samples"] = {}
+        snapshot_md["observations"] = {}
 
-        for sample_id in samples:
-            snapshot_md["samples"][sample_id] = residual_sample_metadata[sample_id]
-            snapshot_md["samples"][sample_id]["origin_tags"] = residual_sample_origin_metadata[sample_id]
-            snapshot_md["samples"][sample_id]["type"] = full_sample_metadata_heap[sample_id]["type"]
+        for observation_id in observations:
+            snapshot_md["observations"][observation_id] = residual_observation_metadata[observation_id]
+            snapshot_md["observations"][observation_id]["origin_tags"] = residual_observation_origin_metadata[observation_id]
+            snapshot_md["observations"][observation_id]["type"] = full_observation_metadata_heap[observation_id]["type"]
 
         for key in residual_global_metadata:
             snapshot_md[key] = residual_global_metadata[key]
@@ -189,30 +189,30 @@ class TakeSnapshotJob:
         #get_couch()["crab_jobs"][job_uuid] = current_job_md
 
 
-        samples_len = len(samples)
+        observations_len = len(observations)
         i = 0
         last_push_time = time.time()
 
         for run_id in collection_info["runs"]:
             run_info = couch_client.get_document("crab_runs", run_id)#get_couch()["crab_runs"][run_id]
-            for sample_id in run_info["samples"]:
-                sample_info = couch_client.get_document("crab_samples", sample_id) #get_couch()["crab_samples"][sample_id]
-                if "path" in sample_info:
-                    #get_s3_client(self.s3_profile).copy_object(Bucket=get_s3_bucket_name(self.s3_profile), CopySource="/" + get_s3_bucket_name(self.s3_profile) + "/" + sample_info["path"], Key="snapshots/" + snapshot_uuid + "/raw_img/" + sample_id + ".tiff")
-                    file_name, file_ext = os.path.splitext(sample_info["path"])
+            for observation_id in run_info["observations"]:
+                observation_info = couch_client.get_document("crab_observations", observation_id) #get_couch()["crab_observations"][observation_id]
+                if "path" in observation_info:
+                    #get_s3_client(self.s3_profile).copy_object(Bucket=get_s3_bucket_name(self.s3_profile), CopySource="/" + get_s3_bucket_name(self.s3_profile) + "/" + observation_info["path"], Key="snapshots/" + snapshot_uuid + "/raw_img/" + observation_id + ".tiff")
+                    file_name, file_ext = os.path.splitext(observation_info["path"])
 
                     with io.BytesIO() as temp_file:
-                        get_s3_client(sample_info["s3_profile"]).download_fileobj(get_s3_bucket_name(sample_info["s3_profile"]), sample_info["path"], temp_file)
+                        get_s3_client(observation_info["s3_profile"]).download_fileobj(get_s3_bucket_name(observation_info["s3_profile"]), observation_info["path"], temp_file)
                         temp_file.seek(0)
-                        get_s3_client(self.s3_profile).put_object(Bucket=get_s3_bucket_name(self.s3_profile), Key="snapshots/" + snapshot_uuid + "/raw_img/" + sample_id + file_ext, Body=temp_file.read())
+                        get_s3_client(self.s3_profile).put_object(Bucket=get_s3_bucket_name(self.s3_profile), Key="snapshots/" + snapshot_uuid + "/raw_img/" + observation_id + file_ext, Body=temp_file.read())
                 else:
-                    print("Broken sample!:")
-                    print(sample_info)
+                    print("Broken observation!:")
+                    print(observation_info)
 
                 i += 1
                 if (last_push_time + 5) < time.time():
                     last_push_time = time.time()
-                    self.progress_func(0.2 + ((i/samples_len) * 0.3))
+                    self.progress_func(0.2 + ((i/observations_len) * 0.3))
 
         self.progress_func(0.5)
         i = 0
@@ -220,8 +220,8 @@ class TakeSnapshotJob:
         zip_buffer = io.BytesIO()
         image_type = "image/tiff"
         with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zipper:
-            for sample_id in snapshot_md["samples"]:
-                raw_format = snapshot_md["samples"][sample_id]["type"]["format"].split("/", 1)
+            for observation_id in snapshot_md["observations"]:
+                raw_format = snapshot_md["observations"][observation_id]["type"]["format"].split("/", 1)
                 f_ext = "bin"
                 m_type = None
                 image_type = raw_format[0] + "/" + raw_format[1]
@@ -229,8 +229,8 @@ class TakeSnapshotJob:
                     if raw_format[1] == "tiff":
                         f_ext = "tiff"
                         m_type = "TIFF"
-                file_name = sample_id + "." + f_ext
-                image_path = "snapshots/" + snapshot_uuid + "/raw_img/" + sample_id + "." + f_ext
+                file_name = observation_id + "." + f_ext
+                image_path = "snapshots/" + snapshot_uuid + "/raw_img/" + observation_id + "." + f_ext
                 #infile_object = get_bucket_object(path=image_path)
                 #infile_content = infile_object['Body'].read()
                 #zipper.writestr(file_name, infile_content)
@@ -242,7 +242,7 @@ class TakeSnapshotJob:
                 i += 1
                 if (last_push_time + 5) < time.time():
                     last_push_time = time.time()
-                    self.progress_func(0.5 + ((i/samples_len) * 0.3))
+                    self.progress_func(0.5 + ((i/observations_len) * 0.3))
 
             self.progress_func(0.8)
 
@@ -283,7 +283,7 @@ class TakeSnapshotJob:
 
         self.progress_func(1)
 
-        return samples_len
+        return observations_len
 
     def execute(self, job_md, progress_func):
         self.job_md = job_md
@@ -296,7 +296,7 @@ class TakeSnapshotJob:
 
         patch = {}
 
-        patch["samples_processed"] = self.build_collection_snapshot(snapshot_uuid, job_md["job_args"])
+        patch["observations_processed"] = self.build_collection_snapshot(snapshot_uuid, job_md["job_args"])
 
 
         return patch

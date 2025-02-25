@@ -311,7 +311,7 @@ def api_v1_get_snapshot(snapshot_uuid):
                     identifier: example
                     public_visibility: true
                     collection: d9f436e1-dbdc-43e0-b61e-a21921f0938a
-                    samples: {}
+                    observations: {}
                     origin_tags: {}
                     packages:
                         ifdo:
@@ -367,7 +367,7 @@ def api_v1_get_snapshot_croissant(snapshot_uuid):
                     identifier: example
                     public_visibility: true
                     collection: d9f436e1-dbdc-43e0-b61e-a21921f0938a
-                    samples: {}
+                    observations: {}
                     origin_tags: {}
                     packages:
                         ifdo:

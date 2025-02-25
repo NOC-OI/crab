@@ -28,8 +28,8 @@ class RunApplyUploadProfileJob:
         couch_client = get_couch_client()
 
         #run_dblist = get_couch()["crab_runs"]
-        #sample_dblist = get_couch()["crab_samples"]
-        samples = []
+        #observation_dblist = get_couch()["crab_observations"]
+        observations = []
 
         run_metadata = {}
         mapping = {}
@@ -40,26 +40,26 @@ class RunApplyUploadProfileJob:
 
         for target in targets:
             im = Image.open(workdir + "/" + target)
-            sample_uuid = str(uuid.uuid4())
-            ofn = "runs/" + run_uuid + "/" + sample_uuid + ".tiff"
+            observation_uuid = str(uuid.uuid4())
+            ofn = "runs/" + run_uuid + "/" + observation_uuid + ".tiff"
             ifn = workdir + "/" + in_file + ".tiff"
             im.save(ifn)
             #get_bucket().upload_file(ifn, ofn)
             get_s3_client(self.s3_profile).upload_file(ifn, get_s3_bucket_name(self.s3_profile), ofn)
             #print(ofn)
 
-            sample_raw_metadata = {
+            observation_raw_metadata = {
                     "filename": target
                 }
 
             for key in mapping:
-                sample_transformed_metadata[mapping[key]] = sample_raw_metadata[key]
+                observation_transformed_metadata[mapping[key]] = observation_raw_metadata[key]
 
-            sample_transformed_metadata = {}
+            observation_transformed_metadata = {}
 
             mode_to_bpp = {'1':1, 'L':8, 'P':8, 'RGB':24, 'RGBA':32, 'CMYK':32, 'YCbCr':24, 'I':32, 'F':32}
 
-            sample_metadata = {
+            observation_metadata = {
                 "path": ofn,
                 "s3_profile": self.s3_profile,
                 "type": {
@@ -72,11 +72,11 @@ class RunApplyUploadProfileJob:
                                 }
                             ]
                     },
-                "origin_tags": sample_raw_metadata,
-                "tags": sample_transformed_metadata
+                "origin_tags": observation_raw_metadata,
+                "tags": observation_transformed_metadata
             }
-            couch_client.put_document("crab_samples", sample_uuid, sample_metadata)
-            samples.append(sample_uuid)
+            couch_client.put_document("crab_observations", observation_uuid, observation_metadata)
+            observations.append(observation_uuid)
             i += 1
             if (last_push_time + 5) < time.time():
                 last_push_time = time.time()
@@ -93,11 +93,11 @@ class RunApplyUploadProfileJob:
         metadata_template["tags"] = run_transformed_metadata
         metadata_template["ingest_timestamp"] = current_unix_timestamp
         metadata_template["sensor"] = "RAW_IMAGE"
-        metadata_template["samples"] = samples
+        metadata_template["observations"] = observations
 
         couch_client.put_document("crab_runs", run_uuid, metadata_template)
 
-        return {"samples": len(samples)}
+        return {"observations": len(observations)}
 
     def lisst_holo_unpack(self, run_uuid, workdir, namelist, metadata_template = {}):
         targets = []
@@ -112,7 +112,7 @@ class RunApplyUploadProfileJob:
         last_push_time = time.time()
 
         couch_client = get_couch_client()
-        samples = []
+        observations = []
 
         run_metadata = {}
 
@@ -126,16 +126,16 @@ class RunApplyUploadProfileJob:
             #print(ofn)
             ifn = workdir + "/" + in_file
             get_s3_client(self.s3_profile).upload_file(ifn, get_s3_bucket_name(self.s3_profile), ofn)
-            sample_uuid = str(uuid.uuid4())
+            observation_uuid = str(uuid.uuid4())
 
-            sample_raw_metadata = {}
+            observation_raw_metadata = {}
 
             for key in mapping:
-                sample_transformed_metadata[mapping[key]] = sample_raw_metadata[key]
+                observation_transformed_metadata[mapping[key]] = observation_raw_metadata[key]
 
-            sample_transformed_metadata = {}
+            observation_transformed_metadata = {}
 
-            sample_metadata = {
+            observation_metadata = {
                 "path": ofn,
                 "s3_profile": self.s3_profile,
                 "type": {
@@ -148,11 +148,11 @@ class RunApplyUploadProfileJob:
                                 }
                             ]
                     },
-                "origin_tags": sample_raw_metadata,
-                "tags": sample_transformed_metadata
+                "origin_tags": observation_raw_metadata,
+                "tags": observation_transformed_metadata
             }
-            couch_client.put_document("crab_samples", sample_uuid, sample_metadata)
-            samples.append(sample_uuid)
+            couch_client.put_document("crab_observations", observation_uuid, observation_metadata)
+            observations.append(observation_uuid)
             i += 1
             if (last_push_time + 5) < time.time():
                 last_push_time = time.time()
@@ -169,11 +169,11 @@ class RunApplyUploadProfileJob:
         metadata_template["tags"] = run_transformed_metadata
         metadata_template["ingest_timestamp"] = current_unix_timestamp
         metadata_template["sensor"] = "LISST_HOLO"
-        metadata_template["samples"] = samples
+        metadata_template["observations"] = observations
 
         couch_client.put_document("crab_runs", run_uuid, metadata_template)
 
-        return {"samples": len(samples)}
+        return {"observations": len(observations)}
 
     def ifcb_unpack(self, run_uuid, workdir, namelist, metadata_template = {}):
         targets = []
@@ -214,12 +214,12 @@ class RunApplyUploadProfileJob:
         run_metadata = {k: v for k, v in run_metadata.items() if v is not None}
 
         couch_client = get_couch_client()
-        samples = []
+        observations = []
 
         mapping = {
                 "software_version": "source_software",
                 "analog_firmware_version": "firmware_version",
-                "sample_time": "sample_time",
+                "sample_time": "observation_time",
                 "imager_id": "vendor_issued_hardware_id"
             }
 
@@ -233,14 +233,14 @@ class RunApplyUploadProfileJob:
                 base_group = in_file_s[0].split("_TN")[0]
                 ofn = "runs/" + run_uuid + "/" + in_file_s[0] + ".tiff"
                 get_s3_client(self.s3_profile).upload_file(workdir + "/" + in_file, get_s3_bucket_name(self.s3_profile), ofn)
-                sample_uuid = str(uuid.uuid4())
+                observation_uuid = str(uuid.uuid4())
 
-                sample_transformed_metadata = {}
+                observation_transformed_metadata = {}
                 for key in mapping:
                     if key in group_metadata:
-                        sample_transformed_metadata[mapping[key]] = group_metadata[base_group][key]
+                        observation_transformed_metadata[mapping[key]] = group_metadata[base_group][key]
 
-                sample_metadata = {
+                observation_metadata = {
                     "path": ofn,
                     "s3_profile": self.s3_profile,
                     "type": {
@@ -253,11 +253,11 @@ class RunApplyUploadProfileJob:
                                     }
                                 ]
                         },
-                    "tags": sample_transformed_metadata,
+                    "tags": observation_transformed_metadata,
                     "origin_tags": group_metadata[base_group].copy()
                 }
-                couch_client.put_document("crab_samples", sample_uuid, sample_metadata)
-                samples.append(sample_uuid)
+                couch_client.put_document("crab_observations", observation_uuid, observation_metadata)
+                observations.append(observation_uuid)
                 i += 1
                 if (last_push_time + 5) < time.time():
                     last_push_time = time.time()
@@ -274,11 +274,11 @@ class RunApplyUploadProfileJob:
         metadata_template["tags"] = run_transformed_metadata
         metadata_template["ingest_timestamp"] = current_unix_timestamp
         metadata_template["sensor"] = "MCLANE_IFCB"
-        metadata_template["samples"] = samples
+        metadata_template["observations"] = observations
 
         couch_client.put_document("crab_runs", run_uuid, metadata_template)
 
-        return {"samples": len(samples)}
+        return {"observations": len(observations)}
 
     def execute(self, job_md, progress_func):
         self.job_md = job_md
