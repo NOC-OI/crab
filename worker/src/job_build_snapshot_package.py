@@ -38,26 +38,26 @@ class BuildSnapshotPackageJob:
                 "image-set-items": {}
             }
 
-        samples_len = len(snapshot_info["samples"])
+        observations_len = len(snapshot_info["observations"])
         i = 0
         last_push_time = time.time()
 
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zipper:
-            for sample_id in snapshot_info["samples"]:
-                raw_format = snapshot_info["samples"][sample_id]["type"]["format"].split("/", 1)
+            for observation_id in snapshot_info["observations"]:
+                raw_format = snapshot_info["observations"][observation_id]["type"]["format"].split("/", 1)
                 f_ext = "bin"
                 m_type = None
                 if raw_format[0] == "image":
                     if raw_format[1] == "tiff":
                         f_ext = "tiff"
                         m_type = "TIFF"
-                file_name = sample_id + "." + f_ext
+                file_name = observation_id + "." + f_ext
                 ifdo_metadata["image-set-items"][file_name] = {
-                        "image-uuid": sample_id,
+                        "image-uuid": observation_id,
                         "image-media-type": m_type
                     }
-                image_path = "snapshots/" + snapshot_info["_id"] + "/raw_img/" + sample_id + "." + f_ext
+                image_path = "snapshots/" + snapshot_info["_id"] + "/raw_img/" + observation_id + "." + f_ext
                 #infile_object = get_bucket_object(path=image_path)
                 #infile_content = infile_object['Body'].read()
                 #zipper.writestr(file_name, infile_content)
@@ -70,7 +70,7 @@ class BuildSnapshotPackageJob:
                 i += 1
                 if (last_push_time + 5) < time.time():
                     last_push_time = time.time()
-                    self.progress_func(0.1 + ((i/samples_len) * 0.8))
+                    self.progress_func(0.1 + ((i/observations_len) * 0.8))
 
 
             zipper.writestr("ifdo.json", json.dumps(ifdo_metadata, indent=4))
@@ -100,6 +100,6 @@ class BuildSnapshotPackageJob:
         patch = {}
 
         if job_md["job_args"]["p_type"] == "IFDO":
-            patch["samples_processed"] = self.build_ifdo_package(snapshot_uuid)
+            patch["observations_processed"] = self.build_ifdo_package(snapshot_uuid)
 
         return patch

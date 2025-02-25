@@ -69,8 +69,8 @@ def run_detail_screen(raw_uuid):
 
         run_data = get_couch()["crab_runs"][str(uuid_obj)]
         run_data_raw = json.dumps(run_data["tags"], indent=2)
-        run_data["sample_count"] = len(run_data["samples"])
-        run_data["samples"] = run_data["samples"][:10]
+        run_data["observation_count"] = len(run_data["observations"])
+        run_data["observations"] = run_data["observations"][:10]
         return render_template("run_info.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), run_data=run_data, run_data_raw=run_data_raw, can_edit=can_edit(str(uuid_obj)))
     except ValueError:
         return Response(json.dumps({
@@ -181,7 +181,7 @@ def api_v1_get_runs():
     limit = 12
     mango = {
             "selector": mango_selector,
-            "fields": ["creator", "ingest_timestamp", "_id", "samples.0", "identifier"],
+            "fields": ["creator", "ingest_timestamp", "_id", "observations.0", "identifier"],
             "sort": mango_sort,
             "skip": page * limit,
             "limit": limit
@@ -220,22 +220,22 @@ def api_v1_run_download(raw_uuid):
             zip_fp = io.BytesIO()
             zip_fo = zipfile.ZipFile(zip_fp, "w", compression=zipfile.ZIP_DEFLATED)
             zip_fo.writestr("run_metadata.json", json.dumps(run_data, indent=4))
-            zip_fo.mkdir("samples")
-            for sample in run_data["samples"]:
-                sample_metadata = get_couch()["crab_samples"][str(uuid.UUID(sample, version=4))] # This parsing is to throw an error on malformed input - it should not be removed!
-                zip_fo.writestr("samples/" + sample + ".json", json.dumps(sample_metadata, indent=4))
+            zip_fo.mkdir("observations")
+            for observation in run_data["observations"]:
+                observation_metadata = get_couch()["crab_observations"][str(uuid.UUID(observation, version=4))] # This parsing is to throw an error on malformed input - it should not be removed!
+                zip_fo.writestr("observations/" + observation + ".json", json.dumps(observation_metadata, indent=4))
 
-                #sample_bucket_obj = get_bucket_object(path=sample_metadata["path"])
-                #sample_temp_file = io.BytesIO(sample_bucket_obj['Body'].read())
+                #observation_bucket_obj = get_bucket_object(path=observation_metadata["path"])
+                #observation_temp_file = io.BytesIO(observation_bucket_obj['Body'].read())
 
 
 
                 with io.BytesIO() as img_fp:
-                    get_s3_client(sample_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(sample_metadata["s3_profile"]), sample_metadata["path"], img_fp)
+                    get_s3_client(observation_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(observation_metadata["s3_profile"]), observation_metadata["path"], img_fp)
                     img_fp.seek(0)
-                    zip_fo.writestr("samples/" + sample + ".tiff", img_fp.read())
+                    zip_fo.writestr("observations/" + observation + ".tiff", img_fp.read())
 
-                #zip_fo.writestr("samples/" + sample + ".tiff", sample_temp_file.getvalue())
+                #zip_fo.writestr("observations/" + observation + ".tiff", observation_temp_file.getvalue())
 
             zip_fo.close()
             out_bytearray = zip_fp.getvalue()
@@ -250,38 +250,38 @@ def api_v1_run_download(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-#@run_api.route("/api/v1/get_sample_metadata/<raw_uuid>", methods=['GET'])
-@run_api.route("/api/v1/samples/<raw_uuid>/metadata", methods=['GET'])
-def api_v1_get_sample_metadata(raw_uuid):
+#@run_api.route("/api/v1/get_observation_metadata/<raw_uuid>", methods=['GET'])
+@run_api.route("/api/v1/observations/<raw_uuid>/metadata", methods=['GET'])
+def api_v1_get_observation_metadata(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
-        sample_metadata = get_couch()["crab_samples"][str(uuid_obj)]
-        return Response(json.dumps(sample_metadata), status=200, mimetype='application/json')
+        observation_metadata = get_couch()["crab_observations"][str(uuid_obj)]
+        return Response(json.dumps(observation_metadata), status=200, mimetype='application/json')
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-#@run_api.route("/api/v1/get_sample/<raw_uuid>", methods=['GET'])
-@run_api.route("/api/v1/samples/<raw_uuid>", methods=['GET'])
-@run_api.route("/api/v1/samples/<raw_uuid>.tiff", methods=['GET'])
-@run_api.route("/api/v1/samples/<raw_uuid>.tif", methods=['GET'])
-def api_v1_get_sample(raw_uuid):
+#@run_api.route("/api/v1/get_observation/<raw_uuid>", methods=['GET'])
+@run_api.route("/api/v1/observations/<raw_uuid>", methods=['GET'])
+@run_api.route("/api/v1/observations/<raw_uuid>.tiff", methods=['GET'])
+@run_api.route("/api/v1/observations/<raw_uuid>.tif", methods=['GET'])
+def api_v1_get_observation(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
-        sample_metadata = get_couch()["crab_samples"][str(uuid_obj)]
+        observation_metadata = get_couch()["crab_observations"][str(uuid_obj)]
 
-        #temp_file = get_bucket_object(path=sample_metadata["path"])
-        #return send_file(fh, download_name=os.path.basename(sample_metadata["path"]))
+        #temp_file = get_bucket_object(path=observation_metadata["path"])
+        #return send_file(fh, download_name=os.path.basename(observation_metadata["path"]))
                     #temp_file['Body'].read(),
         with io.BytesIO() as img_fp:
-            get_s3_client(sample_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(sample_metadata["s3_profile"]), sample_metadata["path"], img_fp)
+            get_s3_client(observation_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(observation_metadata["s3_profile"]), observation_metadata["path"], img_fp)
             img_fp.seek(0)
             return Response(
                 img_fp.read(),
-                mimetype=sample_metadata["type"]["format"],
-                headers={"Content-Disposition": "attachment;filename=" + os.path.basename(sample_metadata["path"])}
+                mimetype=observation_metadata["type"]["format"],
+                headers={"Content-Disposition": "attachment;filename=" + os.path.basename(observation_metadata["path"])}
             )
     except ValueError:
         return Response(json.dumps({
@@ -289,19 +289,19 @@ def api_v1_get_sample(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-@run_api.route("/api/v1/samples/<raw_uuid>.jpeg", methods=['GET'])
-@run_api.route("/api/v1/samples/<raw_uuid>.jpg", methods=['GET'])
-def api_v1_get_sample_jpeg(raw_uuid):
+@run_api.route("/api/v1/observations/<raw_uuid>.jpeg", methods=['GET'])
+@run_api.route("/api/v1/observations/<raw_uuid>.jpg", methods=['GET'])
+def api_v1_get_observation_jpeg(raw_uuid):
     #try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
-        sample_metadata = get_couch()["crab_samples"][str(uuid_obj)]
+        observation_metadata = get_couch()["crab_observations"][str(uuid_obj)]
 
-        #in_temp_file = get_bucket_object(path=sample_metadata["path"])
+        #in_temp_file = get_bucket_object(path=observation_metadata["path"])
         with io.BytesIO() as in_temp_file:
-            get_s3_client(sample_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(sample_metadata["s3_profile"]), sample_metadata["path"], in_temp_file)
+            get_s3_client(observation_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(observation_metadata["s3_profile"]), observation_metadata["path"], in_temp_file)
             in_temp_file.seek(0)
 
-            #return send_file(fh, download_name=os.path.basename(sample_metadata["path"]))
+            #return send_file(fh, download_name=os.path.basename(observation_metadata["path"]))
             out_temp_file = io.BytesIO()
             #print(in_temp_file['Body'].read())
             im = Image.open(in_temp_file) # Open with PIL to convert to jpeg
@@ -310,19 +310,19 @@ def api_v1_get_sample_jpeg(raw_uuid):
             return Response(
                 out_bytearray,
                 mimetype="image/jpeg",
-                headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(sample_metadata["path"]))[0] + ".jpg"}
+                headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(observation_metadata["path"]))[0] + ".jpg"}
             )
 
-@run_api.route("/api/v1/samples/<raw_uuid>.png", methods=['GET'])
-def api_v1_get_sample_png(raw_uuid):
+@run_api.route("/api/v1/observations/<raw_uuid>.png", methods=['GET'])
+def api_v1_get_observation_png(raw_uuid):
     #try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
-        sample_metadata = get_couch()["crab_samples"][str(uuid_obj)]
-        #in_temp_file = get_bucket_object(path=sample_metadata["path"])
-        #return send_file(fh, download_name=os.path.basename(sample_metadata["path"]))
+        observation_metadata = get_couch()["crab_observations"][str(uuid_obj)]
+        #in_temp_file = get_bucket_object(path=observation_metadata["path"])
+        #return send_file(fh, download_name=os.path.basename(observation_metadata["path"]))
 
         with io.BytesIO() as in_temp_file:
-            get_s3_client(sample_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(sample_metadata["s3_profile"]), sample_metadata["path"], in_temp_file)
+            get_s3_client(observation_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(observation_metadata["s3_profile"]), observation_metadata["path"], in_temp_file)
             in_temp_file.seek(0)
 
             out_temp_file = io.BytesIO()
@@ -333,20 +333,20 @@ def api_v1_get_sample_png(raw_uuid):
             return Response(
                 out_bytearray,
                 mimetype="image/png",
-                headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(sample_metadata["path"]))[0] + ".png"}
+                headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(observation_metadata["path"]))[0] + ".png"}
             )
 
-#@run_api.route("/api/v1/get_sample_thumbnail/<raw_uuid>", methods=['GET'])
-@run_api.route("/api/v1/samples/<raw_uuid>/thumbnail", methods=['GET'])
-def api_v1_get_sample_thumbnail(raw_uuid):
+#@run_api.route("/api/v1/get_observation_thumbnail/<raw_uuid>", methods=['GET'])
+@run_api.route("/api/v1/observations/<raw_uuid>/thumbnail", methods=['GET'])
+def api_v1_get_observation_thumbnail(raw_uuid):
     #try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
-        sample_metadata = get_couch()["crab_samples"][str(uuid_obj)]
-        #in_temp_file = get_bucket_object(path=sample_metadata["path"])
-        #return send_file(fh, download_name=os.path.basename(sample_metadata["path"]))
+        observation_metadata = get_couch()["crab_observations"][str(uuid_obj)]
+        #in_temp_file = get_bucket_object(path=observation_metadata["path"])
+        #return send_file(fh, download_name=os.path.basename(observation_metadata["path"]))
 
         with io.BytesIO() as in_temp_file:
-            get_s3_client(sample_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(sample_metadata["s3_profile"]), sample_metadata["path"], in_temp_file)
+            get_s3_client(observation_metadata["s3_profile"]).download_fileobj(get_s3_bucket_name(observation_metadata["s3_profile"]), observation_metadata["path"], in_temp_file)
             in_temp_file.seek(0)
 
             out_temp_file = io.BytesIO()
@@ -357,7 +357,7 @@ def api_v1_get_sample_thumbnail(raw_uuid):
             return Response(
                 out_bytearray,
                 mimetype="image/jpeg",
-                headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(sample_metadata["path"]))[0] + ".jpg"}
+                headers={"Content-Disposition": "inline;filename=" + os.path.splitext(os.path.basename(observation_metadata["path"]))[0] + ".jpg"}
             )
             # switch to inline
         #except ValueError:

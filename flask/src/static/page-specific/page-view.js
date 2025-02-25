@@ -1,5 +1,5 @@
 let userCache = {};
-let sampleCache = {};
+let observationCache = {};
 let searchSelector = {};
 
 let fromClass = "run";
@@ -27,12 +27,12 @@ let getUserInfo = (uuid) => {
     });
 }
 
-let getSampleInfo = (uuid) => {
+let getObservationInfo = (uuid) => {
     return new Promise((resolve, reject) => {
-        if (!sampleCache.hasOwnProperty(uuid)) {
-            sampleCache[uuid] = new Promise((resolveInner, rejectInner) => {
+        if (!observationCache.hasOwnProperty(uuid)) {
+            observationCache[uuid] = new Promise((resolveInner, rejectInner) => {
                 let xhr = new XMLHttpRequest();
-                xhr.open("GET", "/api/v1/get_sample_metadata/" + uuid);
+                xhr.open("GET", "/api/v1/get_observation_metadata/" + uuid);
                 xhr.addEventListener('loadend', () => {
                     if (xhr.status === 200) {
                         response = JSON.parse(xhr.responseText);
@@ -42,7 +42,7 @@ let getSampleInfo = (uuid) => {
                 xhr.send();
             });
         }
-        sampleCache[uuid].then((response) => {
+        observationCache[uuid].then((response) => {
             resolve(response);
         });
     });
@@ -145,8 +145,8 @@ let renderPage = (docs, docClass, listView, page) => {
                 let cardImage = document.createElement("img");
                 cardImage.classList.add("card-img-top");
                 if (docClass == "run") {
-                    if (docInfo.hasOwnProperty("samples")) {
-                        cardImage.src = "/api/v1/samples/" + docInfo["samples"]["0"] + "/thumbnail";
+                    if (docInfo.hasOwnProperty("observations")) {
+                        cardImage.src = "/api/v1/observations/" + docInfo["observations"]["0"] + "/thumbnail";
                     }
                 }
                 card.appendChild(cardImage);

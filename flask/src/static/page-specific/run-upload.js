@@ -91,7 +91,7 @@ let analyseMetadata = (form, response) => {
     }
     
 
-    document.getElementById("form_md_sample_time").value = response["timestamp"];
+    document.getElementById("form_md_observation_time").value = response["timestamp"];
     //console.log(response);
     switch (detectedType) {
         case "ifcb":

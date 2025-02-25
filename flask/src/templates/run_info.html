@@ -27,16 +27,16 @@
     <hr class="my-3">
 
     <div id="list_view" class="row gx-3">
-        {% if run_data.sample_count > 10 %}
-            <p>{{ run_data.sample_count }} total samples in dataset. 10 shown below as a sample.</p>
+        {% if run_data.observation_count > 10 %}
+            <p>{{ run_data.observation_count }} total images in dataset. 10 shown below as a sample.</p>
         {% else %}
-            <p>{{ run_data.sample_count }} samples in dataset.</p>
+            <p>{{ run_data.observation_count }} images in dataset.</p>
         {% endif %}
-        {% for sample in run_data.samples %}
+        {% for observation in run_data.observations %}
         <div class="mb-3 mr-3 col-lg-3 col-md-4 col-sm-12 col-12 col">
-            <div class="card bg-light"><img class="card-img-top" src="/api/v1/samples/{{ sample }}/thumbnail">
+            <div class="card bg-light"><img class="card-img-top" src="/api/v1/observations/{{ observation }}/thumbnail">
                 <div class="card-body">
-                    <p class="card-text"><small class="text-muted">{{ "{" ~ sample ~ "}" }}</small></p>
+                    <p class="card-text"><small class="text-muted">{{ "{" ~ observation ~ "}" }}</small></p>
                 </div>
             </div>
         </div>
