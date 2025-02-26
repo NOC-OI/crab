@@ -56,34 +56,35 @@ Applies a sensor mapping to an uploaded staged run.
 | run_uuid | UUID | Post | The target upload ID to apply the mapping to |
 | identifier | String | Post | The desired identifier for the image run |
 | sensor | Enum ("ifcb", "raw-image") | Post | The sensor mapping to use in ingest |
+| s3_profile | String | Post | The S3 profile to upload data to, may be left blank to use the default |
 
-## Samples
+## Observations
 
-`/api/v1/samples/<sample_uuid>`
+`/api/v1/observations/<observation_uuid>`
 
-`/api/v1/samples/<sample_uuid>.tiff`
+`/api/v1/observations/<observation_uuid>.tiff`
 
-`/api/v1/samples/<sample_uuid>.tif`
+`/api/v1/observations/<observation_uuid>.tif`
 
 Returns the lossless TIFF file, as stored in the database.
 
-`/api/v1/samples/<sample_uuid>.png`
+`/api/v1/observations/<observation_uuid>.png`
 
 Returns a lossless* PNG file converted from the original TIFF file. Conversion is done for each request. May result in some downsampling. Use the original TIFF format if possible for data analysis.
 
-`/api/v1/samples/<sample_uuid>.jpeg`
+`/api/v1/observations/<observation_uuid>.jpeg`
 
-`/api/v1/samples/<sample_uuid>.jpg`
+`/api/v1/observations/<observation_uuid>.jpg`
 
 Returns a lossy JPEG file converted from the original TIFF file. Conversion is done for each request. Will result in downsampling. Use the original TIFF format if possible for data analysis. Intended for display over network connections only.
 
-`/api/v1/samples/<sample_uuid>/metadata`
+`/api/v1/observations/<observation_uuid>/metadata`
 
-Returns metadata associated with the individual sample.
+Returns metadata associated with the individual observation.
 
-`/api/v1/samples/<sample_uuid>/thumbnail`
+`/api/v1/observations/<observation_uuid>/thumbnail`
 
-Returns a converted JPEG of the sample image. Uses a low quality (50) for fast network transfer. Not inteded for use other than as a thumbnail. Conversion is cached (TODO), so is prefereable to use for performance reasons.
+Returns a converted JPEG of the observation image. Uses a low quality (50) for fast network transfer. Not inteded for use other than as a thumbnail. Conversion is cached (TODO), so is prefereable to use for performance reasons.
 
 ## Projects
 
@@ -149,7 +150,7 @@ Deletes a snapshot.
 
 Creates a vendor-specific image.
 
-The only currently implemented `package_type` is `ifcb`.
+The only currently implemented `package_type` is `ifdo`.
 
 `/api/v1/snapshots/<snapshot_uuid>/packages/<package_type>`
 
@@ -157,7 +158,7 @@ Downloads a vendor-specific package.
 
 `/api/v1/snapshots/<snapshot_uuid>/as_zip`
 
-Returns all snapshot metadata, sample metadata, and raw images as a zip file.
+Returns all snapshot metadata, observation metadata, and raw images as a zip file.
 
 `/api/v1/snapshots/<snapshot_uuid>`
 

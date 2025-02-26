@@ -47,11 +47,15 @@ def unpack_upload(raw_uuid):
     if "identifier" in request.form:
         metadata_template["identifier"] = request.form["identifier"]
 
+    s3_profile = None
+    if "s3_profile" in request.form:
+        s3_profile = request.form["s3_profile"]
+
 
     job_uuid = uuid.uuid4()
     job_args = {
             "input_md": metadata_template,
-            "s3_profile": request.form["s3_profile"]
+            "s3_profile": s3_profile
         }
 
     if profile == "ifcb":
@@ -94,9 +98,14 @@ def upload_screen():
         return redirect("/login", code=302)
     s3_profiles = []
     for profile_id in get_s3_profiles():
+        s3_profile_info = get_s3_profile(profile_id)
+        profile_name = s3_profile_info["name"]
+        if "public" in s3_profile_info:
+            if s3_profile_info["public"]:
+                profile_name = profile_name + " [PUBLIC ACCESS]"
         s3_profiles.append({
                 "id": profile_id,
-                "name": get_s3_profile(profile_id)["name"]
+                "name": profile_name
             })
     return render_template("run_upload.html", global_vars=get_app_frontend_globals(), session_info=session_info, s3_profiles=s3_profiles)
 
