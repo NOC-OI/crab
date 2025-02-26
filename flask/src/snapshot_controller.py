@@ -9,7 +9,7 @@ import jwt
 import zipfile
 import json
 from utils import get_session_info, get_app_frontend_globals, to_snake_case, get_crab_external_endpoint, get_csrf_secret_key
-from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name, get_couch_client, advertise_job, get_s3_bucket_name, get_s3_client
+from db import get_couch, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name, get_couch_client, advertise_job, get_s3_bucket_name, get_s3_client, get_s3_profile, get_s3_bucket_ext_uri
 
 snapshot_pages = Blueprint("snapshot_pages", __name__)
 snapshot_api = Blueprint("snapshot_api", __name__)
@@ -460,11 +460,20 @@ def api_v1_get_snapshot_croissant(snapshot_uuid):
                 "url": get_crab_external_endpoint() + "projects/" + project_data["_id"]
             }
 
+
+        content_uri = get_crab_external_endpoint() + "api/v1/snapshots/" + snapshot_data["_id"] + "/as_zip"
+        s3_profile_info = get_s3_profile(snapshot_data["s3_profile"])
+        if "public" in s3_profile_info:
+            if s3_profile_info["public"]:
+                content_uri = get_s3_bucket_ext_uri(snapshot_data["s3_profile"]) + "/" + snapshot_data["bundle"]["path"]
+
+
+
         croissant_data["distribution"].append({
                 "@type": "cr:FileObject",
                 "@id": project_data["_id"] + "-tiff-zip",
                 "description": "A ZIP archive containing the dataset.",
-                "contentUrl": get_crab_external_endpoint() + "api/v1/snapshots/" + snapshot_data["_id"] + "/as_zip",
+                "contentUrl": content_uri,
                 "sha256": snapshot_data["bundle"]["sha256"],
                 "encodingFormat": "application/zip"
             })

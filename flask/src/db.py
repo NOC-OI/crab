@@ -101,5 +101,15 @@ def get_s3_bucket_name(profile=None):
 def get_s3_bucket_endpoint(profile=None):
     return get_s3_profile(profile)["endpoint"]
 
+def get_s3_bucket_ext_endpoint(profile=None):
+    s3_profile_def = get_s3_profile(profile)
+    if "external_endpoint" in s3_profile_def:
+        return s3_profile_def["external_endpoint"]
+    else:
+        return s3_profile_def["endpoint"]
+
 def get_s3_bucket_uri(profile=None):
     return get_s3_bucket_endpoint(profile) + "/" + get_s3_bucket_name(profile)
+
+def get_s3_bucket_ext_uri(profile=None):
+    return get_s3_bucket_ext_endpoint(profile) + "/" + get_s3_bucket_name(profile)

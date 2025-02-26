@@ -67,9 +67,14 @@ def collection_new_snapshot(raw_uuid):
                 }), status=401, mimetype='application/json')
         s3_profiles = []
         for profile_id in get_s3_profiles():
+            s3_profile_info = get_s3_profile(profile_id)
+            profile_name = s3_profile_info["name"]
+            if "public" in s3_profile_info:
+                if s3_profile_info["public"]:
+                    profile_name = profile_name + " [PUBLIC ACCESS]"
             s3_profiles.append({
                     "id": profile_id,
-                    "name": get_s3_profile(profile_id)["name"]
+                    "name": profile_name
                 })
         collection_data = get_couch()["crab_collections"][str(uuid_obj)]
         return render_template("collection_new_snapshot.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), collection_data=collection_data, s3_profiles=s3_profiles)
