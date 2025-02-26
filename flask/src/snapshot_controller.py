@@ -598,6 +598,12 @@ def api_v1_create_snapshot(snapshot_uuid, package_type):
                 job_md["job_args"] = {
                         "p_type": "IFDO"
                     }
+            elif p_type == "ecotaxa":
+                #proc = Process(target=build_ifdo_package, args=(str(job_uuid), str(uuid_obj), snapshot_data))
+                #proc.start()
+                job_md["job_args"] = {
+                        "p_type": "ECOTAXA"
+                    }
             else:
                 return Response(json.dumps({
                     "error": "badExportType",
