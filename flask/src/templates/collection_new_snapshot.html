@@ -32,14 +32,7 @@
                         <option value="{{ profile.id }}">{{ profile.name }}</option>
                         {% endfor %}
                     </select>
-                    <div class="form-text">This will affect where your data is physically stored.</div>
-                </div>
-
-                <div class="mb-3">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" name="public_visibility_switch" id="public_visibility_switch" value="true" checked>
-                        <label class="form-check-label" for="public_visibility_switch">Publish snapshot publicly (will override project settings)</label>
-                    </div>
+                    <div class="form-text">This will affect where your data is physically stored. Make sure to select a profile marked <em>[PUBLIC ACCESS]</em> if you indend to widely publish the data.</div>
                 </div>
                 <div class="mb-3">
                     <div class="progress">

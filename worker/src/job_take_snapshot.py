@@ -169,6 +169,7 @@ class TakeSnapshotJob:
             snapshot_md["observations"][observation_id] = residual_observation_metadata[observation_id]
             snapshot_md["observations"][observation_id]["origin_tags"] = residual_observation_origin_metadata[observation_id]
             snapshot_md["observations"][observation_id]["type"] = full_observation_metadata_heap[observation_id]["type"]
+            snapshot_md["observations"][observation_id]["from_run"] = metadata_map[observation_id]["from_run"]
 
         for key in residual_global_metadata:
             snapshot_md[key] = residual_global_metadata[key]

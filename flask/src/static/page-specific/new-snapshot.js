@@ -93,18 +93,28 @@ let takeSnapshot = () => {
 
             checkJob(response["job_id"], () => {
                 makePackage("ifdo", snapshotUuid, () => {
-                    modalAlert("Snapshot taken", "You can now close this page, the snapshot has been successfully published.");
-                    progressBar.aria_valuenow = 0;
-                    progressBar.style.width = "0";
-                    spinnerContainer.style.display = "none";
+                    makePackage("ecotaxa", snapshotUuid, () => {
+                        progressBar.aria_valuenow = 0;
+                        progressBar.style.width = "0";
+                        spinnerContainer.style.display = "none";
+                        window.location.replace("/snapshots/" + snapshotUuid)
+                    }, () => {
+                        modalAlert("EcoTaxa package creation failed", "Please try again");
+                        progressBar.aria_valuenow = 0;
+                        progressBar.style.width = "0";
+                        spinnerContainer.style.display = "none";
+                    }, (prog) => {
+                        progressBar.aria_valuenow = 75 + (prog * 25);
+                        progressBar.style.width = (75 + (prog * 25)) + "%";
+                    });
                 }, () => {
                     modalAlert("IFDO package creation failed", "Please try again");
                     progressBar.aria_valuenow = 0;
                     progressBar.style.width = "0";
                     spinnerContainer.style.display = "none";
                 }, (prog) => {
-                    progressBar.aria_valuenow = 50 + (prog * 50);
-                    progressBar.style.width = (50 + (prog * 50)) + "%";
+                    progressBar.aria_valuenow = 50 + (prog * 25);
+                    progressBar.style.width = (50 + (prog * 25)) + "%";
                 });
             }, () => {
                 modalAlert("Snapshot creation failed", "Please try again");

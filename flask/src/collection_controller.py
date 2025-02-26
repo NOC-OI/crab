@@ -296,14 +296,17 @@ def api_v1_create_snapshot(raw_uuid):
         name = request.form.get("snapshot_name", "")
         if len(name) == 0:
             name = datetime.datetime.now().strftime("%Y-%m-%d")
-        public_avail = request.form.get("public_visibility_switch", "false")
-        public_avail = public_avail == "true"
+
+        s3_profile = request.form.get("s3_profile", None)
+        public_avail = False
+        if "public" in get_s3_profile(s3_profile):
+            public_avail = get_s3_profile(s3_profile)["public"]
         snapshot_uuid = uuid.uuid4()
         snapshot_md = {
                 "identifier": name,
                 "public_visibility": public_avail,
                 "collection": str(uuid_obj),
-                "s3_profile": request.form.get("s3_profile", None)
+                "s3_profile": s3_profile
             }
         job_uuid = uuid.uuid4()
         if collection_data is None:
