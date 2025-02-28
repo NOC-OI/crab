@@ -105,6 +105,26 @@ def project_edit_screen(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
+
+@project_pages.route("/projects/<raw_uuid>/export", methods=['GET'])
+def project_export_screen(raw_uuid):
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_view(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "readDenied",
+                "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
+        project_data = get_couch()["crab_projects"][str(uuid_obj)]
+        return render_template("project_export.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), project_data=project_data)
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
 @project_pages.route("/projects/<raw_uuid>/edit", methods=['POST'])
 def project_edit_function(raw_uuid):
     session_info = get_session_info()

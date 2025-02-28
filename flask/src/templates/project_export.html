@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Project{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+
+
+
+<h1>Exporting {{ project_data.identifier }}</h1>
+<p>Project ID: {{ project_data._id }}</p>
+
+<form method="POST" action="" enctype="multipart/form-data">
+    <fieldset>
+
+        <input class="form-control" type="hidden" name="project_uuid" value="{{ project_data._id }}">
+
+        <div class="mb-3">
+            <label class="form-label" for="export_type">Export Type</label>
+            <select class="form-select" name="export_type" id="form_export_type" aria-label="Export Type">
+                <option value="" selected="">Croissant [RECCOMENDED]</option>
+                <option value="ifdo">IFDO</option>
+                <option value="ecotaxa">EcoTaxa Project</option>
+            </select>
+            <div class="form-text">This will format project data for the appropriate application. The "Croissant" profile includes all metadata from CRAB, and is the most appropriate for archival.</div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="s3_profile">S3 Profile</label>
+            <select class="form-select" name="s3_profile" id="form_s3_profile" aria-label="S3 Profile">
+                <option value="" selected="">Default</option>
+                <option value="main">Internal S3 bucket</option>
+                <option value="public">Public bucket [PUBLIC ACCESS]</option>
+            </select>
+            <div class="form-text">This will affect where the export package is physically stored.</div>
+        </div>
+
+        <div class="mb-3">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" name="prefer_project" id="prefer_project_checkbox" checked>
+                <label class="form-check-label" for="prefer_project_checkbox">Prefer project annotations</label>
+            </div>
+            <div class="form-text">When enabled, this overrides any annotations attached to data runs with annotations attached directly to the project. You will usually want to enable this feature.</div>
+        </div>
+
+        <div class="mb-3">
+            <input class="btn btn-primary" type="submit" value="Export project">
+        </div>
+    </fieldset>
+</form>
+
+</div>
+{% endblock %}

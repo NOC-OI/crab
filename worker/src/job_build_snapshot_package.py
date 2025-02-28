@@ -85,7 +85,7 @@ class BuildSnapshotPackageJob:
             snapshot_info["packages"] = {}
         snapshot_info["packages"]["ifdo"] = {
                 "path": "snapshots/" + snapshot_uuid + "/ifdo_package.zip",
-                "s3_profile": get_s3_bucket_uri(self.s3_profile)
+                "s3_profile": self.s3_profile
             }
         couch_client.put_document("crab_snapshots", snapshot_uuid, snapshot_info)
 
@@ -176,7 +176,7 @@ class BuildSnapshotPackageJob:
             snapshot_info["packages"] = {}
         snapshot_info["packages"]["ecotaxa"] = {
                 "path": "snapshots/" + snapshot_uuid + "/ecotaxa_package.zip",
-                "s3_profile": get_s3_bucket_uri(self.s3_profile)
+                "s3_profile": self.s3_profile
             }
         couch_client.put_document("crab_snapshots", snapshot_uuid, snapshot_info)
 
