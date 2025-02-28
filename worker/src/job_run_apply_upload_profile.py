@@ -16,7 +16,7 @@ class RunApplyUploadProfileJob:
     def __init__(self):
         pass
 
-    def raw_image_unpack(self, run_uuid, workdir, namelist, metadata_template = {}):
+    def raw_image_unpack(self, run_uuid, workdir, namelist, metadata_template = {}, generate_annotation_set_from_folder_structure = False):
         targets = []
         for in_file in namelist:
             in_file_s = os.path.splitext(in_file)
@@ -38,6 +38,8 @@ class RunApplyUploadProfileJob:
         i = 0
         last_push_time = time.time()
 
+        annotations = {}
+
         for target in targets:
             im = Image.open(workdir + "/" + target)
             observation_uuid = str(uuid.uuid4())
@@ -52,6 +54,17 @@ class RunApplyUploadProfileJob:
                     "filename": target
                 }
 
+
+            if generate_annotation_set_from_folder_structure:
+                hierarchy = os.path.split(target)
+                if len(hierarchy) > 1:
+                    annotations[observation_uuid] = {
+                            "global": {
+                                    "category": hierarchy[-2],
+                                    "hierarchy": hierarchy[:-1]
+                                }
+                        }
+
             for key in mapping:
                 observation_transformed_metadata[mapping[key]] = observation_raw_metadata[key]
 
@@ -62,6 +75,7 @@ class RunApplyUploadProfileJob:
             observation_metadata = {
                 "path": ofn,
                 "s3_profile": self.s3_profile,
+                "from_run": run_uuid,
                 "type": {
                         "dimensions": 2,
                         "format": "image/tiff",
@@ -77,6 +91,9 @@ class RunApplyUploadProfileJob:
             }
             couch_client.put_document("crab_observations", observation_uuid, observation_metadata)
             observations.append(observation_uuid)
+
+            im.close()
+
             i += 1
             if (last_push_time + 5) < time.time():
                 last_push_time = time.time()
@@ -89,11 +106,35 @@ class RunApplyUploadProfileJob:
 
         current_unix_timestamp = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
 
+        annotation_set_uuid = str(uuid.uuid4())
+
+        annotation_set = {
+                "basis": {
+                        "type": "run",
+                        "id": run_uuid,
+                        "parent_sets": []
+                    },
+                "bind_id": "OBSERVATION",
+                "created": current_unix_timestamp,
+                "tags": annotations,
+                "tag_format": {
+                        "global": {
+                            "category": "STRING",
+                            "hierarchy": "ARRAY:STRING"
+                        }
+                    }
+            }
+
+        couch_client.put_document("crab_annotation_sets", annotation_set_uuid, annotation_set)
+
         metadata_template["origin_tags"] = run_metadata
         metadata_template["tags"] = run_transformed_metadata
         metadata_template["ingest_timestamp"] = current_unix_timestamp
         metadata_template["sensor"] = "RAW_IMAGE"
         metadata_template["observations"] = observations
+
+        if generate_annotation_set_from_folder_structure:
+            metadata_template["attached_annotation_sets"] = [annotation_set_uuid]
 
         couch_client.put_document("crab_runs", run_uuid, metadata_template)
 
@@ -138,6 +179,7 @@ class RunApplyUploadProfileJob:
             observation_metadata = {
                 "path": ofn,
                 "s3_profile": self.s3_profile,
+                "from_run": run_uuid,
                 "type": {
                         "dimensions": 2,
                         "format": "image/tiff",
@@ -243,6 +285,7 @@ class RunApplyUploadProfileJob:
                 observation_metadata = {
                     "path": ofn,
                     "s3_profile": self.s3_profile,
+                    "from_run": run_uuid,
                     "type": {
                             "dimensions": 2,
                             "format": "image/tiff",
@@ -305,6 +348,8 @@ class RunApplyUploadProfileJob:
                 patch["unpacker_output"] = self.ifcb_unpack(run_uuid, workdir, namelist, metadata_template)
             elif profile == "LISST_HOLO":
                 patch["unpacker_output"] = self.lisst_holo_unpack(run_uuid, workdir, namelist, metadata_template)
+            elif profile == "PRE_CLASSIFIED":
+                patch["unpacker_output"] = self.raw_image_unpack(run_uuid, workdir, namelist, metadata_template, True)
             else:
                 patch["unpacker_output"] = self.raw_image_unpack(run_uuid, workdir, namelist, metadata_template)
 

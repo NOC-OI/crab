@@ -266,7 +266,8 @@ class TakeSnapshotJob:
                 "image_type": image_type,
                 "path": "snapshots/" + snapshot_uuid + "/tiff_bundle.zip",
                 "sha256": sha256.hexdigest(),
-                "host": get_s3_bucket_uri(self.s3_profile)
+                "host": get_s3_bucket_uri(self.s3_profile),
+                "s3_profile": self.s3_profile
             }
 
         self.progress_func(0.9)

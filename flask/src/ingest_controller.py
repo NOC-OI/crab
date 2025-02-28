@@ -70,6 +70,8 @@ def unpack_upload(raw_uuid):
         #print("Raw-Image profile!")
         job_args["profile"] = "RAW_IMAGE"
         #ret["unpacker_output"] = raw_image_unpack(run_uuid, workdir, namelist, metadata_template)
+    elif profile == "pre-classified":
+        job_args["profile"] = "PRE_CLASSIFIED"
     else:
         return Response(json.dumps({
             "error": "badProfile",

@@ -211,7 +211,7 @@ def api_v1_snapshot_download_other_package(snapshot_uuid, package_type):
         #temp_file['Body'].read()
 
         with io.BytesIO() as in_temp_file:
-            get_s3_client(snapshot_data["s3_profile"]).download_fileobj(get_s3_bucket_name(snapshot_data["s3_profile"]), snapshot_data["packages"][package_type]["path"], in_temp_file)
+            get_s3_client(snapshot_data["packages"][package_type]["s3_profile"]).download_fileobj(get_s3_bucket_name(snapshot_data["packages"][package_type]["s3_profile"]), snapshot_data["packages"][package_type]["path"], in_temp_file)
             in_temp_file.seek(0)
 
             return Response(

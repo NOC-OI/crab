@@ -69,6 +69,8 @@ let analyseMetadata = (form, response) => {
     console.log("cd /" + cd)
     console.log(directoryStructure)
 
+    let bottomLevelPaths = []
+
     for (let i = 0; i < fileList.length; i++) {
         if (fileList[i].endsWith(".adc")) {
             let basename = fileList[i].substring(0, fileList[i].length - 4);
@@ -84,10 +86,22 @@ let analyseMetadata = (form, response) => {
             console.log("PGM FOUND " + fileList[i]);
             detectedType = "lisst-holo";
         }
+
+        let splitname = fileList[i].replace(/\\/g, '/').split('/');
+        if (splitname.length > 1) {
+            let pfn = splitname[splitname.length - 2]
+            if (!bottomLevelPaths.includes(pfn)) {
+                bottomLevelPaths.push(pfn)
+            }
+        }
     }
 
     if (detectedType == null) {
-        detectedType = "raw-image";
+        if (bottomLevelPaths.length > 1 && bottomLevelPaths.length < fileList.length) { // At least two categories, but not one per image
+            detectedType = "pre-classified";
+        } else {
+            detectedType = "raw-image";
+        }
     }
     
 
