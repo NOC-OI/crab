@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import pika
+from pika.exceptions import IncompatibleProtocolError, ConnectionClosedByBroker, AMQPConnectionError
 import sys
 import os
 import time
@@ -8,15 +9,24 @@ from utils import get_couch_client
 from job_run_apply_upload_profile import RunApplyUploadProfileJob
 from job_take_snapshot import TakeSnapshotJob
 from job_build_snapshot_package import BuildSnapshotPackageJob
+from job_export_project import ExportProjectJob
 import json
 import hashlib
 import traceback
 
 worker_id = hashlib.sha256(os.getpid().to_bytes(8, "big")).hexdigest()[:16]
 
-def log(line):
+def log(line, level=1):
     dts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %z")
-    print("[" + dts + "] [" + worker_id + "] [INFO] " + line)
+    ll = "INFO"
+    if level>1:
+        ll = "WARN"
+    if level>2:
+        ll = "ERR "
+    if level>3:
+        ll = "CRIT"
+
+    print("[" + dts + "] [" + worker_id + "] [" + ll + "] " + line)
 
 def main():
     credentials = pika.PlainCredentials(os.environ.get("RABBITMQ_DEFAULT_USER"), os.environ.get("RABBITMQ_DEFAULT_PASS"))
@@ -31,7 +41,8 @@ def main():
         worker_mapping = {
                 "RUN_APPLY_UPLOAD_PROFILE": RunApplyUploadProfileJob,
                 "TAKE_SNAPSHOT": TakeSnapshotJob,
-                "BUILD_SNAPSHOT_PACKAGE": BuildSnapshotPackageJob
+                "BUILD_SNAPSHOT_PACKAGE": BuildSnapshotPackageJob,
+                "EXPORT_PROJECT": ExportProjectJob
             }
 
         try:
@@ -70,7 +81,16 @@ def main():
 
 if __name__ == '__main__':
     try:
-        main()
+        while True:
+            try:
+                main()
+            except IncompatibleProtocolError:
+                log("RabbitMQ protocol error - Has the server fully booted?", 2)
+            except AMQPConnectionError:
+                log("Could not connect to RabbitMQ", 3)
+            except ConnectionClosedByBroker:
+                log("RabbitMQ connection lost", 4)
+            time.sleep(1)
     except KeyboardInterrupt:
         print('Interrupted')
         try:

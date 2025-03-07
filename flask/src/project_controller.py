@@ -3,8 +3,8 @@ import uuid
 import requests
 import datetime
 import json
-from utils import get_session_info, get_app_frontend_globals, to_snake_case
-from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object
+from utils import get_session_info, get_app_frontend_globals, to_snake_case, get_s3_profile_array_for_ui
+from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, advertise_job
 import markdown
 from pygments.formatters import HtmlFormatter
 from base64 import urlsafe_b64encode
@@ -49,7 +49,7 @@ def unpack_upload():
 
     project_uuid = str(uuid.uuid4())
     identifier = request.form.get("identifier", project_uuid)
-    public_visibility = request.form.get("public_visibility", False)
+    public_visibility = request.form.get("public_visibility", False) == "on"
     description = request.form.get("description", "")
     readme = request.form.get("readme", "")
     dt = datetime.datetime.now()
@@ -118,7 +118,7 @@ def project_export_screen(raw_uuid):
                 }), status=401, mimetype='application/json')
 
         project_data = get_couch()["crab_projects"][str(uuid_obj)]
-        return render_template("project_export.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), project_data=project_data)
+        return render_template("project_export.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), project_data=project_data, s3_profiles=get_s3_profile_array_for_ui())
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
@@ -145,7 +145,7 @@ def project_edit_function(raw_uuid):
         project_data = get_couch()["crab_projects"][str(uuid_obj)]
 
         project_data["identifier"] = request.form.get("identifier", str(uuid_obj))
-        project_data["public_visibility"] = request.form.get("public_visibility", False)
+        project_data["public_visibility"] = request.form.get("public_visibility", False) == "on"
         project_data["description"] = request.form.get("description", "")
         colabs_raw = request.form.get("collaborators", "").splitlines()
         collaborators = []
@@ -235,6 +235,71 @@ def project_detail_screen(raw_uuid):
 @project_pages.route("/projects", methods=['GET'])
 def project_browse_screen():
     return render_template("projects.html", global_vars=get_app_frontend_globals(), session_info=get_session_info())
+
+@project_api.route("/api/v1/projects/<raw_uuid>/export", methods=["POST"])
+def api_v1_export_project(raw_uuid):
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+
+        if not can_view(str(uuid_obj)):
+            return Response(json.dumps({
+                "error": "readDenied",
+                "msg": "User is not allowed to view this resource."
+                }), status=401, mimetype='application/json')
+
+        export_uuid = str(uuid.uuid4())
+        job_uuid = str(uuid.uuid4())
+
+        name = request.form.get("export_name", "")
+        if len(name) == 0:
+            name = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        export_type_raw = request.form.get("export_type", "croissant")
+        export_type = "CROISSANT"
+        if export_type_raw  == "ecotaxa":
+            export_type = "ECOTAXA"
+        elif export_type_raw  == "ifdo":
+            export_type = "IFDO"
+        else:
+            export_type = "CROISSANT"
+
+        prefer_project = request.form.get("prefer_project", "off") == "on"
+
+        s3_profile = request.form.get("s3_profile", None)
+        export_md = {
+                "identifier": name,
+                "prefer_project": prefer_project,
+                "export_type": export_type,
+                "s3_profile": s3_profile
+            }
+
+        job_md = {
+            "type": "EXPORT_PROJECT",
+            "target_id": str(uuid_obj),
+            "status": "PENDING",
+            "progress": 0.0,
+            "job_args": export_md
+        }
+        get_couch()["crab_jobs"][job_uuid] = job_md
+
+        advertise_job(job_uuid)
+
+        redirect_uri = request.args.get("redirect", "")
+        view_job = request.args.get("view_job", "false") == "true"
+        if view_job:
+            redirect_uri = "/jobs/" + job_uuid
+        if len(redirect_uri) > 0:
+            return redirect(redirect_uri, code=302)
+        else:
+            return Response(json.dumps({
+                "msg": "done",
+                "export_id": export_uuid
+                }), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
 
 @project_api.route("/api/v1/projects", methods=["POST", "GET"])
 def api_v1_get_projects():

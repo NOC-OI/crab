@@ -130,8 +130,9 @@ class TakeSnapshotJob:
         for key in collection_global_metadata:
             if len(collection_global_metadata[key]) > 1:
                 for run_id in collection_info["runs"]:
-                    if not type(raw_metadata_run_heap[run_id][key]) is list:
-                        residual_run_metadata[run_id][key] = raw_metadata_run_heap[run_id][key]
+                    if key in raw_metadata_run_heap[run_id]:
+                        if not type(raw_metadata_run_heap[run_id][key]) is list:
+                            residual_run_metadata[run_id][key] = raw_metadata_run_heap[run_id][key]
             else:
                 if not type(collection_global_metadata[key][0]) is list:
                     residual_global_metadata[key] = collection_global_metadata[key][0]
@@ -139,8 +140,9 @@ class TakeSnapshotJob:
         for key in collection_global_origin_metadata:
             if len(collection_global_origin_metadata[key]) > 1:
                 for run_id in collection_info["runs"]:
-                    if not type(raw_origin_metadata_run_heap[run_id][key]) is list:
-                        residual_run_origin_metadata[run_id][key] = raw_origin_metadata_run_heap[run_id][key]
+                    if key in raw_origin_metadata_run_heap[run_id]:
+                        if not type(raw_origin_metadata_run_heap[run_id][key]) is list:
+                            residual_run_origin_metadata[run_id][key] = raw_origin_metadata_run_heap[run_id][key]
             else:
                 if not type(collection_global_origin_metadata[key][0]) is list:
                     residual_global_origin_metadata[key] = collection_global_origin_metadata[key][0]
