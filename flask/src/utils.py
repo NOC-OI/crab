@@ -3,7 +3,7 @@ import re
 import os
 from datetime import datetime
 from flask import request
-from db import get_couch
+from db import get_couch, get_s3_profiles, get_s3_profile
 import random
 import string
 import secrets
@@ -30,6 +30,23 @@ if csrf_secret_key == None:
 def get_csrf_secret_key():
     #print(csrf_secret_key)
     return csrf_secret_key
+
+def get_s3_profile_array_for_ui():
+    s3_profiles = []
+    for profile_id in get_s3_profiles():
+        s3_profile_info = get_s3_profile(profile_id)
+        public = False
+        profile_name = s3_profile_info["name"]
+        if "public" in s3_profile_info:
+            if s3_profile_info["public"]:
+                profile_name = profile_name + " [PUBLIC ACCESS]"
+                public = True
+        s3_profiles.append({
+                "id": profile_id,
+                "public": public,
+                "name": profile_name
+            })
+    return s3_profiles
 
 def get_crab_external_endpoint():
     crab_external_endpoint = "http://" + os.environ.get("CRAB_EXTERNAL_HOST") + ":" + os.environ.get("CRAB_EXTERNAL_PORT") + "/"

@@ -10,7 +10,7 @@
 <h1>Exporting {{ project_data.identifier }}</h1>
 <p>Project ID: {{ project_data._id }}</p>
 
-<form method="POST" action="" enctype="multipart/form-data">
+<form method="POST" action="/api/v1/projects/{{ project_data._id }}/export?view_job=true" enctype="multipart/form-data">
     <fieldset>
 
         <input class="form-control" type="hidden" name="project_uuid" value="{{ project_data._id }}">
@@ -28,11 +28,12 @@
         <div class="mb-3">
             <label class="form-label" for="s3_profile">S3 Profile</label>
             <select class="form-select" name="s3_profile" id="form_s3_profile" aria-label="S3 Profile">
-                <option value="" selected="">Default</option>
-                <option value="main">Internal S3 bucket</option>
-                <option value="public">Public bucket [PUBLIC ACCESS]</option>
+                <option value="" selected>Default</option>
+                {% for profile in s3_profiles %}
+                <option value="{{ profile.id }}">{{ profile.name }}</option>
+                {% endfor %}
             </select>
-            <div class="form-text">This will affect where the export package is physically stored.</div>
+            <div class="form-text">This will affect where your data is physically stored. Make sure to select a profile marked <em>[PUBLIC ACCESS]</em> if you indend to widely publish this export.</div>
         </div>
 
         <div class="mb-3">

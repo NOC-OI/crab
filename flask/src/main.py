@@ -40,6 +40,7 @@ from job_controller import job_pages, job_api
 from snapshot_controller import snapshot_pages, snapshot_api
 from documentation_controller import documentation_pages
 from annotation_set_controller import annotation_set_pages, annotation_set_api
+from export_controller import export_pages, export_api
 
 app.register_blueprint(login_pages)
 app.register_blueprint(account_pages)
@@ -59,6 +60,8 @@ app.register_blueprint(snapshot_pages)
 app.register_blueprint(snapshot_api)
 app.register_blueprint(annotation_set_pages)
 app.register_blueprint(annotation_set_api)
+app.register_blueprint(export_pages)
+app.register_blueprint(export_api)
 app.register_blueprint(documentation_pages)
 
 @app.errorhandler(404)
