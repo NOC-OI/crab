@@ -67,8 +67,6 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0.5
     container_name: crab-keycloak
-    ports:
-      - 7080:7080
     env_file:
       - ./.env
     networks:
@@ -76,7 +74,7 @@ services:
       - public
     volumes:
       - keycloak:/opt/keycloak/data/
-    command: ["start-dev", "--http-port", "7080", "--https-port", "7443"]
+    command: ["start-dev", "--http-port", "7080", "--https-port", "7443", "--proxy-headers", "forwarded", "--hostname", "http://${CRAB_EXTERNAL_HOST}/keycloak"]
 
   ui:
     image: crab/ui
