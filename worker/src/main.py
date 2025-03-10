@@ -13,6 +13,7 @@ from job_export_project import ExportProjectJob
 import json
 import hashlib
 import traceback
+from utils import get_rabbitmq_connection
 
 worker_id = hashlib.sha256(os.getpid().to_bytes(8, "big")).hexdigest()[:16]
 
@@ -29,8 +30,7 @@ def log(line, level=1):
     print("[" + dts + "] [" + worker_id + "] [" + ll + "] " + line)
 
 def main():
-    credentials = pika.PlainCredentials(os.environ.get("RABBITMQ_DEFAULT_USER"), os.environ.get("RABBITMQ_DEFAULT_PASS"))
-    connection = pika.BlockingConnection(pika.ConnectionParameters("localhost", 5672, "/", credentials))
+    connection = get_rabbitmq_connection()
     channel = connection.channel()
     channel.queue_declare(queue="crab_jobs")
 

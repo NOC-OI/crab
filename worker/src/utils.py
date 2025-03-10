@@ -3,6 +3,7 @@ import couchbeans
 import os
 import re
 import json
+import pika
 
 config_file_loc = os.environ.get("CRAB_CONFIG_FILE", "config.json")
 crab_config = {}
@@ -19,6 +20,13 @@ couch_password = os.environ.get("COUCHDB_ROOT_PASSWORD")
 couch_host = os.environ.get("COUCHDB_HOST")
 couch_port = os.environ.get("COUCHDB_PORT", 5984)
 couch_base_uri = "http://" + couch_user + ":" + couch_password + "@" + couch_host + ":" + str(couch_port) + "/"
+
+rabbitmq_credentials = pika.PlainCredentials(os.environ.get("RABBITMQ_DEFAULT_USER", try_get_config_prop("rabbitmq_user")), os.environ.get("RABBITMQ_DEFAULT_PASS", try_get_config_prop("rabbitmq_password")))
+rabbitmq_host = os.environ.get("RABBITMQ_HOST", try_get_config_prop("rabbitmq_host", "localhost"))
+rabbitmq_port = os.environ.get("RABBITMQ_PORT", try_get_config_prop("rabbitmq_port", 5672))
+
+def get_rabbitmq_connection():
+    return pika.BlockingConnection(pika.ConnectionParameters(rabbitmq_host, rabbitmq_port, "/", rabbitmq_credentials))
 
 def get_couch_client():
     return couchbeans.CouchClient(couch_base_uri)
