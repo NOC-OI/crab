@@ -13,12 +13,12 @@ CRAB requires Docker Compose to run, but otherwise comes with everything you nee
 
 ## Installation
 
-For a local install, run `flask/build.sh` first.
-Then run `generate-env.sh` to auto-generate a `.env` file.
-If you're using externally managed S3 compatible storage, edit the `.env` file now and skip running `init-db.sh`. You'll need to configure databases manually.
-Run `init-db.sh` to prepare your databases automatically.
-Finally, run `launch.sh` to start your instance.
-CRAB should now be avaliable on `http://localhost:8080`
+- For a local install, run `build-all.sh` first.
+- Then run `generate-env.sh` to auto-generate a `.env` file and the crab config file `config/crab.json`.
+- If you're using externally managed S3 compatible storage, edit `.env` and `config/crab.json` now and skip running `init-db.sh`. You'll need to configure databases manually. Otherwise, run `init-db.sh` to prepare your databases automatically.
+- Finally, run `launch.sh` to start your instance.
+- CRAB should now be avaliable on `http://localhost:8080`.
+- Keycloak configuration isn't handled automatically for now, so head to `http://localhost:8080/keycloak` to configure users for login.
 
 ## Documentation
 

@@ -4,7 +4,7 @@ mkdir -p config
 
 CRAB_EXTERNAL_HOST=$(hostname -f)
 CRAB_EXTERNAL_HTTP_PORT=8080
-CRAB_OPENID_CONFIG_URI="http://$CRAB_EXTERNAL_HOST:7080/realms/crab/.well-known/openid-configuration"
+CRAB_OPENID_CONFIG_URI="http://$CRAB_EXTERNAL_HOST/keycloak/realms/crab/.well-known/openid-configuration"
 #CRAB_CSRF_SECRET_KEY=$(mktemp -u XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)
 
 MINIO_ROOT_USER=root
