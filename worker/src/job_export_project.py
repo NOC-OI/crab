@@ -120,7 +120,7 @@ class ExportProjectJob:
                         },
                         "source": {
                             "fileSet": {
-                                "@id": "all-tiffs",
+                                "@id": "tiff-set",
                             },
                             "extract": {
                                 "fileProperty": "filename"
@@ -136,7 +136,7 @@ class ExportProjectJob:
                         "dataType": "sc:ImageObject",
                         "source": {
                             "fileSet": {
-                                "@id": "all-tiffs",
+                                "@id": "tiff-set",
                             },
                             "extract": {
                                 "fileProperty": "content"
