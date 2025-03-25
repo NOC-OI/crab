@@ -10,19 +10,19 @@
     <div class="col-lg-8 px-0">
         <div class="alert alert-secondary my-3" role="alert">
             <h4 class="alert-heading">Important note</h4>
-            <p class="mb-0">Snapshots cannot be edited. Make sure the collection contains all desired metadata and image data before creating your snapshot. You can delete snapshots, and change visibility settings, but nothing else.</p>
+            <p class="mb-0">Snapshots cannot be edited. Make sure the layer contains all desired metadata and image data before creating your snapshot. You can delete snapshots, and change visibility settings, but nothing else.</p>
         </div>
         <hr class="my-4">
-        <form method="POST" action="/api/v1/collections/{{ collection_data._id }}/take_snapshot" enctype="multipart/form-data">
+        <form method="POST" action="/api/v1/layers/{{ layer_data._id }}/take_snapshot" enctype="multipart/form-data">
             <fieldset>
-                <input type="hidden" name="redirect_on_success" value="/projects/{{ collection_data.project }}">
+                <input type="hidden" name="redirect_on_success" value="/projects/{{ layer_data.project }}">
                 <div class="mb-3">
                     <label class="form-label" for="snapshot_name">Snapshot name</label>
                     <input class="form-control" type="text" name="snapshot_name" id="form_snapshot_name">
                     <div class="form-text">If you have an internal naming scheme for releases, use your identifier here. You can leave this blank, and it will be autofilled with the current date.</div>
                 </div>
 
-                <input type="hidden" name="collection_uuid" id="form_collection_uuid" value="{{ collection_data._id }}" />
+                <input type="hidden" name="layer_uuid" id="form_layer_uuid" value="{{ layer_data._id }}" />
 
                 <div class="mb-3">
                     <label class="form-label" for="s3_profile">S3 Profile</label>

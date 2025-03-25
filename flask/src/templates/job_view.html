@@ -23,6 +23,15 @@
             </div>
             <span class="spinner-container-text"> Connecting to worker...</span>
         </div>
+        <div class="mb-3">
+            <div class="form-check" id="redirect_checkbox_container">
+                <input class="form-check-input" type="checkbox" role="switch" name="redirect" id="redirect_checkbox" checked>
+                <label class="form-check-label" for="redirect_checkbox">Automatically continue on job completion</label>
+            </div>
+            <div class="mb-3" id="redirect_button_container" style="display: none;">
+                <a class="btn btn-primary" id="redirect_button" type="submit" href="/">Continue</a>
+            </div>
+        </div>
         <div class="mb-3" style="display: none;">
             <input class="btn btn-danger" onclick="cancelJob();" type="submit" value="Cancel Job">
         </div>

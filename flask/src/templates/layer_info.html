@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Layer{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1>{{ layer_data.identifier if layer_data.identifier is defined else "Untitled layer" }}</h1>
+    <span>Layer UUID: {{ layer_data._id }}</span><br />
+    <span>Create a new snapshot to publish this dataset</span>
+    <div class="my-3">
+        <a href="/api/v1/layers/{{ layer_data._id }}/as_zip" class="btn btn-primary">Download raw data</a>
+        {% if is_collaborator %}
+            <a href="/layers/{{ layer_data._id }}/new_snapshot" class="btn btn-primary">Create new snapshot</a>
+            <a href="/layers/{{ layer_data._id }}/delete" class="btn btn-danger">Delete</a>
+        {% endif %}
+    </div>
+    <hr class="my-3">
+
+</div>
+{% endblock %}

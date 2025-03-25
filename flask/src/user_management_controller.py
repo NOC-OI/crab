@@ -166,7 +166,7 @@ def api_v1_close_session(raw_uuid):
         else:
             return Response(json.dumps({
                 "msg": "done",
-                "collection": collection_data
+                "layer": layer_data
                 }), status=200, mimetype='application/json')
     except ValueError:
         return Response(json.dumps({

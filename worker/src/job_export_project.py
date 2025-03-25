@@ -32,7 +32,7 @@ class ExportProjectJob:
         project_info = couch_client.get_document("crab_projects", project_uuid)
         #print(json.dumps(project_info, indent=2))
 
-        collections_info = []
+        layers_info = []
 
         ps_croissant_data = {}
 
@@ -60,10 +60,10 @@ class ExportProjectJob:
 
         ps_croissant_data["creators"] = collaborators
 
-        for collection_id in project_info["collections"]:
-            collection_info = couch_client.get_document("crab_collections", collection_id)
-            collections_info.append(collection_info)
-            for run_id in collection_info["runs"]:
+        for layer_id in project_info["layers"]:
+            layer_info = couch_client.get_document("crab_layers", layer_id)
+            layers_info.append(layer_info)
+            for run_id in layer_info["runs"]:
                 run_info = couch_client.get_document("crab_runs", run_id)
                 run_annotation_set_ids = run_annotation_set_ids + run_info["attached_annotation_sets"]
                 all_observation_ids = all_observation_ids + run_info["observations"]
@@ -250,7 +250,8 @@ class ExportProjectJob:
         couch_client.put_document("crab_exports", export_uuid, export_md)
 
         return {
-                "export_uuid": export_uuid
+                "export_uuid": export_uuid,
+                "ui_redirect": "/api/v1/exports/"+export_uuid+"/croissant"
             }
 
 
@@ -264,10 +265,10 @@ class ExportProjectJob:
         self.s3_profile = job_md["job_args"]["s3_profile"]
 
 
-        patch = {}
+        patch = {"error": "UNIMPLEMENTED"}
 
         if job_md["job_args"]["export_type"] == "CROISSANT":
-            patch["log"] = self.build_croissant_package(project_uuid)
+            patch = self.build_croissant_package(project_uuid)
        # elif job_md["job_args"]["export_type"] == "ECOTAXA":
         #    patch["observations_processed"] = self.build_ecotaxa_package(snapshot_uuid)
 

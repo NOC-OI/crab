@@ -31,6 +31,16 @@ let updateJobInfo = () => {
                     progressBar.style.width = "100%"
                     jobOutput.innerText = JSON.stringify(response["result"], null, 2);
                     spinnerContainer.style.display = "none";
+                    checkboxContainer.style.display = "none";
+
+                    if (response["result"].hasOwnProperty("ui_redirect")) {
+                        redir_uri = response["result"]["ui_redirect"];
+                        if (redirectCheckbox.checked) {
+                            window.location.href = redir_uri;
+                        }
+                        redirectButtonContainer.style.display = null;
+                        redirectButton.href = redir_uri;
+                    }
                     break;
                 default:
                     progressBar.classList.remove("bg-warning");
@@ -54,5 +64,9 @@ jobOutput = document.getElementById("job_output")
 progressBar = document.querySelector(".progress-bar");
 spinnerContainer = document.querySelector(".spinner-container");
 spinnerText = document.querySelector(".spinner-container-text");
+redirectCheckbox = document.getElementById("redirect_checkbox");
+checkboxContainer = document.getElementById("redirect_checkbox_container");
+redirectButtonContainer = document.getElementById("redirect_button_container");
+redirectButton = document.getElementById("redirect_button");
 jobId = document.getElementById("job_id").value;
 setInterval(updateJobInfo, 1000);
