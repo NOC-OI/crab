@@ -76,7 +76,7 @@ services:
       - public
     volumes:
       - keycloak:/opt/keycloak/data/
-    command: ["start-dev", "--http-port", "7080", "--https-port", "7443", "--proxy-headers", "forwarded", "--hostname", "${EXT_KEYCLOAK_HOST}"]
+    command: ["start-dev", "--http-port", "7080"]
 
   ui:
     image: crab/ui

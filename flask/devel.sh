@@ -8,7 +8,8 @@ fi
 source .env
 cd ../
 
-docker compose up -d minio couchdb keycloak rabbitmq
+docker compose -f compose-devel.yaml up -d keycloak
+docker compose up -d minio couchdb rabbitmq
 SECONDS=0
 
 waiting_on=()
