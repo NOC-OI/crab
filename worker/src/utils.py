@@ -26,7 +26,8 @@ rabbitmq_host = os.environ.get("RABBITMQ_HOST", try_get_config_prop("rabbitmq_ho
 rabbitmq_port = os.environ.get("RABBITMQ_PORT", try_get_config_prop("rabbitmq_port", 5672))
 
 def get_rabbitmq_connection():
-    return pika.BlockingConnection(pika.ConnectionParameters(rabbitmq_host, rabbitmq_port, "/", rabbitmq_credentials))
+    print("Connecting to RabbitMQ server at " + str(rabbitmq_host) + ":" + str(int(rabbitmq_port)))
+    return pika.BlockingConnection(pika.ConnectionParameters(rabbitmq_host, int(rabbitmq_port), "/", rabbitmq_credentials))
 
 def get_couch_client():
     return couchbeans.CouchClient(couch_base_uri)
