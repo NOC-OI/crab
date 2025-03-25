@@ -55,7 +55,7 @@ def unpack_upload():
     dt = datetime.datetime.now()
     timestamp = "{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}Z".format(dt.year,dt.month,dt.day,dt.hour,dt.minute,dt.second)
 
-    initial_collection_uuid = str(uuid.uuid4())
+    initial_layer_uuid = str(uuid.uuid4())
 
     document_template = {
             "identifier": identifier,
@@ -64,10 +64,10 @@ def unpack_upload():
             "description": description,
             "readme": readme,
             "creation_timestamp": timestamp,
-            "collections": [initial_collection_uuid]
+            "layers": [initial_layer_uuid]
         }
 
-    collection_template = {
+    layer_template = {
             "runs": [],
             "identifier": "main",
             "project": project_uuid
@@ -75,8 +75,8 @@ def unpack_upload():
 
     project_dblist = get_couch()["crab_projects"]
     project_dblist[project_uuid] = document_template
-    collections_dblist = get_couch()["crab_collections"]
-    collections_dblist[initial_collection_uuid] = collection_template
+    layers_dblist = get_couch()["crab_layers"]
+    layers_dblist[initial_layer_uuid] = layer_template
 
     #    return Response(json.dumps({
     #        "error": "badProfile",
@@ -197,35 +197,35 @@ def project_detail_screen(raw_uuid):
         md_template_string = md_template_string.replace("<pre>", "<pre style=\"margin:0;\">")
         md_template = md_css_string + md_template_string
 
-        collections = []
+        layers = []
 
-        for collection_id in project_data["collections"]:
-            collection = get_couch()["crab_collections"][str(collection_id)]
+        for layer_id in project_data["layers"]:
+            layer = get_couch()["crab_layers"][str(layer_id)]
             runs = []
-            if "runs" in collection:
-                for run_id in collection["runs"]:
+            if "runs" in layer:
+                for run_id in layer["runs"]:
                     if run_id in get_couch()["crab_runs"]:
                         runs.append(get_couch()["crab_runs"][run_id])
             snapshots = []
-            if "snapshots" in collection:
-                for snapshot_id in collection["snapshots"]:
+            if "snapshots" in layer:
+                for snapshot_id in layer["snapshots"]:
                     if snapshot_id in get_couch()["crab_snapshots"]:
                         snapshots.append(get_couch()["crab_snapshots"][snapshot_id])
                         #print(json.dumps(get_couch()["crab_snapshots"][snapshot_id], indent=2))
 
             via_project_string = urlsafe_b64encode(json.dumps({
-                    "remote_project": "/api/v1/collections/" + collection["_id"] + "/via_annotation_project"
+                    "remote_project": "/api/v1/layers/" + layer["_id"] + "/via_annotation_project"
                 }).encode("utf-8")).decode("utf-8")
 
-            collections.append({
-                    "_id": collection["_id"],
-                    "identifier": collection["identifier"],
+            layers.append({
+                    "_id": layer["_id"],
+                    "identifier": layer["identifier"],
                     "via_project_string": via_project_string,
                     "snapshots": snapshots,
                     "runs": runs
                 })
 
-        return render_template("project_info.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), project_data=project_data, project_readme=md_template, collections=collections, can_edit=can_edit(str(uuid_obj)))
+        return render_template("project_info.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), project_data=project_data, project_readme=md_template, layers=layers, can_edit=can_edit(str(uuid_obj)))
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
@@ -317,7 +317,7 @@ def api_v1_get_projects():
     limit = 12
     mango = {
             "selector": mango_selector,
-            "fields": ["collaborators", "creation_timestamp", "_id", "identifier", "description", "collections"],
+            "fields": ["collaborators", "creation_timestamp", "_id", "identifier", "description", "layers"],
             "skip": page * limit,
             "sort": mango_sort,
             "limit": limit
@@ -328,8 +328,8 @@ def api_v1_get_projects():
     #print(ret)
     return Response(json.dumps(ret), status=200, mimetype='application/json')
 
-@project_api.route("/api/v1/projects/<raw_uuid>/new_collection", methods=["POST"])
-def api_v1_new_collection(raw_uuid):
+@project_api.route("/api/v1/projects/<raw_uuid>/new_layer", methods=["POST"])
+def api_v1_new_layer(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
 
@@ -340,17 +340,17 @@ def api_v1_new_collection(raw_uuid):
                 }), status=401, mimetype='application/json')
 
         project_data = get_couch()["crab_projects"][str(uuid_obj)]
-        new_collection_id = str(uuid.uuid4())
+        new_layer_id = str(uuid.uuid4())
 
-        collection_template = {
+        layer_template = {
             "runs": [],
             "identifier": request.form.get("name","untitled"),
             "project": str(uuid_obj)
         }
 
-        project_data["collections"].append(new_collection_id)
+        project_data["layers"].append(new_layer_id)
 
-        get_couch()["crab_collections"][new_collection_id] = collection_template
+        get_couch()["crab_layers"][new_layer_id] = layer_template
         get_couch()["crab_projects"][str(uuid_obj)] = project_data
 
         redirect_uri = request.args.get("redirect", "")
@@ -359,7 +359,7 @@ def api_v1_new_collection(raw_uuid):
         else:
             return Response(json.dumps({
                 "msg": "done",
-                "collection": collection_data
+                "layer": layer_data
                 }), status=200, mimetype='application/json')
     except ValueError:
         return Response(json.dumps({

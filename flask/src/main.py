@@ -35,7 +35,7 @@ from user_management_controller import login_pages, account_pages, access_token_
 from ingest_controller import ingest_pages
 from run_controller import run_pages, run_api
 from project_controller import project_pages, project_api
-from collection_controller import collection_pages, collection_api
+from layer_controller import layer_pages, layer_api
 from job_controller import job_pages, job_api
 from snapshot_controller import snapshot_pages, snapshot_api
 from documentation_controller import documentation_pages
@@ -52,8 +52,8 @@ app.register_blueprint(run_pages)
 app.register_blueprint(run_api)
 app.register_blueprint(project_pages)
 app.register_blueprint(project_api)
-app.register_blueprint(collection_pages)
-app.register_blueprint(collection_api)
+app.register_blueprint(layer_pages)
+app.register_blueprint(layer_api)
 app.register_blueprint(job_pages)
 app.register_blueprint(job_api)
 app.register_blueprint(snapshot_pages)

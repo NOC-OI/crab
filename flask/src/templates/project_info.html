@@ -34,12 +34,12 @@
 
 
         {% if can_edit %}
-        <form method="POST" action="/api/v1/projects/{{ project_data._id }}/new_collection?redirect=%2Fprojects%2F{{ project_data._id }}" enctype="multipart/form-data">
+        <form method="POST" action="/api/v1/projects/{{ project_data._id }}/new_layer?redirect=%2Fprojects%2F{{ project_data._id }}" enctype="multipart/form-data">
             <fieldset>
                 <div class="input-group mb-3">
-                    <input type="text" name="name" class="form-control" placeholder="Collection name" aria-label="New collection name" aria-describedby="button-addon2">
+                    <input type="text" name="name" class="form-control" placeholder="Layer name" aria-label="New layer name" aria-describedby="button-addon2">
 
-                    <input class="btn btn-primary" type="submit" id="button-addon2" value="Create new collection">
+                    <input class="btn btn-primary" type="submit" id="button-addon2" value="Create new layer">
 
                 </div>
             </fieldset>
@@ -48,27 +48,27 @@
 
 
 
-        <div class="accordion" id="accordion-collections">
-            {% for collection in collections %}
+        <div class="accordion" id="accordion-layers">
+            {% for layer in layers %}
             <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-{{ collection._id }}">
-                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ collection._id }}" aria-expanded="true" aria-controls="collapse-{{ collection._id }}">
-                    {{ collection.identifier | capitalize }} collection {{ "{" ~ collection._id ~ "}" }}
+                <h2 class="accordion-header" id="heading-{{ layer._id }}">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ layer._id }}" aria-expanded="true" aria-controls="collapse-{{ layer._id }}">
+                    {{ layer.identifier | capitalize }} layer {{ "{" ~ layer._id ~ "}" }}
                 </button>
                 </h2>
-                <div id="collapse-{{ collection._id }}" class="accordion-collapse collapse show" aria-labelledby="heading-{{ collection._id }}" data-bs-parent="#accordion-collections">
+                <div id="collapse-{{ layer._id }}" class="accordion-collapse collapse show" aria-labelledby="heading-{{ layer._id }}" data-bs-parent="#accordion-layers">
                 <div class="accordion-body">
                     {% if can_edit %}
-                    <h5>Collection actions</h5>
-                    <a href="/static/via/html/_via_image_annotator.html#{{ collection.via_project_string }}" class="btn btn-primary">Annotate collection with VIA</a>
+                    <h5>Layer actions</h5>
+                    <a href="/static/via/html/_via_image_annotator.html#{{ layer.via_project_string }}" class="btn btn-primary">Annotate layer with VIA</a>
 
                     <hr class="my-3">
                     {% endif %}
                     <h5>Snapshots</h5>
                     {% if can_edit %}
-                    <a href="/collections/{{ collection._id }}/new-snapshot" class="btn btn-primary">Publish snapshot</a>
+                    <a href="/layers/{{ layer._id }}/new-snapshot" class="btn btn-primary">Publish snapshot</a>
                     {% endif %}
-                    {% for snapshot in collection.snapshots|reverse %}
+                    {% for snapshot in layer.snapshots|reverse %}
                     <div class="mt-3">
                         <div class="card">
                             <div class="card-body">
@@ -85,9 +85,9 @@
                     <hr class="my-3">
                     <h5>Observations</h5>
                     {% if can_edit %}
-                    <a href="/runs?connect_to={{ collection._id }}&connect_type=collection&finish_redirect=%2Fprojects%2F{{ project_data._id }}" class="btn btn-primary">Add data run</a>
+                    <a href="/runs?connect_to={{ layer._id }}&connect_type=layer&finish_redirect=%2Fprojects%2F{{ project_data._id }}" class="btn btn-primary">Add data run</a>
                     {% endif %}
-                    {% for run in collection.runs|reverse %}
+                    {% for run in layer.runs|reverse %}
                     <div class="mt-3">
                         <div class="card">
                             <div class="card-body">

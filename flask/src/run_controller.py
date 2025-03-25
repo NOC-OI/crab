@@ -30,10 +30,10 @@ def can_view(run_uuid):
         if session_info["user_uuid"] == run_data["creator"]["uuid"]:
             return True
     #projects = []
-    collection_match = couch_client.find_all("crab_collections", {"runs":{"$in": [run_uuid]}}, ["_id", "project"])
-    #print(collection_match)
-    for collection in collection_match:
-        project_data = couch_client.get_document("crab_projects", collection["project"])
+    layer_match = couch_client.find_all("crab_layers", {"runs":{"$in": [run_uuid]}}, ["_id", "project"])
+    #print(layer_match)
+    for layer in layer_match:
+        project_data = couch_client.get_document("crab_projects", layer["project"])
         #projects.append(proj)
         if not session_info is None:
             if session_info["user_uuid"] in project_data["collaborators"]:

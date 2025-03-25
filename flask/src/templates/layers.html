@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Collections{% endblock %}
+{% block title %}Layers{% endblock %}
 
 {% block content %}
 <style>
@@ -16,9 +16,9 @@ input::-webkit-inner-spin-button {
 </style>
 
 <div class="container my-5">
-    <h1>Browse collections</h1>
+    <h1>Browse layers</h1>
     <div class="my-3">
-        <a href="/collections/new" class="btn btn-primary">Create new collection</a>
+        <a href="/layers/new" class="btn btn-primary">Create new layer</a>
     </div>
     <hr class="my-3">
 
@@ -54,7 +54,7 @@ input::-webkit-inner-spin-button {
     </ul>
 </div>
 
-<input id="class_of_browse_object" value="collection" type="hidden" />
+<input id="class_of_browse_object" value="layer" type="hidden" />
 
 <script src="/static/page-specific/page-view.js"></script>
 {% endblock %}

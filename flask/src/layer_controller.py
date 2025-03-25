@@ -10,27 +10,27 @@ import json
 from utils import get_session_info, get_app_frontend_globals, to_snake_case
 from db import get_couch, get_bucket, get_bucket_uri, get_couch_base_uri, get_bucket_object, get_s3_client, get_bucket_name, get_couch_client, advertise_job, get_s3_profiles, get_s3_profile
 
-collection_pages = Blueprint("collection_pages", __name__)
-collection_api = Blueprint("collection_api", __name__)
+layer_pages = Blueprint("layer_pages", __name__)
+layer_api = Blueprint("layer_api", __name__)
 
-def can_view(collection_uuid):
+def can_view(layer_uuid):
     session_info = get_session_info()
-    project_data = get_couch()["crab_projects"][get_couch()["crab_collections"][collection_uuid]["project"]]
+    project_data = get_couch()["crab_projects"][get_couch()["crab_layers"][layer_uuid]["project"]]
     if not session_info is None:
         if session_info["user_uuid"] in project_data["collaborators"]:
             return True
     return project_data["public_visibility"]
 
-def can_edit(collection_uuid):
+def can_edit(layer_uuid):
     session_info = get_session_info()
-    project_data = get_couch()["crab_projects"][get_couch()["crab_collections"][collection_uuid]["project"]]
+    project_data = get_couch()["crab_projects"][get_couch()["crab_layers"][layer_uuid]["project"]]
     if not session_info is None:
         if session_info["user_uuid"] in project_data["collaborators"]:
             return True
     return False
 
-@collection_pages.route("/collections/<raw_uuid>", methods=['GET'])
-def collection_detail_screen(raw_uuid):
+@layer_pages.route("/layers/<raw_uuid>", methods=['GET'])
+def layer_detail_screen(raw_uuid):
     session_info = get_session_info()
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
@@ -41,13 +41,13 @@ def collection_detail_screen(raw_uuid):
                 "msg": "User is not allowed to view this resource."
                 }), status=401, mimetype='application/json')
 
-        collection_data = get_couch()["crab_collections"][str(uuid_obj)]
-        project_data = get_couch()["crab_projects"][get_couch()["crab_collections"][str(uuid_obj)]["project"]]
+        layer_data = get_couch()["crab_layers"][str(uuid_obj)]
+        project_data = get_couch()["crab_projects"][get_couch()["crab_layers"][str(uuid_obj)]["project"]]
         is_collaborator = False
         if not session_info is None:
             if session_info["user_uuid"] in project_data["collaborators"]:
                 is_collaborator = True
-        return render_template("collection_info.html", global_vars=get_app_frontend_globals(), session_info=session_info, collection_data=collection_data, is_collaborator=is_collaborator)
+        return render_template("layer_info.html", global_vars=get_app_frontend_globals(), session_info=session_info, layer_data=layer_data, is_collaborator=is_collaborator)
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
@@ -55,8 +55,8 @@ def collection_detail_screen(raw_uuid):
             }), status=400, mimetype='application/json')
 
 
-@collection_pages.route("/collections/<raw_uuid>/new-snapshot", methods=['GET'])
-def collection_new_snapshot(raw_uuid):
+@layer_pages.route("/layers/<raw_uuid>/new-snapshot", methods=['GET'])
+def layer_new_snapshot(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
 
@@ -76,20 +76,20 @@ def collection_new_snapshot(raw_uuid):
                     "id": profile_id,
                     "name": profile_name
                 })
-        collection_data = get_couch()["crab_collections"][str(uuid_obj)]
-        return render_template("collection_new_snapshot.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), collection_data=collection_data, s3_profiles=s3_profiles)
+        layer_data = get_couch()["crab_layers"][str(uuid_obj)]
+        return render_template("layer_new_snapshot.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), layer_data=layer_data, s3_profiles=s3_profiles)
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-@collection_pages.route("/collections", methods=['GET'])
-def collection_browse_screen():
-    return render_template("collections.html", global_vars=get_app_frontend_globals(), session_info=get_session_info())
+@layer_pages.route("/layers", methods=['GET'])
+def layer_browse_screen():
+    return render_template("layers.html", global_vars=get_app_frontend_globals(), session_info=get_session_info())
 
-@collection_api.route("/api/v1/collections", methods=["POST", "GET"])
-def api_v1_get_collections():
+@layer_api.route("/api/v1/layers", methods=["POST", "GET"])
+def api_v1_get_layers():
     raw_selector = json.dumps({})
     mango_selector = json.loads(raw_selector)
     raw_sort = json.dumps([{
@@ -111,13 +111,13 @@ def api_v1_get_collections():
         }
     #            "sort": mango_sort,
 
-    ret = requests.post(get_couch_base_uri() + "crab_collections/" + "_find", json=mango).json()
+    ret = requests.post(get_couch_base_uri() + "crab_layers/" + "_find", json=mango).json()
     #print(ret)
 
     return Response(json.dumps(ret), status=200, mimetype='application/json')
 
-@collection_api.route("/api/v1/collections/<raw_uuid>", methods=['GET'])
-def api_v1_get_collection(raw_uuid):
+@layer_api.route("/api/v1/layers/<raw_uuid>", methods=['GET'])
+def api_v1_get_layer(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
 
@@ -127,16 +127,16 @@ def api_v1_get_collection(raw_uuid):
                 "msg": "User is not allowed to view this resource."
                 }), status=401, mimetype='application/json')
 
-        collection_data = get_couch()["crab_collections"][str(uuid_obj)]
-        return Response(json.dumps(collection_data), status=200, mimetype='application/json')
+        layer_data = get_couch()["crab_layers"][str(uuid_obj)]
+        return Response(json.dumps(layer_data), status=200, mimetype='application/json')
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-@collection_api.route("/api/v1/collections/<raw_uuid>/via_annotation_project", methods=['GET'])
-def api_v1_get_collection_via_proj(raw_uuid):
+@layer_api.route("/api/v1/layers/<raw_uuid>/via_annotation_project", methods=['GET'])
+def api_v1_get_layer_via_proj(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
 
@@ -148,7 +148,7 @@ def api_v1_get_collection_via_proj(raw_uuid):
 
         couch_client = get_couch_client()
 
-        collection_info = couch_client.get_document("crab_collections", str(uuid_obj))
+        layer_info = couch_client.get_document("crab_layers", str(uuid_obj))
 
         via_config = {
                 "file": {
@@ -181,7 +181,7 @@ def api_v1_get_collection_via_proj(raw_uuid):
         via_files = {}
 
         observation_ids = []
-        for run_id in collection_info["runs"]:
+        for run_id in layer_info["runs"]:
             run_info = couch_client.get_document("crab_runs", run_id)
             for observation_id in run_info["observations"]:
                 observation_ids.append(observation_id)
@@ -236,8 +236,8 @@ def api_v1_get_collection_via_proj(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
-@collection_api.route("/api/v1/collections/<raw_uuid>/connect", methods=["GET"])
-def api_v1_add_collection_connection(raw_uuid):
+@layer_api.route("/api/v1/layers/<raw_uuid>/connect", methods=["GET"])
+def api_v1_add_layer_connection(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
 
@@ -247,16 +247,16 @@ def api_v1_add_collection_connection(raw_uuid):
                 "msg": "User is not allowed to edit this resource."
                 }), status=401, mimetype='application/json')
 
-        collection_data = get_couch()["crab_collections"][str(uuid_obj)]
+        layer_data = get_couch()["crab_layers"][str(uuid_obj)]
         to_raw_uuid = request.args.get("to", None)
         to_uuid_obj = uuid.UUID(to_raw_uuid, version=4)
         to_type = request.args.get("type", None)
         if to_type == "run":
             #run_data = get_couch()["crab_runs"][str(to_uuid_obj)]
-            if not "runs" in collection_data:
-                collection_data["runs"] = []
-            collection_data["runs"].append(str(to_uuid_obj))
-            get_couch()["crab_collections"][str(uuid_obj)] = collection_data
+            if not "runs" in layer_data:
+                layer_data["runs"] = []
+            layer_data["runs"].append(str(to_uuid_obj))
+            get_couch()["crab_layers"][str(uuid_obj)] = layer_data
 
             redirect_uri = request.args.get("redirect", "")
             if len(redirect_uri) > 0:
@@ -264,7 +264,7 @@ def api_v1_add_collection_connection(raw_uuid):
             else:
                 return Response(json.dumps({
                     "msg": "done",
-                    "collection": collection_data
+                    "layer": layer_data
                     }), status=200, mimetype='application/json')
         else:
             return Response(json.dumps({
@@ -281,7 +281,7 @@ def api_v1_add_collection_connection(raw_uuid):
 
 
 
-@collection_api.route("/api/v1/collections/<raw_uuid>/snapshot", methods=["POST"])
+@layer_api.route("/api/v1/layers/<raw_uuid>/snapshot", methods=["POST"])
 def api_v1_create_snapshot(raw_uuid):
     try:
         uuid_obj = uuid.UUID(raw_uuid, version=4)
@@ -292,7 +292,7 @@ def api_v1_create_snapshot(raw_uuid):
                 "msg": "User is not allowed to edit this resource."
                 }), status=401, mimetype='application/json')
 
-        collection_data = get_couch()["crab_collections"][str(uuid_obj)]
+        layer_data = get_couch()["crab_layers"][str(uuid_obj)]
         name = request.form.get("snapshot_name", "")
         if len(name) == 0:
             name = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -305,17 +305,17 @@ def api_v1_create_snapshot(raw_uuid):
         snapshot_md = {
                 "identifier": name,
                 "public_visibility": public_avail,
-                "collection": str(uuid_obj),
+                "layer": str(uuid_obj),
                 "s3_profile": s3_profile
             }
         job_uuid = uuid.uuid4()
-        if collection_data is None:
+        if layer_data is None:
             return Response(json.dumps({
-                "error": "collectionNotFound",
-                "msg": "Could not find collection with id {" + str(uuid_obj) + "}"
+                "error": "layerNotFound",
+                "msg": "Could not find layer with id {" + str(uuid_obj) + "}"
                 }), status=404, mimetype='application/json')
         else:
-            #proc = Process(target=build_collection_snapshot, args=(str(job_uuid), str(snapshot_uuid), collection_data, snapshot_md))
+            #proc = Process(target=build_layer_snapshot, args=(str(job_uuid), str(snapshot_uuid), layer_data, snapshot_md))
             #proc.start()
 
             job_md = {
@@ -331,13 +331,13 @@ def api_v1_create_snapshot(raw_uuid):
 
             advertise_job(str(job_uuid))
 
-            #get_couch()["crab_collections"][str(uuid_obj)] = collection_data
+            #get_couch()["crab_layers"][str(uuid_obj)] = layer_data
             return Response(json.dumps({
                 "name": name,
                 "snapshot_id": str(snapshot_uuid),
                 "make_public": public_avail,
                 "job_id": str(job_uuid),
-                "collection": collection_data
+                "layer": layer_data
                 }), status=200, mimetype='application/json')
             #args": request.form.to_dict(),
     except ValueError as e:

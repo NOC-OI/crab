@@ -20,8 +20,8 @@ csrf_secret_key = get_csrf_secret_key()
 def can_view(snapshot_uuid):
     session_info = get_session_info()
     snapshot_data = get_couch()["crab_snapshots"][snapshot_uuid]
-    collection_data = get_couch()["crab_collections"][snapshot_data["collection"]]
-    project_data = get_couch()["crab_projects"][collection_data["project"]]
+    layer_data = get_couch()["crab_layers"][snapshot_data["layer"]]
+    project_data = get_couch()["crab_projects"][layer_data["project"]]
     if not session_info is None:
         if session_info["user_uuid"] in project_data["collaborators"]:
             return True
@@ -33,8 +33,8 @@ def can_view(snapshot_uuid):
 def can_edit(snapshot_uuid):
     session_info = get_session_info()
     snapshot_data = get_couch()["crab_snapshots"][snapshot_uuid]
-    collection_data = get_couch()["crab_collections"][snapshot_data["collection"]]
-    project_data = get_couch()["crab_projects"][collection_data["project"]]
+    layer_data = get_couch()["crab_layers"][snapshot_data["layer"]]
+    project_data = get_couch()["crab_projects"][layer_data["project"]]
     if not session_info is None:
         if session_info["user_uuid"] in project_data["collaborators"]:
             return True
@@ -53,8 +53,8 @@ def snapshot_info_page(raw_uuid):
                 }), status=401, mimetype='application/json')
 
         snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
-        collection_data = get_couch()["crab_collections"][snapshot_data["collection"]]
-        project_data = get_couch()["crab_projects"][collection_data["project"]]
+        layer_data = get_couch()["crab_layers"][snapshot_data["layer"]]
+        project_data = get_couch()["crab_projects"][layer_data["project"]]
         is_collaborator = False
         if not session_info is None:
             if session_info["user_uuid"] in project_data["collaborators"]:
@@ -92,7 +92,7 @@ def snapshot_delete_page(raw_uuid):
             }
         csrf_token = jwt.encode(jwt_token_content, csrf_secret_key, algorithm="HS256")
         object_name = "snapshot"
-        project_id = get_couch()["crab_collections"][snapshot_data["collection"]]["project"]
+        project_id = get_couch()["crab_layers"][snapshot_data["layer"]]["project"]
         action_uri = "/api/v1/snapshots/" + str(uuid_obj) + "/delete"
         return render_template("delete_confirm.html", global_vars=get_app_frontend_globals(), session_info=session_info, object_name=object_name, csrf_token=csrf_token, action_uri=action_uri, redirect_uri="/projects/" + project_id)
     except ValueError:
@@ -139,15 +139,15 @@ def api_v1_snapshot_delete(raw_uuid):
 
 
         snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
-        collection_data = get_couch()["crab_collections"][snapshot_data["collection"]]
-        project_data = get_couch()["crab_projects"][collection_data["project"]]
+        layer_data = get_couch()["crab_layers"][snapshot_data["layer"]]
+        project_data = get_couch()["crab_projects"][layer_data["project"]]
 
 
-        collection_data["snapshots"].remove(str(uuid_obj))
+        layer_data["snapshots"].remove(str(uuid_obj))
 
         get_s3_client().delete_object(Bucket=get_bucket_name(), Key="snapshots/" + str(uuid_obj))
 
-        get_couch()["crab_collections"][snapshot_data["collection"]] = collection_data
+        get_couch()["crab_layers"][snapshot_data["layer"]] = layer_data
         get_couch()["crab_snapshots"].delete(snapshot_data)
 
         if len(redirect_uri) > 0:
@@ -310,7 +310,7 @@ def api_v1_get_snapshot(snapshot_uuid):
                     _rev: 5-f54d08b9b7588b8c2fd96d1d12fad921
                     identifier: example
                     public_visibility: true
-                    collection: d9f436e1-dbdc-43e0-b61e-a21921f0938a
+                    layer: d9f436e1-dbdc-43e0-b61e-a21921f0938a
                     observations: {}
                     origin_tags: {}
                     packages:
@@ -366,7 +366,7 @@ def api_v1_get_snapshot_croissant(snapshot_uuid):
                     _rev: 5-f54d08b9b7588b8c2fd96d1d12fad921
                     identifier: example
                     public_visibility: true
-                    collection: d9f436e1-dbdc-43e0-b61e-a21921f0938a
+                    layer: d9f436e1-dbdc-43e0-b61e-a21921f0938a
                     observations: {}
                     origin_tags: {}
                     packages:
@@ -389,8 +389,8 @@ def api_v1_get_snapshot_croissant(snapshot_uuid):
                 }), status=401, mimetype='application/json')
 
         snapshot_data = get_couch()["crab_snapshots"][str(uuid_obj)]
-        collection_data = get_couch()["crab_collections"][snapshot_data["collection"]]
-        project_data = get_couch()["crab_projects"][collection_data["project"]]
+        layer_data = get_couch()["crab_layers"][snapshot_data["layer"]]
+        project_data = get_couch()["crab_projects"][layer_data["project"]]
 
         collaborators = []
 

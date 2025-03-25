@@ -17,7 +17,7 @@ class TakeSnapshotJob:
     def __init__(self):
         pass
 
-    def build_collection_snapshot(self, snapshot_uuid, snapshot_md):
+    def build_layer_snapshot(self, snapshot_uuid, snapshot_md):
 
         #print(json.dumps(get_couch()["crab_jobs"][job_uuid]))
 
@@ -30,7 +30,7 @@ class TakeSnapshotJob:
 
         self.progress_func(0)
 
-        collection_info = couch_client.get_document("crab_collections", snapshot_md["collection"])
+        layer_info = couch_client.get_document("crab_layers", snapshot_md["layer"])
 
         creators = []
         creator_map = {}
@@ -42,11 +42,11 @@ class TakeSnapshotJob:
         raw_origin_metadata_run_heap = {}
         raw_origin_metadata_observation_heap = {}
 
-        collection_global_metadata = {}
+        layer_global_metadata = {}
         residual_global_metadata = {}
         residual_run_metadata = {}
         residual_observation_metadata = {}
-        collection_global_origin_metadata = {}
+        layer_global_origin_metadata = {}
         residual_global_origin_metadata = {}
         residual_run_origin_metadata = {}
         residual_observation_origin_metadata = {}
@@ -54,7 +54,7 @@ class TakeSnapshotJob:
         full_observation_metadata_heap = {}
 
         #run_info = []
-        for run_id in collection_info["runs"]:
+        for run_id in layer_info["runs"]:
             #run_info = get_couch()["crab_runs"][run_id]
             run_info = couch_client.get_document("crab_runs", run_id)
             for observation_id in run_info["observations"]:
@@ -89,63 +89,63 @@ class TakeSnapshotJob:
             for key in raw_metadata_run_heap[run_id]:
                 value = raw_metadata_run_heap[run_id][key]
                 #if not type(value) is list:
-                if key in collection_global_metadata:
-                    if not value in collection_global_metadata[key]:
-                        collection_global_metadata[key].append(value)
+                if key in layer_global_metadata:
+                    if not value in layer_global_metadata[key]:
+                        layer_global_metadata[key].append(value)
                 else:
-                    collection_global_metadata[key] = [value]
+                    layer_global_metadata[key] = [value]
 
         for run_id in raw_origin_metadata_run_heap:
             for key in raw_origin_metadata_run_heap[run_id]:
                 value = raw_origin_metadata_run_heap[run_id][key]
                 #if not type(value) is list:
-                if key in collection_global_origin_metadata:
-                    if not value in collection_global_origin_metadata[key]:
-                        collection_global_origin_metadata[key].append(value)
+                if key in layer_global_origin_metadata:
+                    if not value in layer_global_origin_metadata[key]:
+                        layer_global_origin_metadata[key].append(value)
                 else:
-                    collection_global_origin_metadata[key] = [value]
+                    layer_global_origin_metadata[key] = [value]
 
 
         for observation_id in raw_metadata_observation_heap:
             for key in raw_metadata_observation_heap[observation_id]:
                 value = raw_metadata_observation_heap[observation_id][key]
                 if not type(value) is list:
-                    if key in collection_global_metadata:
-                        if not value in collection_global_metadata[key]:
-                            collection_global_metadata[key].append(value)
+                    if key in layer_global_metadata:
+                        if not value in layer_global_metadata[key]:
+                            layer_global_metadata[key].append(value)
                     else:
-                        collection_global_metadata[key] = [value]
+                        layer_global_metadata[key] = [value]
 
         for observation_id in raw_origin_metadata_observation_heap:
             for key in raw_origin_metadata_observation_heap[observation_id]:
                 value = raw_origin_metadata_observation_heap[observation_id][key]
                 if not type(value) is list:
-                    if key in collection_global_origin_metadata:
-                        if not value in collection_global_origin_metadata[key]:
-                            collection_global_origin_metadata[key].append(value)
+                    if key in layer_global_origin_metadata:
+                        if not value in layer_global_origin_metadata[key]:
+                            layer_global_origin_metadata[key].append(value)
                     else:
-                        collection_global_origin_metadata[key] = [value]
+                        layer_global_origin_metadata[key] = [value]
 
 
-        for key in collection_global_metadata:
-            if len(collection_global_metadata[key]) > 1:
-                for run_id in collection_info["runs"]:
+        for key in layer_global_metadata:
+            if len(layer_global_metadata[key]) > 1:
+                for run_id in layer_info["runs"]:
                     if key in raw_metadata_run_heap[run_id]:
                         if not type(raw_metadata_run_heap[run_id][key]) is list:
                             residual_run_metadata[run_id][key] = raw_metadata_run_heap[run_id][key]
             else:
-                if not type(collection_global_metadata[key][0]) is list:
-                    residual_global_metadata[key] = collection_global_metadata[key][0]
+                if not type(layer_global_metadata[key][0]) is list:
+                    residual_global_metadata[key] = layer_global_metadata[key][0]
 
-        for key in collection_global_origin_metadata:
-            if len(collection_global_origin_metadata[key]) > 1:
-                for run_id in collection_info["runs"]:
+        for key in layer_global_origin_metadata:
+            if len(layer_global_origin_metadata[key]) > 1:
+                for run_id in layer_info["runs"]:
                     if key in raw_origin_metadata_run_heap[run_id]:
                         if not type(raw_origin_metadata_run_heap[run_id][key]) is list:
                             residual_run_origin_metadata[run_id][key] = raw_origin_metadata_run_heap[run_id][key]
             else:
-                if not type(collection_global_origin_metadata[key][0]) is list:
-                    residual_global_origin_metadata[key] = collection_global_origin_metadata[key][0]
+                if not type(layer_global_origin_metadata[key][0]) is list:
+                    residual_global_origin_metadata[key] = layer_global_origin_metadata[key][0]
 
         #print(json.dumps(residual_run_origin_metadata, indent=4))
 
@@ -196,7 +196,7 @@ class TakeSnapshotJob:
         i = 0
         last_push_time = time.time()
 
-        for run_id in collection_info["runs"]:
+        for run_id in layer_info["runs"]:
             run_info = couch_client.get_document("crab_runs", run_id)#get_couch()["crab_runs"][run_id]
             for observation_id in run_info["observations"]:
                 observation_info = couch_client.get_document("crab_observations", observation_id) #get_couch()["crab_observations"][observation_id]
@@ -279,11 +279,11 @@ class TakeSnapshotJob:
         #get_couch()["crab_snapshots"][snapshot_uuid] = snapshot_md
         couch_client.put_document("crab_snapshots", snapshot_uuid, snapshot_md)
 
-        current_collection_md = couch_client.get_document("crab_collections", collection_info["_id"]) #get_couch()["crab_collections"][collection_info["_id"]]
-        if not "snapshots" in current_collection_md:
-            current_collection_md["snapshots"] = []
-        current_collection_md["snapshots"].append(snapshot_uuid)
-        couch_client.put_document("crab_collections", collection_info["_id"], current_collection_md)
+        current_layer_md = couch_client.get_document("crab_layers", layer_info["_id"]) #get_couch()["crab_layers"][layer_info["_id"]]
+        if not "snapshots" in current_layer_md:
+            current_layer_md["snapshots"] = []
+        current_layer_md["snapshots"].append(snapshot_uuid)
+        couch_client.put_document("crab_layers", layer_info["_id"], current_layer_md)
 
         self.progress_func(1)
 
@@ -300,7 +300,7 @@ class TakeSnapshotJob:
 
         patch = {}
 
-        patch["observations_processed"] = self.build_collection_snapshot(snapshot_uuid, job_md["job_args"])
+        patch["observations_processed"] = self.build_layer_snapshot(snapshot_uuid, job_md["job_args"])
 
 
         return patch
