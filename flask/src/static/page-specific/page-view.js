@@ -140,7 +140,7 @@ let renderPage = (docs, docClass, listView, page) => {
         switch (docClass) {
             case "run":
             case "project":
-            case "collection":
+            case "layer":
             default:
                 let cardImage = document.createElement("img");
                 cardImage.classList.add("card-img-top");
@@ -164,8 +164,8 @@ let renderPage = (docs, docClass, listView, page) => {
                             cardTitle.href = "/" + docClass + "s/" + docInfo["_id"];
                         } else {
                             switch (connectToClass) {
-                                case "collection":
-                                    cardTitle.href = "/api/v1/collections/" + connectTo + "/connect?to=" + docInfo["_id"] + "&type=" + docClass + "&redirect=" + redirect;
+                                case "layer":
+                                    cardTitle.href = "/api/v1/layers/" + connectTo + "/connect?to=" + docInfo["_id"] + "&type=" + docClass + "&redirect=" + redirect;
                                     break;
                                 default:
                                     cardTitle.href = "/" + docClass + "s/" + docInfo["_id"];
