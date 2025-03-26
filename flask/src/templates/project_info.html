@@ -52,11 +52,11 @@
             {% for layer in layers %}
             <div class="accordion-item">
                 <h2 class="accordion-header" id="heading-{{ layer._id }}">
-                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ layer._id }}" aria-expanded="true" aria-controls="collapse-{{ layer._id }}">
+                <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ layer._id }}" aria-expanded="true" aria-controls="collapse-{{ layer._id }}">
                     {{ layer.identifier | capitalize }} layer {{ "{" ~ layer._id ~ "}" }}
                 </button>
                 </h2>
-                <div id="collapse-{{ layer._id }}" class="accordion-collapse collapse show" aria-labelledby="heading-{{ layer._id }}" data-bs-parent="#accordion-layers">
+                <div id="collapse-{{ layer._id }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" aria-labelledby="heading-{{ layer._id }}" data-bs-parent="#accordion-layers">
                 <div class="accordion-body">
                     {% if can_edit %}
                     <h5>Layer actions</h5>
