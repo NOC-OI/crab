@@ -239,7 +239,7 @@ def login_inbound_redirect():
                 if "email" in openid_user_info:
                     # Fallback to email if sub does not match
                     mango_selector = {
-                            "email": openid_user_info["email"]
+                            "email": openid_user_info["email"].lower()
                         }
                     mango = {
                             "selector": mango_selector,
@@ -255,7 +255,7 @@ def login_inbound_redirect():
             session_info["user_uuid"] = user_uuid
             session_info["auth_type"] = "OPENID"
             if "email" in openid_user_info:
-                session_info["email"] = openid_user_info["email"]
+                session_info["email"] = openid_user_info["email"].lower()
                 session_info["status"] = "ACTIVE"
             else:
                 session_info["status"] = "MISSING_EMAIL"
