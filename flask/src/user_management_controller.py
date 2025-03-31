@@ -212,13 +212,20 @@ def login_inbound_redirect():
         try:
             jwt_header = jwt.get_unverified_header(openid_response["access_token"])
             jwt_key = oid_config["keys"].get_signing_key_from_jwt(openid_response["access_token"])
-            openid_user_info = jwt.decode(openid_response["access_token"], key=jwt_key, algorithms=[jwt_header["alg"]], options={"verify_aud": False, "verify_iat": False, "verify_signature": True})
+            openid_auth_info = jwt.decode(openid_response["access_token"], key=jwt_key, algorithms=[jwt_header["alg"]], options={"verify_aud": False, "verify_iat": False, "verify_signature": True})
 
+
+
+            headers = {
+                    "Authorization": "Bearer " + openid_response["access_token"]
+                }
+            #print(requests.get(oid_config["src_config"]["userinfo_endpoint"], headers=headers).text)
+            openid_user_info = requests.get(oid_config["src_config"]["userinfo_endpoint"], headers=headers).json()
 
             user_uuid = str(uuid.uuid4()) # Start with a random uid, overwrite with existing if possible
 
             mango_selector = {
-                    "openid_sub": session_info["oid_provider"] + ":" + openid_user_info["sub"]
+                    "openid_sub": session_info["oid_provider"] + ":" + openid_auth_info["sub"]
                 }
             mango = {
                     "selector": mango_selector,
@@ -244,6 +251,7 @@ def login_inbound_redirect():
 
 
             session_info["openid_info"] = openid_user_info
+            session_info["openid_auth"] = openid_auth_info
             session_info["user_uuid"] = user_uuid
             session_info["auth_type"] = "OPENID"
             if "email" in openid_user_info:
