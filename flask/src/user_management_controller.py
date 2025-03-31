@@ -251,7 +251,8 @@ def login_inbound_redirect():
             session_info["status"] = "MISSING_EMAIL"
             return Response(json.dumps({
                 "error": "missingEmail",
-                "msg": "User " + openid_user_info["sub"] + " does not have a valid email."
+                "msg": "User " + openid_user_info["sub"] + " does not have a valid email.",
+                "token": openid_user_info
                 }), status=400, mimetype='application/json')
 
         if "name" in openid_user_info:
@@ -339,6 +340,7 @@ def login_outbound_redirect(provider):
             "login_redirect_uri": redirect_uri,
             "oid_provider": provider
         }
-    tokens = "response_type=code&scope=basic+email&prompt=select_account&response_mode=query&state=" + state + "&nonce=" + nonce + "&redirect_uri=" + urllib.parse.quote_plus(redirect_uri) + "&client_id=" + urllib.parse.quote_plus(oid_config["client_id"])
+    scopes = "+".join(oid_config["src_config"]["scopes"])
+    tokens = "response_type=code&scope=" + scopes + "&prompt=select_account&response_mode=query&state=" + state + "&nonce=" + nonce + "&redirect_uri=" + urllib.parse.quote_plus(redirect_uri) + "&client_id=" + urllib.parse.quote_plus(oid_config["client_id"])
     return redirect(oid_config["src_config"]["authorization_endpoint"] + "?" + tokens, code=302)
 
