@@ -12,7 +12,7 @@
         <hr class="my-4">
 
         {% for provider in providers %}
-        <a href="/api/v1/openid/{{ provider.id }}/egress" class="btn btn-primary">{{ provider.name }}</a>
+        <a href="/api/v1/openid/{{ provider.id }}/egress" class="btn btn-primary mb-3">{{ provider.name }}</a><br />
         {% endfor %}
     </div>
 </div>

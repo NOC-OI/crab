@@ -31,6 +31,7 @@ for provider in all_oid_providers_conf_info:
             "src_config": oid_conf_file,
             "client_id": all_oid_providers_conf_info[provider]["oid_client_id"],
             "client_secret": all_oid_providers_conf_info[provider]["oid_client_secret"],
+            "scopes": all_oid_providers_conf_info[provider]["scopes"],
             "keys": oid_keys
         }
 
@@ -208,86 +209,104 @@ def login_inbound_redirect():
     openid_response = requests.post(oid_config["src_config"]["token_endpoint"], data=data).json()
 
     if "scope" in openid_response:
-        jwt_header = jwt.get_unverified_header(openid_response["access_token"])
-        jwt_key = oid_config["keys"].get_signing_key_from_jwt(openid_response["access_token"])
-        openid_user_info = jwt.decode(openid_response["access_token"], key=jwt_key, algorithms=[jwt_header["alg"]], options={"verify_aud": False, "verify_signature": True})
+        try:
+            jwt_header = jwt.get_unverified_header(openid_response["access_token"])
+            jwt_key = oid_config["keys"].get_signing_key_from_jwt(openid_response["access_token"])
+            openid_auth_info = jwt.decode(openid_response["access_token"], key=jwt_key, algorithms=[jwt_header["alg"]], options={"verify_aud": False, "verify_iat": False, "verify_signature": True})
 
 
-        user_uuid = str(uuid.uuid4()) # Start with a random uid, overwrite with existing if possible
 
-        mango_selector = {
-                "openid_sub": session_info["oid_provider"] + ":" + openid_user_info["sub"]
-            }
-        mango = {
-                "selector": mango_selector,
-                "fields": ["_id", "openid_sub"]
-            }
-        user_search_resp = requests.post(get_couch_base_uri() + "crab_users/" + "_find", json=mango).json()
+            headers = {
+                    "Authorization": "Bearer " + openid_response["access_token"]
+                }
+            #print(requests.get(oid_config["src_config"]["userinfo_endpoint"], headers=headers).text)
+            openid_user_info = requests.get(oid_config["src_config"]["userinfo_endpoint"], headers=headers).json()
 
-        if len(user_search_resp["docs"]) > 0:
-            user_uuid = user_search_resp["docs"][0]["_id"]
-        else:
+            user_uuid = str(uuid.uuid4()) # Start with a random uid, overwrite with existing if possible
+
+            mango_selector = {
+                    "openid_sub": session_info["oid_provider"] + ":" + openid_auth_info["sub"]
+                }
+            mango = {
+                    "selector": mango_selector,
+                    "fields": ["_id", "openid_sub"]
+                }
+            user_search_resp = requests.post(get_couch_base_uri() + "crab_users/" + "_find", json=mango).json()
+
+            if len(user_search_resp["docs"]) > 0:
+                user_uuid = user_search_resp["docs"][0]["_id"]
+            else:
+                if "email" in openid_user_info:
+                    # Fallback to email if sub does not match
+                    mango_selector = {
+                            "email": openid_user_info["email"].lower()
+                        }
+                    mango = {
+                            "selector": mango_selector,
+                            "fields": ["_id", "openid_sub"]
+                        }
+                    user_search_resp = requests.post(get_couch_base_uri() + "crab_users/" + "_find", json=mango).json()
+                    if len(user_search_resp["docs"]) > 0:
+                        user_uuid = user_search_resp["docs"][0]["_id"]
+
+
+            session_info["openid_info"] = openid_user_info
+            session_info["openid_auth"] = openid_auth_info
+            session_info["user_uuid"] = user_uuid
+            session_info["auth_type"] = "OPENID"
             if "email" in openid_user_info:
-                # Fallback to email if sub does not match
-                mango_selector = {
-                        "email": openid_user_info["email"]
-                    }
-                mango = {
-                        "selector": mango_selector,
-                        "fields": ["_id", "openid_sub"]
-                    }
-                user_search_resp = requests.post(get_couch_base_uri() + "crab_users/" + "_find", json=mango).json()
-                if len(user_search_resp["docs"]) > 0:
-                    user_uuid = user_search_resp["docs"][0]["_id"]
+                session_info["email"] = openid_user_info["email"].lower()
+                session_info["status"] = "ACTIVE"
+            else:
+                session_info["status"] = "MISSING_EMAIL"
+                return Response(json.dumps({
+                    "error": "missingEmail",
+                    "msg": "User " + openid_user_info["sub"] + " does not have a valid email.",
+                    "user_info": openid_user_info
+                    }), status=400, mimetype='application/json')
 
+            if "name" in openid_user_info:
+                session_info["short_name"] = openid_user_info["name"]
+                session_info["name"] = openid_user_info["name"]
+            else:
+                session_info["name"] = session_info["email"] # Fallback just in-case name is missing or restricted
+                session_info["short_name"] = session_info["name"]
+            if "given_name" in openid_user_info:
+                session_info["short_name"] = openid_user_info["given_name"] # Preferentially use this in UI for this user
 
-        session_info["openid_info"] = openid_user_info
-        session_info["user_uuid"] = user_uuid
-        session_info["auth_type"] = "OPENID"
-        if "email" in openid_user_info:
-            session_info["email"] = openid_user_info["email"]
-            session_info["status"] = "ACTIVE"
-        else:
-            session_info["status"] = "MISSING_EMAIL"
+            session_info["openid_access_token"] = openid_response["access_token"]
+            access_token = secrets.token_urlsafe(24)
+            session_info["access_token"] = access_token
+
+            get_couch()["crab_sessions"][session_uuid] = session_info
+            user_doc = {
+                    "email": session_info["email"],
+                    "name": session_info["name"],
+                    "openid_sub": session_info["oid_provider"] + ":" + openid_user_info["sub"],
+                    "short_name": session_info["short_name"]
+                }
+
+            # TODO update to couchbeans
+            if session_info["user_uuid"] in get_couch()["crab_users"]:
+                user_doc["_rev"] = get_couch()["crab_users"][session_info["user_uuid"]]["_rev"]
+            get_couch()["crab_users"][session_info["user_uuid"]] = user_doc
+
+            response = make_response(redirect("/account", code=302))
+            response.set_cookie("sessionId", session_uuid)
+            response.set_cookie("sessionKey", access_token)
+            return response
+        except jwt.exceptions.PyJWTError:
             return Response(json.dumps({
-                "error": "missingEmail",
-                "msg": "User " + openid_user_info["sub"] + " does not have a valid email."
+                "error": "invalidJwt",
+                "msg": "Could not validate OpenID JWT for session " + session_uuid,
+                "response": openid_response
                 }), status=400, mimetype='application/json')
 
-        if "name" in openid_user_info:
-            session_info["short_name"] = openid_user_info["name"]
-            session_info["name"] = openid_user_info["name"]
-        else:
-            session_info["name"] = session_info["email"] # Fallback just in-case name is missing or restricted
-            session_info["short_name"] = session_info["name"]
-        if "given_name" in openid_user_info:
-            session_info["short_name"] = openid_user_info["given_name"] # Preferentially use this in UI for this user
-
-        session_info["openid_access_token"] = openid_response["access_token"]
-        access_token = secrets.token_urlsafe(24)
-        session_info["access_token"] = access_token
-
-        get_couch()["crab_sessions"][session_uuid] = session_info
-        user_doc = {
-                "email": session_info["email"],
-                "name": session_info["name"],
-                "openid_sub": session_info["oid_provider"] + ":" + openid_user_info["sub"],
-                "short_name": session_info["short_name"]
-            }
-
-        # TODO update to couchbeans
-        if session_info["user_uuid"] in get_couch()["crab_users"]:
-            user_doc["_rev"] = get_couch()["crab_users"][session_info["user_uuid"]]["_rev"]
-        get_couch()["crab_users"][session_info["user_uuid"]] = user_doc
-
-        response = make_response(redirect("/account", code=302))
-        response.set_cookie("sessionId", session_uuid)
-        response.set_cookie("sessionKey", access_token)
-        return response
     else:
         return Response(json.dumps({
             "error": "authError",
-            "msg": "Could not authenticate OpenID code for session " + session_uuid
+            "msg": "Could not authenticate OpenID code for session " + session_uuid,
+            "response": openid_response
             }), status=400, mimetype='application/json')
 
 @login_pages.route("/logout")
@@ -339,6 +358,7 @@ def login_outbound_redirect(provider):
             "login_redirect_uri": redirect_uri,
             "oid_provider": provider
         }
-    tokens = "response_type=code&scope=basic+email&prompt=select_account&response_mode=query&state=" + state + "&nonce=" + nonce + "&redirect_uri=" + urllib.parse.quote_plus(redirect_uri) + "&client_id=" + urllib.parse.quote_plus(oid_config["client_id"])
+    scopes = "+".join(oid_config["scopes"])
+    tokens = "response_type=code&scope=" + scopes + "&prompt=select_account&response_mode=query&state=" + state + "&nonce=" + nonce + "&redirect_uri=" + urllib.parse.quote_plus(redirect_uri) + "&client_id=" + urllib.parse.quote_plus(oid_config["client_id"])
     return redirect(oid_config["src_config"]["authorization_endpoint"] + "?" + tokens, code=302)
 

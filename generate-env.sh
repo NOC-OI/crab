@@ -83,7 +83,8 @@ cat > config/crab.json << EOF
             "name": "Local Account",
             "oid_config_uri": "$CRAB_OPENID_CONFIG_URI",
             "oid_client_id": "crab",
-            "oid_client_secret": "REPLACE_ME_WITH_KEYCLOAK_KEY"
+            "oid_client_secret": "REPLACE_ME_WITH_KEYCLOAK_KEY",
+            "scopes": ["openid", "email", "profile"]
         }
     }
 }
