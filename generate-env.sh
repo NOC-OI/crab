@@ -84,7 +84,7 @@ cat > config/crab.json << EOF
             "oid_config_uri": "$CRAB_OPENID_CONFIG_URI",
             "oid_client_id": "crab",
             "oid_client_secret": "REPLACE_ME_WITH_KEYCLOAK_KEY",
-            "scopes": ["basic", "email"]
+            "scopes": ["openid", "email", "profile"]
         }
     }
 }
