@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Workspace{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+<div class="gx-3 row">
+    <div class="col-12 col-lg-8 mb-3">
+        <div class="">
+            <h1>Workspace</h1>
+            <span>Upload your raw files here to get started. You can drag and drop anywhere on this page.</span>
+
+            <div class="my-3">
+                <a class="btn btn-outline-secondary">New folder <i class="bi bi-folder-fill"></i></a>
+                <a class="btn btn-outline-secondary">Get FTP login details <i class="bi bi-hdd-network-fill"></i></a>
+                <a href="/api/v1/workspaces/{{ workspace_id }}" class="btn btn-danger">Destroy workspace <i class="bi bi-trash-fill"></i></a>
+            </div>
+        </div>
+
+
+        <div class="p-4 border rounded mt-3" ondrop="fileDropHandler(event);" ondragover="fileDragOverHandler(event);">
+            <span><em>No files yet</em></span>
+        </div>
+    </div>
+
+
+    <div class="col-12 col-lg-4">
+        <div class="p-4 border rounded mt-3">
+            <span><em>No suggested actions yet</em></span>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<input type="hidden" value="{{ workspace_id }}" id="workspace_id"></input>
+
+<script src="/static/page-specific/workspace.js"></script>
+{% endblock %}
