@@ -41,6 +41,7 @@ from snapshot_controller import snapshot_pages, snapshot_api
 from documentation_controller import documentation_pages
 from annotation_set_controller import annotation_set_pages, annotation_set_api
 from export_controller import export_pages, export_api
+from workspace_controller import workspace_pages, workspace_api
 
 app.register_blueprint(login_pages)
 app.register_blueprint(account_pages)
@@ -63,6 +64,8 @@ app.register_blueprint(annotation_set_api)
 app.register_blueprint(export_pages)
 app.register_blueprint(export_api)
 app.register_blueprint(documentation_pages)
+app.register_blueprint(workspace_pages)
+app.register_blueprint(workspace_api)
 
 @app.errorhandler(404)
 def not_found_error_handler(e):
