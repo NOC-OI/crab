@@ -126,43 +126,61 @@ def api_v1_workspace_upload_file(workspace_uuid):
                 }), status=401, mimetype='application/json')
 
         uploaded_file = request.files['file']
+        file_size = uploaded_file.seek(0, os.SEEK_END)
         file_uuid = str(uuid.uuid4())
         if uploaded_file.filename != '':
             uploaded_file.save(temp_loc + "/" + file_uuid + ".bin")
             filename = uploaded_file.filename
             filename = re.sub("\\\\", "/", filename)
             filename = filename.strip("/")
+
+            s3_profile = get_default_s3_profile_name()
+            s3_path = "workspaces/" + workspace_uuid + "/" + file_uuid + ".bin"
+
             dirs = filename.split("/")
-            if len(dirs) > 1:
+            da = 0 # DirectoryAdjust - we treat zero file size as a directory - not perfect, but a good approximation
+            if file_size == 0:
+                da = 1
+
+            if len(dirs) > (1 - da):
                 dir_arr = workspace_def["folder_structure"]
-                for idx in range(0, (len(dirs) - 2)):
+                for idx in range(0, (len(dirs) - (2 - da))):
                     if not dirs[idx] in dir_arr:
                         dir_arr[dirs[idx]] = {}
                     dir_arr = dir_arr[dirs[idx]]
 
-            s3_profile = get_default_s3_profile_name()
-            s3_path = "workspaces/" + workspace_uuid + "/" + file_uuid + ".bin"
-            if request.args.get("s3_profile", "") in get_s3_profiles():
-                s3_profile = request.args.get("s3_profile")
 
-            filedef = {
-                    "file_uuid": file_uuid,
-                    "owned": True,
-                    "s3_profile": s3_profile,
-                    "path": s3_path
-                }
-            workspace_def["files"][filename] = filedef
 
-            with open(temp_loc + "/" + file_uuid + ".bin", "rb") as f:
-                get_s3_client(s3_profile).upload_fileobj(f, get_s3_bucket_name(s3_profile), s3_path)
+            if file_size > 0:
+                if request.args.get("s3_profile", "") in get_s3_profiles():
+                    s3_profile = request.args.get("s3_profile")
+
+                filedef = {
+                        "file_uuid": file_uuid,
+                        "owned": True,
+                        "size": file_size,
+                        "s3_profile": s3_profile,
+                        "path": s3_path
+                    }
+                workspace_def["files"][filename] = filedef
+
+                with open(temp_loc + "/" + file_uuid + ".bin", "rb") as f:
+                    get_s3_client(s3_profile).upload_fileobj(f, get_s3_bucket_name(s3_profile), s3_path)
 
             couch_client.put_document("crab_workspaces", workspace_uuid, workspace_def)
 
-            return Response(json.dumps({
-                    "file_uuid": file_uuid,
-                    "s3_profile": s3_profile,
-                    "path": s3_path
-                }), status=200, mimetype='application/json')
+            if file_size > 0:
+                return Response(json.dumps({
+                        "directory": False,
+                        "file_uuid": file_uuid,
+                        "s3_profile": s3_profile,
+                        "path": s3_path
+                    }), status=200, mimetype='application/json')
+            else:
+                return Response(json.dumps({
+                        "directory": True
+                    }), status=200, mimetype='application/json')
+
 
         return Response(json.dumps({
             "error": "uploadError",

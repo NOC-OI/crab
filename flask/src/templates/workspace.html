@@ -8,7 +8,7 @@
     <div class="col-12 col-lg-8 mb-3">
         <div class="">
             <h1>Workspace</h1>
-            <span>Upload your raw files here to get started. You can drag and drop anywhere on this page.</span>
+            <span>Upload your raw files here to get started.</span>
 
             <div class="my-3">
                 <a class="btn btn-outline-secondary">New folder <i class="bi bi-folder-fill"></i></a>
@@ -18,15 +18,17 @@
         </div>
 
 
-        <div class="p-4 border rounded mt-3" ondrop="fileDropHandler(event);" ondragover="fileDragOverHandler(event);">
-            <span><em>No files yet</em></span>
+        <div class="p-4 border rounded mt-3" ondrop="fileDropHandler(event);" ondragover="fileDragOverHandler(event);" id="file_area">
+            <span id="no_files_message"><strong>No files yet</strong><br />Drag and drop here to upload files.</span>
         </div>
     </div>
 
 
     <div class="col-12 col-lg-4">
-        <div class="p-4 border rounded mt-3">
-            <span><em>No suggested actions yet</em></span>
+        <a class="btn btn-outline-secondary">Suggest more actions <i class="bi bi-stars"></i></a>
+        <div class="p-4 border rounded mt-3" style="display:none;">
+            <p>Detected IFCB data, would you like to ingest this dataset?</p>
+            <a class="btn btn-primary">Add images to database <i class="bi bi-database-fill-add"></i></a>
         </div>
     </div>
 
