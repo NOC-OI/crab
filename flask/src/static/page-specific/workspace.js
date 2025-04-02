@@ -54,6 +54,11 @@ let fileRecord = {}
 let workspaceUuid = document.getElementById("workspace_id").value;
 let fileArea = document.getElementById("file_area");
 let noFilesMessage = document.getElementById("no_files_message");
+let topTextBox = document.getElementById("top_text");
+let topProgressBar = document.getElementById("top_progress");
+let totalUploads = 0;
+let totalUploadsDone = 0;
+let totalUploadTime = 0;
 let lastUploadInChain = new Promise((resolve,reject) => {resolve()});
 
 let dispatchUpload = (file, filename) => {
@@ -70,7 +75,6 @@ let dispatchUpload = (file, filename) => {
         errorHandler = () => {
             resolve();
             fileRecordEntry["progress_bar"].classList.add("bg-danger");
-            fileRecordEntry["dom"].querySelector("span").classList.add("text-danger");
             //delete fileRecord[filename];
             setTimeout(() => {
                 fileRecordEntry["progress_bar"].classList.remove("bg-danger");
@@ -79,7 +83,6 @@ let dispatchUpload = (file, filename) => {
                 fileRecordEntry["progress_bar"].classList.add("progress-bar-animated");
                 fileRecordEntry["progress_bar"].style.width = "100%";
                 lastUploadInChain = lastUploadInChain.then(() => {
-                    fileRecordEntry["dom"].querySelector("span").classList.remove("text-danger");
                     return dispatchUpload(file, filename);
                 });
             }, 1000);
@@ -90,6 +93,7 @@ let dispatchUpload = (file, filename) => {
                 fileRecordEntry["dom"].querySelector("span").classList.remove("text-secondary");
                 resolve();
                 fileRecordEntry["progress_bar_container"].remove()
+                totalUploadsDone++;
             } else {
                 errorHandler();
             }
@@ -107,8 +111,47 @@ let dispatchUpload = (file, filename) => {
     });
 }
 
+
+let updateProgressBar = () => {
+    if (totalUploads > 0) {
+        topProgressBar.style.width = ((totalUploadsDone / totalUploads) * 100) + "%";
+        if (totalUploadsDone < totalUploads) {
+            let etime = 0
+            if (totalUploadsDone > 2) {
+                //etime = (totalUploads / totalUploadsDone) * activeUploadSeconds;
+                etime = (totalUploadTime / totalUploadsDone) * (totalUploads - totalUploadsDone);
+            }
+            let estime = "";
+            if (etime > 0) {
+                if (etime > 2) {
+                    if (etime > 50) {
+                        estime = "About " + Math.round(etime/60) + " minutes remaining.";
+                    } else {
+                        estime = "About " + Math.round(etime) + " seconds remaining.";
+                    }
+                } else {
+                    estime = "Just a few seconds remaining...";
+                }
+            }
+            estime = estime
+            topTextBox.innerText = "Uploading file " + totalUploadsDone + " of " + totalUploads + ". " + estime;
+            topProgressBar.classList.add("progress-bar-striped");
+            topProgressBar.classList.add("progress-bar-animated");
+            topProgressBar.classList.remove("bg-success");
+            totalUploadTime++;
+        } else {
+            topTextBox.innerText = "Finished uploading " + totalUploadsDone + " files.";
+            topProgressBar.style.width = "100%";
+            topProgressBar.classList.add("bg-success");
+            topProgressBar.classList.remove("progress-bar-striped");
+            topProgressBar.classList.remove("progress-bar-animated");
+        }
+    }
+}
+setInterval(updateProgressBar, 1000);
+
 let sortView = () => {
-    console.log(Object.keys(fileRecord).length)
+    //console.log(Object.keys(fileRecord).length)
     if (Object.keys(fileRecord).length > 0) {
         if (noFilesMessage != null) {
             noFilesMessage.remove();
@@ -187,6 +230,7 @@ let handleDroppedFile = (file, filename) => {
         "progress_bar_container": fileProgressContainer
     }
     fileArea.appendChild(fileDomEntry);
+    totalUploads++;
     lastUploadInChain = lastUploadInChain.then(() => {return dispatchUpload(file, filename);});
 }
 
