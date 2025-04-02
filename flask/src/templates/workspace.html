@@ -8,12 +8,16 @@
     <div class="col-12 col-lg-8 mb-3">
         <div class="">
             <h1>Workspace</h1>
-            <span>Upload your raw files here to get started.</span>
+            <span id="top_text">Upload your raw files here to get started.</span>
 
-            <div class="my-3">
-                <a class="btn btn-outline-secondary">New folder <i class="bi bi-folder-fill"></i></a>
-                <a class="btn btn-outline-secondary">Get FTP login details <i class="bi bi-hdd-network-fill"></i></a>
-                <a href="/api/v1/workspaces/{{ workspace_id }}" class="btn btn-danger">Destroy workspace <i class="bi bi-trash-fill"></i></a>
+            <div class="progress mt-2">
+                <div id="top_progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+            </div>
+
+            <div class="my-3" style="display:none;">
+                <a class="btn btn-outline-secondary" style="display:none;">New folder <i class="bi bi-folder-fill"></i></a>
+                <a class="btn btn-outline-secondary" style="display:none;">Get FTP login details <i class="bi bi-hdd-network-fill"></i></a>
+                <a href="/api/v1/workspaces/{{ workspace_id }}" style="display:none;" class="btn btn-danger">Destroy workspace <i class="bi bi-trash-fill"></i></a>
             </div>
         </div>
 
