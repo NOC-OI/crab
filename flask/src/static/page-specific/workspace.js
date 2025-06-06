@@ -56,32 +56,51 @@ let fileArea = document.getElementById("file_area");
 let noFilesMessage = document.getElementById("no_files_message");
 let topTextBox = document.getElementById("top_text");
 let topProgressBar = document.getElementById("top_progress");
+let filesystemHierarchy = {}
 let totalUploads = 0;
 let totalUploadsDone = 0;
 let totalUploadTime = 0;
 let lastUploadInChain = new Promise((resolve,reject) => {resolve()});
 
+let addToFH = (path, uploading = false) => {
+    let pathArray = path.split("/")
+    let lastDir = filesystemHierarchy;
+    for (let i = 0; i < pathArray.length; i++) {
+        if (pathArray[i].length > 0) {
+            if (!(pathArray[i] in lastDir)) {
+                lastDir[pathArray[i]] = {
+                    "children": {},
+                    "open": false,
+                    "uploading": uploading,
+                    "folder": ((pathArray.length - 1) > i)
+                }
+            }
+            lastDir = lastDir[pathArray[i]]["children"]
+        }
+    }
+}
+
 let dispatchUpload = (file, filename) => {
     return new Promise((resolve, reject) => {
-        let fileRecordEntry = fileRecord[filename]
+        //let fileRecordEntry = fileRecord[filename]
         const fd = new FormData();
         fd.append("file", file, filename)
         const xhr = new XMLHttpRequest();
-        fileRecordEntry["progress_bar"].classList.remove("bg-warning");
-        fileRecordEntry["progress_bar"].classList.remove("progress-bar-striped");
-        fileRecordEntry["progress_bar"].classList.remove("progress-bar-animated");
-        fileRecordEntry["progress_bar"].classList.add("bg-success");
-        fileRecordEntry["progress_bar"].style.width = 0;
+        //fileRecordEntry["progress_bar"].classList.remove("bg-warning");
+        //fileRecordEntry["progress_bar"].classList.remove("progress-bar-striped");
+        //fileRecordEntry["progress_bar"].classList.remove("progress-bar-animated");
+        //fileRecordEntry["progress_bar"].classList.add("bg-success");
+        //fileRecordEntry["progress_bar"].style.width = 0;
         errorHandler = () => {
             resolve();
             fileRecordEntry["progress_bar"].classList.add("bg-danger");
             //delete fileRecord[filename];
             setTimeout(() => {
-                fileRecordEntry["progress_bar"].classList.remove("bg-danger");
-                fileRecordEntry["progress_bar"].classList.add("bg-warning");
-                fileRecordEntry["progress_bar"].classList.add("progress-bar-striped");
-                fileRecordEntry["progress_bar"].classList.add("progress-bar-animated");
-                fileRecordEntry["progress_bar"].style.width = "100%";
+                //fileRecordEntry["progress_bar"].classList.remove("bg-danger");
+                //fileRecordEntry["progress_bar"].classList.add("bg-warning");
+                //fileRecordEntry["progress_bar"].classList.add("progress-bar-striped");
+                //fileRecordEntry["progress_bar"].classList.add("progress-bar-animated");
+                //fileRecordEntry["progress_bar"].style.width = "100%";
                 lastUploadInChain = lastUploadInChain.then(() => {
                     return dispatchUpload(file, filename);
                 });
@@ -90,9 +109,9 @@ let dispatchUpload = (file, filename) => {
         xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
                 console.log("Uploaded " + filename);
-                fileRecordEntry["dom"].querySelector("span").classList.remove("text-secondary");
+                //fileRecordEntry["dom"].querySelector("span").classList.remove("text-secondary");
                 resolve();
-                fileRecordEntry["progress_bar_container"].remove()
+                //fileRecordEntry["progress_bar_container"].remove()
                 totalUploadsDone++;
             } else {
                 errorHandler();
@@ -104,7 +123,7 @@ let dispatchUpload = (file, filename) => {
         xhr.upload.onprogress = (e2) => {
             let prog = e2.loaded / e2.total;
             //console.log(prog);
-            fileRecordEntry["progress_bar"].style.width = (prog * 100) + "%";
+            //fileRecordEntry["progress_bar"].style.width = (prog * 100) + "%";
         }
         xhr.open("POST", "/api/v1/workspaces/" + workspaceUuid, true);
         xhr.send(fd);
@@ -175,6 +194,7 @@ let pollChanges = () => {
                     //console.log("skip!")
                 } else {
                     let filename = path;
+                    /*
                     let fileDomEntry = document.createElement("div");
                     let fileIconDomEntry = document.createElement("i");
                     let filenameDomEntry = document.createElement("span");
@@ -184,9 +204,11 @@ let pollChanges = () => {
                     fileIconDomEntry.classList.add("bi");
                     fileIconDomEntry.classList.add("bi-file-earmark-fill");
                     fileDomEntry.classList.add("file-entry");
+                    */
                     fileRecord[filename] = fd
-                    fileRecord[filename]["dom"] = fileDomEntry;
-                    fileArea.appendChild(fileDomEntry);
+                    addToFH(filename, false)
+                    //fileRecord[filename]["dom"] = fileDomEntry;
+                    //fileArea.appendChild(fileDomEntry);
                 }
             }
             sortView();
@@ -201,6 +223,7 @@ setInterval(pollChanges, 3000);
 let handleDroppedFile = (file, filename) => {
     //console.log(file);
     filename = filename.replace(/^\/+/g, "");
+    /*
     let fileDomEntry = document.createElement("div");
     let fileIconDomEntry = document.createElement("i");
     let filenameDomEntry = document.createElement("span");
@@ -230,6 +253,11 @@ let handleDroppedFile = (file, filename) => {
         "progress_bar_container": fileProgressContainer
     }
     fileArea.appendChild(fileDomEntry);
+    */
+
+    fileRecord[filename] = {
+    }
+    addToFH(filename, true)
     totalUploads++;
     lastUploadInChain = lastUploadInChain.then(() => {return dispatchUpload(file, filename);});
 }
