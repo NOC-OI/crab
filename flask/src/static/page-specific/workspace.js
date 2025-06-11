@@ -56,7 +56,8 @@ let fileArea = document.getElementById("file_area");
 let noFilesMessage = document.getElementById("no_files_message");
 let topTextBox = document.getElementById("top_text");
 let topProgressBar = document.getElementById("top_progress");
-let filesystemHierarchy = {}
+let visibleFileElements = [];
+let filesystemHierarchy = {};
 let totalUploads = 0;
 let totalUploadsDone = 0;
 let totalUploadTime = 0;
@@ -72,11 +73,119 @@ let addToFH = (path, uploading = false) => {
                     "children": {},
                     "open": false,
                     "uploading": uploading,
-                    "folder": ((pathArray.length - 1) > i)
+                    "folder": ((pathArray.length - 1) > i),
+                    "path": pathArray.slice(0, i + 1).join("/")
                 }
             }
             lastDir = lastDir[pathArray[i]]["children"]
         }
+    }
+}
+
+let setPropOnFH = (path, key, value) => {
+    let pathArray = path.split("/")
+    let lastDir = filesystemHierarchy;
+    let lobj = null;
+    //console.log(pathArray)
+    for (let i = 0; i < pathArray.length; i++) {
+        if (pathArray[i].length > 0) {
+            lobj = lastDir[pathArray[i]];
+            lastDir = lastDir[pathArray[i]]["children"]
+        }
+    }
+    lobj[key] = value;
+    updateFileElements();
+    //console.log(lobj)
+}
+
+let updateFileElements = () => {
+    reflowFileElements();
+    renderInView();
+}
+
+let reflowFileElements = () => {
+    let newVFE = [];
+
+    //let cDirectoryStack = [];
+
+    //cDirectoryStack.push([filesystemHierarchy, 0]);
+    let stack = []
+    let state = {
+        "dir": filesystemHierarchy,
+        "dir_keys": Object.keys(filesystemHierarchy),
+        "cidx": 0,
+        "ld": 0
+    }
+    stack.push(state);
+
+    while (stack.length > 0) {
+        state = stack.pop();
+        let dirKeys = state["dir_keys"];
+        let dir = state["dir"];
+        while (state["cidx"] < dirKeys.length) {
+            let dk = dirKeys[state["cidx"]];
+            let record = {
+                "name": dk,
+                "path": dir[dk]["path"],
+                "folder": dir[dk]["folder"],
+                "open": dir[dk]["open"],
+                "il": state["ld"]
+            }
+            state["cidx"]++;
+            newVFE.push(record);
+            if (dir[dk]["open"]) {
+                stack.push(state);
+                stack.push({
+                    "dir": dir[dk]["children"],
+                    "dir_keys": Object.keys(dir[dk]["children"]),
+                    "cidx": 0,
+                    "ld": state["ld"] + 1
+                });
+                break;
+            }
+        }
+    }
+
+    //console.log(newVFE);
+
+    visibleFileElements = newVFE;
+}
+
+let renderInView = () => {
+    if (noFilesMessage != null) {
+        noFilesMessage.remove();
+        noFilesMessage = null;
+    }
+
+    fileArea.textContent = "";
+    for (let i = 0; i < visibleFileElements.length; i++) {
+        //visibleFileElements[i]
+        let filename = visibleFileElements[i]["name"];
+        let fullpath = visibleFileElements[i]["path"];
+        let fileDomEntry = document.createElement("div");
+        let fileIconDomEntry = document.createElement("i");
+        let filenameDomEntry = document.createElement("span");
+        fileDomEntry.appendChild(fileIconDomEntry);
+        fileDomEntry.appendChild(filenameDomEntry);
+        fileDomEntry.style.marginLeft = (visibleFileElements[i]["il"] * 5) + "mm"
+        filenameDomEntry.innerText = " " + filename;
+        fileIconDomEntry.classList.add("bi");
+        if (visibleFileElements[i]["folder"]) {
+            let isOpen = visibleFileElements[i]["open"]
+            if (isOpen) {
+                fileIconDomEntry.classList.add("bi-folder2-open");
+            } else {
+                fileIconDomEntry.classList.add("bi-folder2");
+            }
+            fileDomEntry.addEventListener("click", () => {
+                setPropOnFH(fullpath, "open", !isOpen);
+            });
+        } else {
+            fileIconDomEntry.classList.add("bi-file-earmark");
+        }
+        fileDomEntry.classList.add("file-entry");
+        //fileRecord[filename]["dom"] = fileDomEntry;
+        fileArea.appendChild(fileDomEntry);
     }
 }
 
@@ -93,7 +202,7 @@ let dispatchUpload = (file, filename) => {
         //fileRecordEntry["progress_bar"].style.width = 0;
         errorHandler = () => {
             resolve();
-            fileRecordEntry["progress_bar"].classList.add("bg-danger");
+            //fileRecordEntry["progress_bar"].classList.add("bg-danger");
             //delete fileRecord[filename];
             setTimeout(() => {
                 //fileRecordEntry["progress_bar"].classList.remove("bg-danger");
@@ -172,10 +281,7 @@ setInterval(updateProgressBar, 1000);
 let sortView = () => {
     //console.log(Object.keys(fileRecord).length)
     if (Object.keys(fileRecord).length > 0) {
-        if (noFilesMessage != null) {
-            noFilesMessage.remove();
-            noFilesMessage = null;
-        }
+
         const list = document.getElementById("file_area");
         [...list.children]
             .sort((a, b) => a.innerText.localeCompare(b.innerText, navigator.languages[0] || navigator.language, {numeric: true, ignorePunctuation: true}))
@@ -189,6 +295,7 @@ let pollChanges = () => {
     xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
             let wsd = JSON.parse(xhr.responseText);
+            let updates = false;
             for (const [path, fd] of Object.entries(wsd["files"])) {
                 if (fileRecord.hasOwnProperty(path)) {
                     //console.log("skip!")
@@ -209,9 +316,13 @@ let pollChanges = () => {
                     addToFH(filename, false)
                     //fileRecord[filename]["dom"] = fileDomEntry;
                     //fileArea.appendChild(fileDomEntry);
+                    updates = true;
                 }
             }
-            sortView();
+            if (updates) {
+                updateFileElements();
+                //sortView();
+            }
         }
     };
     xhr.open("GET", "/api/v1/workspaces/" + workspaceUuid, true);
