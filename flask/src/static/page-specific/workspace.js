@@ -152,13 +152,26 @@ let reflowFileElements = () => {
 }
 
 let renderInView = () => {
+    let visibleFromY = - fileArea.getBoundingClientRect().top;
+    let visibleToY = visibleFromY + window.innerHeight;
+    let lineHeight = document.getElementById("pixel_scale_elem").getBoundingClientRect().height;
+    let linesFrom = Math.floor(visibleFromY / lineHeight) + 1;
+    let linesTo = Math.ceil(visibleToY / lineHeight) - 3;
+    console.log(visibleFromY)
+
     if (noFilesMessage != null) {
         noFilesMessage.remove();
         noFilesMessage = null;
     }
 
     fileArea.textContent = "";
-    for (let i = 0; i < visibleFileElements.length; i++) {
+    let fileSpacer = document.createElement("div");
+    if (linesFrom < 0) {
+        linesFrom = 0;
+    }
+    fileSpacer.style.height = (lineHeight * linesFrom) + "px";
+    fileArea.appendChild(fileSpacer);
+    for (let i = linesFrom; (i < visibleFileElements.length) && (i < linesTo); i++) {
         //visibleFileElements[i]
         let filename = visibleFileElements[i]["name"];
         let fullpath = visibleFileElements[i]["path"];
@@ -180,12 +193,18 @@ let renderInView = () => {
             fileDomEntry.addEventListener("click", () => {
                 setPropOnFH(fullpath, "open", !isOpen);
             });
+            fileDomEntry.style.cursor = "pointer";
         } else {
             fileIconDomEntry.classList.add("bi-file-earmark");
         }
         fileDomEntry.classList.add("file-entry");
         //fileRecord[filename]["dom"] = fileDomEntry;
         fileArea.appendChild(fileDomEntry);
+    }
+    if (linesTo < visibleFileElements.length) {
+        let fileSpacerEnd = document.createElement("div");
+        fileSpacerEnd.style.height = (lineHeight * (visibleFileElements.length - linesTo)) + "px";
+        fileArea.appendChild(fileSpacerEnd);
     }
 }
 
@@ -374,3 +393,11 @@ let handleDroppedFile = (file, filename) => {
 }
 
 pollChanges();
+
+document.addEventListener("scroll", (e) => {
+    renderInView()
+});
+
+document.addEventListener("resize", (e) => {
+    renderInView()
+});
