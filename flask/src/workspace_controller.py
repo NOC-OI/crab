@@ -35,6 +35,16 @@ def new_workspace_screen():
     hints = request.args.get("hints", "").split(" ")
     return render_template("workspace_new.html", global_vars=get_app_frontend_globals(), session_info=session_info, s3_profiles=s3_profiles, hints=urllib.parse.quote_plus(" ".join(hints)))
 
+@workspace_pages.route("/workspaces", methods=['GET'])
+def workspace_list_screen():
+    session_info = get_session_info()
+    if session_info is None:
+        return redirect("/login", code=302)
+    couch_client = get_couch_client()
+    workspace_list = couch_client.find_all("crab_workspaces", {"owner": session_info["user_uuid"]}, ["last_active", "_id"])
+    return render_template("workspaces.html", global_vars=get_app_frontend_globals(), session_info=session_info, workspace_list=workspace_list)
+
+
 @workspace_pages.route("/workspaces/<workspace_uuid>", methods=['GET'])
 def workspace_screen(workspace_uuid):
     session_info = get_session_info()
