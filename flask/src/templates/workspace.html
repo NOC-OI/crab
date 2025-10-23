@@ -17,7 +17,7 @@
             <div class="my-3" style="display:none;">
                 <a class="btn btn-outline-secondary" style="display:none;">New folder <i class="bi bi-folder-fill"></i></a>
                 <a class="btn btn-outline-secondary" style="display:none;">Get FTP login details <i class="bi bi-hdd-network-fill"></i></a>
-                <a href="/api/v1/workspaces/{{ workspace_id }}" style="display:none;" class="btn btn-danger">Destroy workspace <i class="bi bi-trash-fill"></i></a>
+                <a href="/api/v1/workspaces/{{ workspace_id }}/destroy" style="display:none;" class="btn btn-danger">Destroy workspace <i class="bi bi-trash-fill"></i></a>
             </div>
         </div>
 
@@ -30,6 +30,7 @@
 
     <div class="col-12 col-lg-4">
         <a class="btn btn-outline-secondary">Suggest more actions <i class="bi bi-stars"></i></a>
+        <a class="btn btn-outline-secondary" onclick="startDefinedJob('PARQUET_IMPORT');">Add data from Parquet files to database <i class="bi bi-database-fill-add"></i></a>
         <div class="p-4 border rounded mt-3" style="display:none;">
             <p>Detected IFCB data, would you like to ingest this dataset?</p>
             <a class="btn btn-primary">Add images to database <i class="bi bi-database-fill-add"></i></a>

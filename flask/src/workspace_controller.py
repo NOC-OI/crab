@@ -201,3 +201,42 @@ def api_v1_workspace_upload_file(workspace_uuid):
             "error": "badUUID",
             "msg": "Invalid workspace UUID " + raw_uuid
             }), status=400, mimetype='application/json')
+
+@workspace_api.route("/api/v1/workspaces/<workspace_uuid>/process", methods=['POST'])
+def api_v1_workspace_process_file(workspace_uuid):
+    session_info = get_session_info()
+    if session_info is None:
+        return Response(json.dumps({
+            "error": "notLoggedIn",
+            "msg": "User is not logged in, or session has expired."
+            }), status=403, mimetype='application/json')
+    try:
+        uuid_obj = uuid.UUID(workspace_uuid, version=4)
+        couch_client = get_couch_client()
+        workspace_def = couch_client.get_document("crab_workspaces", str(uuid_obj))
+
+        if not session_info["user_uuid"] == workspace_def["owner"]:
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to edit this resource."
+                }), status=401, mimetype='application/json')
+
+        job_uuid = uuid.uuid4()
+        job_md = {
+                "type": "PREDEFINED_WORKSPACE_JOB",
+                "target_id": str(uuid_obj),
+                "status": "PENDING",
+                "progress": 0.0
+            }
+
+        get_couch_client().put_document("crab_jobs", str(job_uuid), job_md)
+        advertise_job(str(job_uuid))
+
+        return Response(json.dumps({
+            "job_id": str(job_uuid)
+            }), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid workspace UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
