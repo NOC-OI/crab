@@ -1,9 +1,13 @@
 let xhr = null;
-let jobId = null;
-let progressBar = null;
-let jobOutput = null;
-let spinnerContainer = null;
-let spinnerText = null;
+let jobOutput = document.getElementById("job_output")
+let progressBar = document.querySelector(".progress-bar");
+let spinnerContainer = document.querySelector(".spinner-container");
+let spinnerText = document.querySelector(".spinner-container-text");
+let redirectCheckbox = document.getElementById("redirect_checkbox");
+let checkboxContainer = document.getElementById("redirect_checkbox_container");
+let redirectButtonContainer = document.getElementById("redirect_button_container");
+let redirectButton = document.getElementById("redirect_button");
+let jobId = document.getElementById("job_id").value;
 
 let updateJobInfo = () => {
     if (xhr != null) {
@@ -20,8 +24,9 @@ let updateJobInfo = () => {
                     progressBar.classList.remove("bg-success");
                     progressBar.classList.remove("progress-bar-striped");
                     progressBar.classList.add("bg-danger");
-                    jobOutput.innerText = response["msg"] + "\n" + response.hasOwnProperty("trace") ? response["trace"] + "\n" : ""
+                    jobOutput.innerText = "EXITED WITH ERROR" + "\n\n" + response["msg"] + "\n" + (response.hasOwnProperty("trace") ? response["trace"] + "\n" : "")
                     spinnerContainer.style.display = "none";
+                    checkboxContainer.style.display = "none";
                     break;
                 case "COMPLETE":
                     progressBar.classList.remove("bg-warning");
@@ -60,13 +65,5 @@ let updateJobInfo = () => {
     xhr.send();
 }
 
-jobOutput = document.getElementById("job_output")
-progressBar = document.querySelector(".progress-bar");
-spinnerContainer = document.querySelector(".spinner-container");
-spinnerText = document.querySelector(".spinner-container-text");
-redirectCheckbox = document.getElementById("redirect_checkbox");
-checkboxContainer = document.getElementById("redirect_checkbox_container");
-redirectButtonContainer = document.getElementById("redirect_button_container");
-redirectButton = document.getElementById("redirect_button");
-jobId = document.getElementById("job_id").value;
+updateJobInfo();
 setInterval(updateJobInfo, 1000);
