@@ -9,66 +9,28 @@
         <div class="p-4 border rounded">
             <h1>{{ project_data.identifier if project_data.identifier is defined else "Untitled project" }}</h1>
             <span>{{ project_data.description }}</span>
-
-            <div class="my-3">
-            {% if can_edit %}
-            <a href="/projects/{{ project_data._id }}/edit" class="btn btn-outline-secondary">Edit project information <i class="bi bi-pencil-fill"></i></a>
-            {% endif %}
-            </div>
-
-
             {{ project_readme|safe }}
         </div>
 
-
-        <div class="p-4 border rounded mt-3">
-            <h2>Annotations</h2>
-
-            <a href="/projects/{{ project_data._id }}/export" class="btn btn-primary">Export project</a>
-            <a href="/annotations/import?basis_id={{ project_data._id }}&basis_type=PROJECT" class="btn btn-primary">Import annotations</a>
-        </div>
-    </div>
-
-
-    <div class="col-12 col-lg-4">
-
-
-        {% if can_edit %}
-        <form method="POST" action="/api/v1/projects/{{ project_data._id }}/new_layer?redirect=%2Fprojects%2F{{ project_data._id }}" enctype="multipart/form-data">
-            <fieldset>
-                <div class="input-group mb-3">
-                    <input type="text" name="name" class="form-control" placeholder="Layer name" aria-label="New layer name" aria-describedby="button-addon2">
-
-                    <input class="btn btn-primary" type="submit" id="button-addon2" value="Create new layer">
-
-                </div>
-            </fieldset>
-        </form>
-        {% endif %}
-
-
-
-        <div class="accordion" id="accordion-layers">
-            {% for layer in layers %}
+        <div class="accordion" id="accordion-deposits">
+            {% for deposit in deposits %}
             <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-{{ layer._id }}">
-                <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ layer._id }}" aria-expanded="true" aria-controls="collapse-{{ layer._id }}">
-                    {{ layer.identifier | capitalize }} layer {{ "{" ~ layer._id ~ "}" }}
+                <h2 class="accordion-header" id="heading-{{ deposit._id }}">
+                <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ deposit._id }}" aria-expanded="true" aria-controls="collapse-{{ deposit._id }}">
+                    {{ deposit.identifier | capitalize }} deposit {{ "{" ~ deposit._id ~ "}" }}
                 </button>
                 </h2>
-                <div id="collapse-{{ layer._id }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" aria-labelledby="heading-{{ layer._id }}" data-bs-parent="#accordion-layers">
+                <div id="collapse-{{ deposit._id }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" aria-labelledby="heading-{{ deposit._id }}" data-bs-parent="#accordion-deposits">
                 <div class="accordion-body">
                     {% if can_edit %}
-                    <h5>Layer actions</h5>
-                    <a href="/static/via/html/_via_image_annotator.html#{{ layer.via_project_string }}" class="btn btn-primary">Annotate layer with VIA</a>
 
                     <hr class="my-3">
                     {% endif %}
                     <h5>Snapshots</h5>
                     {% if can_edit %}
-                    <a href="/layers/{{ layer._id }}/new-snapshot" class="btn btn-primary">Publish snapshot</a>
+                    <a href="/deposits/{{ deposit._id }}/new-snapshot" class="btn btn-primary">Publish snapshot</a>
                     {% endif %}
-                    {% for snapshot in layer.snapshots|reverse %}
+                    {% for snapshot in deposit.snapshots|reverse %}
                     <div class="mt-3">
                         <div class="card">
                             <div class="card-body">
@@ -85,9 +47,9 @@
                     <hr class="my-3">
                     <h5>Observations</h5>
                     {% if can_edit %}
-                    <a href="/runs?connect_to={{ layer._id }}&connect_type=layer&finish_redirect=%2Fprojects%2F{{ project_data._id }}" class="btn btn-primary">Add data run</a>
+                    <a href="/runs?connect_to={{ deposit._id }}&connect_type=deposit&finish_redirect=%2Fprojects%2F{{ project_data._id }}" class="btn btn-primary">Add data run</a>
                     {% endif %}
-                    {% for run in layer.runs|reverse %}
+                    {% for run in deposit.runs|reverse %}
                     <div class="mt-3">
                         <div class="card">
                             <div class="card-body">
@@ -110,6 +72,43 @@
             </div>
             {% endfor %}
         </div>
+
+
+
+    </div>
+
+
+    <div class="col-12 col-lg-4">
+
+
+        <div class="p-4 border rounded">
+            <h2>Project actions</h2>
+
+            <a href="/projects/{{ project_data._id }}/export" class="btn btn-primary">Export project</a>
+            <a href="/workspaces/new?hints=ANNOTATION_DATA&project_connect_id={{ project_data._id }}" class="btn btn-primary">Upload data or annotations</a>
+            <a href="/deposits?project_connect_id={{ project_data._id }}" class="btn btn-primary">Attach data or annotations</a>
+            {% if can_edit %}
+            <a href="/projects/{{ project_data._id }}/edit" class="btn btn-primary">Edit project information <i class="bi bi-pencil-fill"></i></a>
+            {% endif %}
+        </div>
+        <!--
+
+        btn-outline-secondary
+        <form method="POST" action="/api/v1/projects/{{ project_data._id }}/new_deposit?redirect=%2Fprojects%2F{{ project_data._id }}" enctype="multipart/form-data">
+            <fieldset>
+                <div class="input-group mb-3">
+                    <input type="text" name="name" class="form-control" placeholder="Layer name" aria-label="New deposit name" aria-describedby="button-addon2">
+
+                    <input class="btn btn-primary" type="submit" id="button-addon2" value="Create new deposit">
+
+                </div>
+            </fieldset>
+        </form>
+        -->
+
+
+
+
     </div>
 
 </div>

@@ -2,7 +2,7 @@ let userCache = {};
 let observationCache = {};
 let searchSelector = {};
 
-let fromClass = "run";
+let fromClass = "deposit";
 let currentPage = -1;
 let currentXhr = null;
 
@@ -138,13 +138,12 @@ let renderPage = (docs, docClass, listView, page) => {
         cardCol.appendChild(card)
 
         switch (docClass) {
-            case "run":
+            case "deposit":
             case "project":
-            case "layer":
             default:
                 let cardImage = document.createElement("img");
                 cardImage.classList.add("card-img-top");
-                if (docClass == "run") {
+                if (docClass == "deposit") {
                     if (docInfo.hasOwnProperty("observations")) {
                         cardImage.src = "/api/v1/observations/" + docInfo["observations"]["0"] + "/thumbnail";
                     }
@@ -164,8 +163,8 @@ let renderPage = (docs, docClass, listView, page) => {
                             cardTitle.href = "/" + docClass + "s/" + docInfo["_id"];
                         } else {
                             switch (connectToClass) {
-                                case "layer":
-                                    cardTitle.href = "/api/v1/layers/" + connectTo + "/connect?to=" + docInfo["_id"] + "&type=" + docClass + "&redirect=" + redirect;
+                                case "project":
+                                    cardTitle.href = "/api/v1/projects/" + connectTo + "/connect?to=" + docInfo["_id"] + "&type=" + docClass + "&redirect=" + redirect;
                                     break;
                                 default:
                                     cardTitle.href = "/" + docClass + "s/" + docInfo["_id"];
@@ -187,7 +186,7 @@ let renderPage = (docs, docClass, listView, page) => {
                     case "project":
                         cardText.innerText = docInfo["description"];
                         break;
-                    case "run":
+                    case "deposit":
                         let timestamp = new Date();
                         timestamp.setTime(docInfo["ingest_timestamp"] * 1000);
                         getUserInfo(docInfo["creator"]["uuid"]).then((userInfo) => {
@@ -217,7 +216,7 @@ let renderPage = (docs, docClass, listView, page) => {
     currentXhr = null;
 }
 
-let loadPage = (fromClass = "run", selector = {}, sort = {}, page = 0) => {
+let loadPage = (fromClass = "deposit", selector = {}, sort = {}, page = 0) => {
     document.getElementById("list_view").innerHTML = "";
     document.getElementById("page_number_top").value = page + 1;
     document.getElementById("page_number_bottom").value = page + 1;
@@ -235,8 +234,8 @@ let loadPage = (fromClass = "run", selector = {}, sort = {}, page = 0) => {
                 currentXhr.open("POST", "/api/v1/projects");
                 break;
             default:
-            case "run":
-                currentXhr.open("POST", "/api/v1/runs");
+            case "deposit":
+                currentXhr.open("POST", "/api/v1/deposits");
                 break;
         }
         currentXhr.addEventListener('loadend', () => {

@@ -55,8 +55,6 @@ def unpack_upload():
     dt = datetime.datetime.now()
     timestamp = "{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}Z".format(dt.year,dt.month,dt.day,dt.hour,dt.minute,dt.second)
 
-    initial_layer_uuid = str(uuid.uuid4())
-
     document_template = {
             "identifier": identifier,
             "public_visibility": public_visibility,
@@ -64,24 +62,11 @@ def unpack_upload():
             "description": description,
             "readme": readme,
             "creation_timestamp": timestamp,
-            "layers": [initial_layer_uuid]
-        }
-
-    layer_template = {
-            "runs": [],
-            "identifier": "main",
-            "project": project_uuid
+            "deposits": []
         }
 
     project_dblist = get_couch()["crab_projects"]
     project_dblist[project_uuid] = document_template
-    layers_dblist = get_couch()["crab_layers"]
-    layers_dblist[initial_layer_uuid] = layer_template
-
-    #    return Response(json.dumps({
-    #        "error": "badProfile",
-    #        "msg": "Invalid Profile " + profile
-    #        }), status=400, mimetype='application/json')
 
     response = make_response(redirect("/projects/" + project_uuid, code=302))
     return response
@@ -197,35 +182,16 @@ def project_detail_screen(raw_uuid):
         md_template_string = md_template_string.replace("<pre>", "<pre style=\"margin:0;\">")
         md_template = md_css_string + md_template_string
 
-        layers = []
+        deposits = []
+        for deposit_id in project_data:
+            if deposit_id in get_couch()["crab_deposits"]:
+                deposits.append(get_couch()["crab_deposits"][deposit_id])
 
-        for layer_id in project_data["layers"]:
-            layer = get_couch()["crab_layers"][str(layer_id)]
-            runs = []
-            if "runs" in layer:
-                for run_id in layer["runs"]:
-                    if run_id in get_couch()["crab_runs"]:
-                        runs.append(get_couch()["crab_runs"][run_id])
-            snapshots = []
-            if "snapshots" in layer:
-                for snapshot_id in layer["snapshots"]:
-                    if snapshot_id in get_couch()["crab_snapshots"]:
-                        snapshots.append(get_couch()["crab_snapshots"][snapshot_id])
-                        #print(json.dumps(get_couch()["crab_snapshots"][snapshot_id], indent=2))
+        via_project_string = urlsafe_b64encode(json.dumps({
+                "remote_project": "/api/v1/projects/" + project_data["_id"] + "/via_annotation_project"
+            }).encode("utf-8")).decode("utf-8")
 
-            via_project_string = urlsafe_b64encode(json.dumps({
-                    "remote_project": "/api/v1/layers/" + layer["_id"] + "/via_annotation_project"
-                }).encode("utf-8")).decode("utf-8")
-
-            layers.append({
-                    "_id": layer["_id"],
-                    "identifier": layer["identifier"],
-                    "via_project_string": via_project_string,
-                    "snapshots": snapshots,
-                    "runs": runs
-                })
-
-        return render_template("project_info.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), project_data=project_data, project_readme=md_template, layers=layers, can_edit=can_edit(str(uuid_obj)))
+        return render_template("project_info.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), project_data=project_data, project_readme=md_template, deposits=deposits, via_project_string=via_project_string, can_edit=can_edit(str(uuid_obj)))
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
@@ -317,7 +283,7 @@ def api_v1_get_projects():
     limit = 12
     mango = {
             "selector": mango_selector,
-            "fields": ["collaborators", "creation_timestamp", "_id", "identifier", "description", "layers"],
+            "fields": ["collaborators", "creation_timestamp", "_id", "identifier", "description", "deposits"],
             "skip": page * limit,
             "sort": mango_sort,
             "limit": limit
@@ -325,47 +291,7 @@ def api_v1_get_projects():
     #            "sort": mango_sort,
 
     ret = requests.post(get_couch_base_uri() + "crab_projects/" + "_find", json=mango).json()
-    #print(ret)
     return Response(json.dumps(ret), status=200, mimetype='application/json')
-
-@project_api.route("/api/v1/projects/<raw_uuid>/new_layer", methods=["POST"])
-def api_v1_new_layer(raw_uuid):
-    try:
-        uuid_obj = uuid.UUID(raw_uuid, version=4)
-
-        if not can_view(str(uuid_obj)):
-            return Response(json.dumps({
-                "error": "readDenied",
-                "msg": "User is not allowed to view this resource."
-                }), status=401, mimetype='application/json')
-
-        project_data = get_couch()["crab_projects"][str(uuid_obj)]
-        new_layer_id = str(uuid.uuid4())
-
-        layer_template = {
-            "runs": [],
-            "identifier": request.form.get("name","untitled"),
-            "project": str(uuid_obj)
-        }
-
-        project_data["layers"].append(new_layer_id)
-
-        get_couch()["crab_layers"][new_layer_id] = layer_template
-        get_couch()["crab_projects"][str(uuid_obj)] = project_data
-
-        redirect_uri = request.args.get("redirect", "")
-        if len(redirect_uri) > 0:
-            return redirect(redirect_uri, code=302)
-        else:
-            return Response(json.dumps({
-                "msg": "done",
-                "layer": layer_data
-                }), status=200, mimetype='application/json')
-    except ValueError:
-        return Response(json.dumps({
-            "error": "badUUID",
-            "msg": "Invalid UUID " + raw_uuid
-            }), status=400, mimetype='application/json')
 
 @project_api.route("/api/v1/projects/<raw_uuid>", methods=['GET'])
 def api_v1_get_project(raw_uuid):
