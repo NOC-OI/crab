@@ -2,12 +2,7 @@
 
 ## Uploading data
 
-Start by making a Zip archive of your raw data. Leave the files exactly as they are coming off your instrument. CRAB will convert your data into TIFF images and JSON metadata automatically.
-
-The currently installed version of CRAB supports data from the following devices:
-
-- [Sequoia LISST-Holo2](https://mclanelabs.com/imaging-flowcytobot/)
-- [McLane Labs IFCB](https://www.sequoiasci.com/product/lisst-holo/)
+Use a processing tool that generates [CRAB compatible data](compatible-data.md). This will usually generate at least two files, your "deposit", a zip file containing all original data files, and a "data.parquet" file containing all raw data. Some instruments generate locality data, or primarily work with ROIs. In this case you will likely also have a "annotation.parquet" file, which contains ROI information and possibly extra metadata.
 
 ## Building a project
 
