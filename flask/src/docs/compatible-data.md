@@ -13,9 +13,7 @@ Raw orthogonal data, and metadata from the original instrument.
 | data_type | Literal string "CRAB_DATA_V1" |
 | last_modified | uint64, Unix timestamp of last modification |
 | dimensions | uint64, number of dimensions each entry contains |
-| domain_types | JSON encoded array, stating the type of each domain. Usual domain types are: "spatial", "chromatic", "temporal", "frequency", "feature" |
-| domains | Array of uint8, each uint8 referring to a domain type |
-| domain_resolutions | JSON encoded array of strings, stating the scale of each dimension, and an SI unit symbol as a suffix. The SI unit symbol should be without prefix, and separated from the number with a space. The number should represent the minimum distance between any two points for a given dimension. As a special case, where the distances point to point vary (e.g. in a Chroma dimension for frequency, or a spatial dimension for line-scan camera data), an average may be used. For Chroma, wavelength is preferred as a unit over frequency. |
+| domain_types | JSON encoded array, stating the type of each domain. Usual domain types are: "spatial", "chromatic", "temporal", "frequency", "feature". Each domain type definition should state the scale of each dimension, and an SI unit symbol as a suffix. The SI unit symbol should be without prefix, and separated from the number with a space. The number should represent the minimum distance between any two points for a given dimension. As a special case, where the distances point to point vary (e.g. in a Chroma dimension for frequency, or a spatial dimension for line-scan camera data), an average may be used. For Chroma, wavelength is preferred as a unit over frequency. In cases where a resolution is not applicable (e.g. in feature space), the dimension suffix may be omitted. In this case the entire string would be "feature" with no trailing spaces. |
 | bit_depth | uint64, the bit depth of the data |
 | stored_bit_depth | uint64, how many bits per value. This MAY be different from bit_depth, for example 7-bit ADC data MAY be stored as the least significant of 8-bits to allow for byte-aligned arrays. |
 | contains_udts | Concatenated binary string of binary UDTs |
@@ -27,9 +25,7 @@ Raw orthogonal data, and metadata from the original instrument.
 | data_type | CRAB_DATA_V1 |
 | last_modified | 1762184335 |
 | dimensions | 3 |
-| domain_types | \["spatial", "chromatic"\] |
-| domains | 0, 0, 1 |
-| domain_resolutions | \["3.5714285714285716e-07 m", "1.5e-07 m"\] |
+| domain_types | \["spatial 3.5714285714285716e-07 m", "spatial 3.5714285714285716e-07 m", "chromatic 1.5e-07 m"\] |
 | bit_depth | 8 |
 | stored_bit_depth | 8 |
 | contains_udts | 0x022dc621accf3dc224a43f022373c200006839044c |
