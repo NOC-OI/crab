@@ -97,7 +97,7 @@ Each ROI simply maps out the extents of an observation. This is often an automat
 | references_udts | Concatenated binary string of binary compact UDTs referenced |
 | x_<metadata_name\> | **(optional)** Arbitrary fields for use in application-specific scenarios |
 
-**Example for annotations from EcoTaxa**
+**Example for annotations from IFCBProc**
 
 | Key | Value |
 | --- | --- |
@@ -120,7 +120,7 @@ Each ROI simply maps out the extents of an observation. This is often an automat
 
 **Note regarding use_dictionary:** It is highly reccomended to use the "use_dictionary" parameter for "annotator" and "annotation_software".
 
-**Example for annotations from EcoTaxa**
+**Example for annotations from IFCBProc**
 
 | Key | Value |
 | --- | --- |
@@ -185,6 +185,6 @@ For taxonomic data, CRAB reccomends using GBIF URIs to refer to species. While a
 | udt_bin | 0x032dc621accf3dc224a43f022373c200006839044c9400f1b21cb527d7 |
 | uuid | 0x486b38eefc0a4a1aa16a1ac3b0eb5ed8 |
 | last_modified | 1762184586 |
-| annotator | null |
+| annotator | alewin@noc.ac.uk |
 | annotation_software | https://github.com/ecotaxa/ecotaxa |
 | field_taxon | https://www.gbif.org/species/8211946 |
