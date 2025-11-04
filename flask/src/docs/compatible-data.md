@@ -15,11 +15,12 @@ Raw orthogonal data, and metadata from the original instrument.
 | dimensions | uint64, number of dimensions each entry contains |
 | domain_types | JSON encoded array, stating the type of each domain. Usual domain types are: "spatial", "chromatic", "temporal", "frequency", "feature" |
 | domains | Array of uint8, each uint8 referring to a domain type |
+| domain_resolutions | JSON encoded array of strings, stating the scale of each dimension, and an SI unit symbol as a suffix. The SI unit symbol should be without prefix, and separated from the number with a space. The number should represent the minimum distance between any two points for a given dimension. As a special case, where the distances point to point vary (e.g. in a Chroma dimension for frequency, or a spatial dimension for line-scan camera data), an average may be used. For Chroma, wavelength is preferred as a unit over frequency. |
 | bit_depth | uint64, the bit depth of the data |
 | stored_bit_depth | uint64, how many bits per value. This MAY be different from bit_depth, for example 7-bit ADC data MAY be stored as the least significant of 8-bits to allow for byte-aligned arrays. |
 | contains_udts | Concatenated binary string of binary UDTs |
 
-**Example for an image system:**
+**Example for a RGB microscopic image system:**
 
 | Key | Value |
 | --- | --- |
@@ -28,6 +29,7 @@ Raw orthogonal data, and metadata from the original instrument.
 | dimensions | 3 |
 | domain_types | \["spatial", "chromatic"\] |
 | domains | 0, 0, 1 |
+| domain_resolutions | \["3.5714285714285716e-07 m", "1.5e-07 m"\] |
 | bit_depth | 8 |
 | stored_bit_depth | 8 |
 | contains_udts | 0x022dc621accf3dc224a43f022373c200006839044c |
@@ -42,7 +44,25 @@ Temporal dimensions are another common type, that is largely self explanatory. I
 
 A feature dimension is a dimension which represents a change in type of data. One example for use of such data might be in water monitoring, for separating the different features of salinity, temperature and turbidity. In this case there would be a "feature" dimension of extent 3.
 
-Chromatic and frequency dimensions are a special case of feature dimensions, and CRAB will treat them identically. They are used for colour channels in images and frequency bins in spectrogram data respectively.
+Chromatic and frequency dimensions are a special case of feature dimensions, and CRAB will treat them identically in data processing, but differently for display purposes. They are used for colour channels in images and frequency bins in spectrogram data respectively. Both chromatic and frequency dimensions should increase starting from 0. In practice this means the standard RGB pattern should be used. In non-RGB cameras, care should be taken to put lower frequency (higher wavelength) information before higher frequency (lower wavelength) information, for example, infrared would come before red green and blue. Cameras that output YCrCb or similar signals should be translated to RGB.
+
+#### Note about domain order
+
+Domains should be ordered from most commonly separated to least commonly separated. This is because of the column-major array order. Logically, dimensions that are commonly sliced along, such as time, should go first in a column-major format, as this allows individual time-steps to be read as a smaller chunk of disk access. This has large implications for the efficiency of data processing, as if a seperable dimension is places later in the order, disk reads become discontinuous when selecting part of an array. Moderns processors also work more effectively on condiguous data, so it is important to ensure that contiguous segments can be read most of the time. For video data, an example layout might be:
+
+- Time (temporal)
+- Pixel X (spatial)
+- Pixel Y (spatial)
+- RGB (chroma)
+
+Since we very rarely split video into R, G and B channels, it makes sense that that should be the least efficient operation. Time being the most common way to split a video (e.g. taking a single frame from a video), therefore becomes the most efficient operation. If you did however regularly finding yourself splitting R, G and B channels, you might consider a domain layout as such:
+
+- Time (temporal)
+- RGB (chroma)
+- Pixel X (spatial)
+- Pixel Y (spatial)
+
+This would make RGB splits the second most efficient operation. It is important to note that compatible software should be able to decode the data no matter the order, and this is simply a matter of performance. Choosing one order over another affects speed, not what is possible to do with the data.
 
 ### Per-entry values
 
@@ -54,14 +74,15 @@ Chromatic and frequency dimensions are a special case of feature dimensions, and
 | last_modified | uint64, Unix timestamp of data collection |
 | extents | Array of uint64, one for each dimension |
 
-**Example for an image system:**
+**Example for an IFCB greyscale plankton imaging system:**
 
 | Key | Value |
 | --- | --- |
 | udt | udt1__usa_mc_lane_research_laboratories__imaging_flow_cytobot__225__1748567116__19 |
 | udt_bin | 0x032dc621accf3dc224a43f022373c200006839044c9400f1b21cb527d7 |
-| data | \<raw data\> |
-| extents | 400, 600, 3 |
+| data | <raw_array_data\> |
+| last_modified | 1762184646 |
+| extents | 400, 600 |
 
 ## Region of interest
 
@@ -74,7 +95,7 @@ Each ROI simply maps out the extents of an observation. This is often an automat
 | data_type | Literal string "CRAB_ROI_V1" |
 | last_modified | uint64, Unix timestamp of last modification |
 | references_udts | Concatenated binary string of binary compact UDTs referenced |
-| software_map | JSON encoded array of strings, URIs (preferably DOIs) of the softwares used to create the annotation set |
+| x_<metadata_name\> | **(optional)** Arbitrary fields for use in application-specific scenarios |
 
 **Example for annotations from EcoTaxa**
 
@@ -94,7 +115,8 @@ Each ROI simply maps out the extents of an observation. This is often an automat
 | last_modified | uint64, Unix timestamp of ROI modification time |
 | extents | Array of uint64, **two** for each dimension, first an lower bound, then an upper bound |
 | annotator | String, an email address or ORCID identifier (MUST be formatted with dashes). MUST be null if no human involvement |
-| annotation_software | String, URI reference to the software used to create the ROI |
+| annotation_software | String, URI reference to the software used to create the ROI, preferably the source code repository |
+| x_<metadata_name\> | **(optional)** Arbitrary fields for use in application-specific scenarios |
 
 **Note regarding use_dictionary:** It is highly reccomended to use the "use_dictionary" parameter for "annotator" and "annotation_software".
 
@@ -122,6 +144,7 @@ Each annotation is attached to a specific ROI, of a specific data frame. In a bi
 | data_type | Literal string "CRAB_ANNOTATION_V1" |
 | last_modified | uint64, Unix timestamp of last modification |
 | references_udts | Concatenated binary string of binary compact UDTs referenced |
+| x_<metadata_name\> | **(optional)** Arbitrary fields for use in application-specific scenarios |
 
 **Example for annotations from EcoTaxa**
 
@@ -140,15 +163,19 @@ Each annotation is attached to a specific ROI, of a specific data frame. In a bi
 | uuid | In compact binary form, used as the unique identifier of the ROI referenced |
 | last_modified | uint64, Unix timestamp of annotation modification time |
 | annotator | String, an email address or ORCID identifier (MUST be formatted with dashes). MUST be null if no human involvement |
-| annotation_software | uint64, cross reference to the software used to create the annotation |
-| field_\<field_name\> | Arbitrary fields for use in annotation, common ones listed below |
+| annotation_software | String, URI reference to the software used to create the annotation, preferably the source code repository |
+| field_<field_name\> | **(optional, but reccomended)** Arbitrary fields for use in annotation, common ones listed below |
 
-**Common fields***
+**Common fields**
 
-- taxa_id (e.g. 8211946)
-- taxonomy (e.g. https://www.gbif.org/)
+- taxon (e.g. https://www.gbif.org/species/8211946, or urn:lsid:marinespecies.org:taxname:149093)
+- major_axis_um (e.g. 129)
 
-**Note regarding use_dictionary:** It is highly reccomended to use the "use_dictionary" parameter for "annotator", "annotation_software" and any other string field with high repitition.
+When creating fields, it is always advisable to use URIs wherever possible. URIs are preferred as they are instantly recognisable, and allow new users to easily access further information. Parquet's dictionary compresson means that the excess size of URIs is not a problem for search or storage, so long as single, authorotative sources are used.
+
+For taxonomic data, CRAB reccomends using GBIF URIs to refer to species. While a WoRMS LSID is a suitable alternative (and will be recognised by CRAB), a GBIF URI is more immediately usable when encountered in the wild, and is preferred for datasets intended for public distribution.
+
+**Note regarding use_dictionary:** It is highly reccomended to use the "use_dictionary" parameter for "annotator", "annotation_software" and any other string field with high repitition. For biological data this usually includes fields such as "taxon" where there are a lot of duplicated string entries. With a lot of fields, it might make sense to increase the max dictionary size. Anaecdotally, around 2MB results in good performance on S3 backed storage, but decreased row group sizes of 32-64MB are needed for lower memory use.
 
 **Example for annotations from EcoTaxa**
 
@@ -159,4 +186,5 @@ Each annotation is attached to a specific ROI, of a specific data frame. In a bi
 | uuid | 0x486b38eefc0a4a1aa16a1ac3b0eb5ed8 |
 | last_modified | 1762184586 |
 | annotator | null |
-| annotation_software | 0 |
+| annotation_software | https://github.com/ecotaxa/ecotaxa |
+| field_taxon | https://www.gbif.org/species/8211946 |
