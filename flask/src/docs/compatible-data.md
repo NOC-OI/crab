@@ -12,7 +12,6 @@ Raw orthogonal data, and metadata from the original instrument.
 | --- | --- |
 | data_type | Literal string "CRAB_DATA_V1" |
 | last_modified | uint64, Unix timestamp of last modification |
-| dimensions | uint64, number of dimensions each entry contains |
 | domain_types | JSON encoded array, stating the type of each domain. See note below about domain types. |
 | bit_depth | uint64, the bit depth of the data |
 | stored_bit_depth | uint64, how many bits per value. This MAY be different from bit_depth, for example 7-bit ADC data MAY be stored as the least significant of 8-bits to allow for byte-aligned arrays. |
@@ -24,7 +23,6 @@ Raw orthogonal data, and metadata from the original instrument.
 | --- | --- |
 | data_type | CRAB_DATA_V1 |
 | last_modified | 1762184335 |
-| dimensions | 3 |
 | domain_types | \["spatial 3.5714285714285716e-07 m", "spatial 3.5714285714285716e-07 m", "chromatic 1.5e-07 m"\] |
 | bit_depth | 8 |
 | stored_bit_depth | 8 |
