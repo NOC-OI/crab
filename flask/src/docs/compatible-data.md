@@ -13,7 +13,7 @@ Raw orthogonal data, and metadata from the original instrument.
 | data_type | Literal string "CRAB_DATA_V1" |
 | last_modified | uint64, Unix timestamp of last modification |
 | dimensions | uint64, number of dimensions each entry contains |
-| domain_types | JSON encoded array, stating the type of each domain. Usual domain types are: "spatial", "chromatic", "temporal", "frequency", "feature". Each domain type definition should state the scale of each dimension, and an SI unit symbol as a suffix. The SI unit symbol should be without prefix, and separated from the number with a space. The number should represent the minimum distance between any two points for a given dimension. As a special case, where the distances point to point vary (e.g. in a Chroma dimension for frequency, or a spatial dimension for line-scan camera data), an average may be used. For Chroma, wavelength is preferred as a unit over frequency. In cases where a resolution is not applicable (e.g. in feature space), the dimension suffix may be omitted. In this case the entire string would be "feature" with no trailing spaces. |
+| domain_types | JSON encoded array, stating the type of each domain. See note below about domain types. |
 | bit_depth | uint64, the bit depth of the data |
 | stored_bit_depth | uint64, how many bits per value. This MAY be different from bit_depth, for example 7-bit ADC data MAY be stored as the least significant of 8-bits to allow for byte-aligned arrays. |
 | contains_udts | Concatenated binary string of binary UDTs |
@@ -32,15 +32,21 @@ Raw orthogonal data, and metadata from the original instrument.
 
 #### Note about domain types
 
-While it may seem abstract, each domain type has a specific function to allow definition of arbitrary orthagonal data.
+Usual domain types are: "spatial", "chromatic", "temporal", "frequency", "feature". Each domain type definition should state the scale of each dimension, and an SI unit symbol as a suffix. The SI unit symbol should be without prefix, and separated from the number with a space. 
 
-Spatial dimensions might be the most obvious type. Each different spatial dimention represents a new spatial axis that a data point might refer to.
+The number should represent the minimum distance between any two points for a given dimension. For example, a microscope might have a digital resolution of 2.8 pixels per um, which should be represented as "3.5714285714285716e-07 m". This represents the minimum distance resolveable (assuming perfect optics) and can be used to calculate object sizes.
 
-Temporal dimensions are another common type, that is largely self explanatory. It generally only makes sense to have one such dimension, and many annotation suites will be unable to process any more than the first temporal dimension.
+Where the distances point to point vary inconsistently (e.g. in a Chroma dimension for frequency, or a spatial dimension for line-scan camera data), an average may be used. In cases where a resolution is not applicable (e.g. in feature space), the dimension suffix may be omitted. In this case the entire string would be "feature" with no trailing spaces. In the case where a dimension steps in a non-linear way, an additional suffix of "log <base\>" should be used, with the first gap being given as the resolution. For example, a spectrogram with the following frequency bins; 4Hz, 8Hz, 16Hz, 32Hz; should use the domain type: "frequency 4 Hz log 2". Fractional log bases are allowed for inverse logarithmic scaling.
 
-A feature dimension is a dimension which represents a change in type of data. One example for use of such data might be in water monitoring, for separating the different features of salinity, temperature and turbidity. In this case there would be a "feature" dimension of extent 3.
+While it may seem abstract, each domain type has a specific function to allow definition of arbitrary orthagonal data:
 
-Chromatic and frequency dimensions are a special case of feature dimensions, and CRAB will treat them identically in data processing, but differently for display purposes. They are used for colour channels in images and frequency bins in spectrogram data respectively. Both chromatic and frequency dimensions should increase starting from 0. In practice this means the standard RGB pattern should be used. In non-RGB cameras, care should be taken to put lower frequency (higher wavelength) information before higher frequency (lower wavelength) information, for example, infrared would come before red green and blue. Cameras that output YCrCb or similar signals should be translated to RGB.
+- Spatial dimensions might be the most obvious type. Each different spatial dimention represents a new spatial axis that a data point might refer to.
+
+- Temporal dimensions are another common type, that is largely self explanatory. It generally only makes sense to have one such dimension, and many annotation suites will be unable to process any more than the first temporal dimension.
+
+- A feature dimension is a dimension which represents a change in type of data. One example for use of such data might be in water monitoring, for separating the different features of salinity, temperature and turbidity. In this case there would be a "feature" dimension of extent 3.
+
+- Chromatic and frequency dimensions are a special case of feature dimensions, and CRAB will treat them identically in data processing, but differently for display purposes. They are used for colour channels in images and frequency bins in spectrogram data respectively. Both chromatic and frequency dimensions should increase starting from 0. In practice this means the standard RGB pattern should be used. In non-RGB cameras, care should be taken to put lower frequency (higher wavelength) information before higher frequency (lower wavelength) information, for example, infrared would come before red green and blue. Cameras that output YCrCb or similar signals should be translated to RGB. For Chroma specifically, wavelength is preferred as a unit over frequency for the sake of standardisation. 
 
 #### Note about domain order
 
