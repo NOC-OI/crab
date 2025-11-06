@@ -14,7 +14,7 @@ Raw orthogonal data, and metadata from the original instrument.
 | last_modified | uint64, Unix timestamp of last modification |
 | domain_types | JSON encoded array, stating the type of each domain. See note below about domain types. |
 | bit_depth | uint64, the bit depth of the data |
-| stored_bit_depth | uint64, how many bits per value. This MAY be different from bit_depth, for example 7-bit ADC data MAY be stored as the least significant of 8-bits to allow for byte-aligned arrays. |
+| numerical_format | String, represents the format of values in the data arrays. Must be a power of two Numpy numerical type (i.e. float64 and float128 is permitted, but not float96). |
 | contains_udts | Concatenated binary string of binary UDTs |
 
 **Example for a RGB microscopic image system:**
@@ -25,7 +25,7 @@ Raw orthogonal data, and metadata from the original instrument.
 | last_modified | 1762184335 |
 | domain_types | \["spatial 3.5714285714285716e-07 m", "spatial 3.5714285714285716e-07 m", "chromatic 1.5e-07 m"\] |
 | bit_depth | 8 |
-| stored_bit_depth | 8 |
+| numerical_format | uint8 |
 | contains_udts | 0x022dc621accf3dc224a43f022373c200006839044c |
 
 #### Note about domain types
@@ -51,18 +51,20 @@ While it may seem abstract, each domain type has a specific function to allow de
 Domains should be ordered from most commonly separated to least commonly separated. This is because of the column-major array order. Logically, dimensions that are commonly sliced along, such as time, should go first in a column-major format, as this allows individual time-steps to be read as a smaller chunk of disk access. This has large implications for the efficiency of data processing, as if a seperable dimension is places later in the order, disk reads become discontinuous when selecting part of an array. Moderns processors also work more effectively on condiguous data, so it is important to ensure that contiguous segments can be read most of the time. For video data, an example layout might be:
 
 - Time (temporal)
-- Pixel X (spatial)
 - Pixel Y (spatial)
+- Pixel X (spatial)
 - RGB (chroma)
 
 Since we very rarely split video into R, G and B channels, it makes sense that that should be the least efficient operation. Time being the most common way to split a video (e.g. taking a single frame from a video), therefore becomes the most efficient operation. If you did however regularly finding yourself splitting R, G and B channels, you might consider a domain layout as such:
 
 - Time (temporal)
 - RGB (chroma)
-- Pixel X (spatial)
 - Pixel Y (spatial)
+- Pixel X (spatial)
 
 This would make RGB splits the second most efficient operation. It is important to note that compatible software should be able to decode the data no matter the order, and this is simply a matter of performance. Choosing one order over another affects speed, not what is possible to do with the data.
+
+On a side note, it is also sometimes useful to adopt the order or popular tools. Pixel Y comes before Pixel X here as this is the order that OpenCV will expect dimensions to be in. Therefore for image data, CRAB reccomends placing Y first and X second to avoid unexpectedly rotated imaged.
 
 ### Per-entry values
 
