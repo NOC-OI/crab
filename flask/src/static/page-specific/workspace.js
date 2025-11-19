@@ -140,7 +140,7 @@ let renderInView = () => {
     let lineHeight = document.getElementById("pixel_scale_elem").getBoundingClientRect().height;
     let linesFrom = Math.floor(visibleFromY / lineHeight) + 1;
     let linesTo = Math.ceil(visibleToY / lineHeight) - 3;
-    console.log(visibleFromY)
+    //console.log(visibleFromY)
 
     if (noFilesMessage != null) {
         noFilesMessage.remove();
@@ -254,6 +254,7 @@ let updateProgressBar = () => {
             topProgressBar.classList.add("bg-success");
             topProgressBar.classList.remove("progress-bar-striped");
             topProgressBar.classList.remove("progress-bar-animated");
+            updateFileElements();
         }
     }
 }
@@ -313,10 +314,15 @@ let startDefinedJob = (jobType) => {
             window.open("/jobs/" + responseObject["job_id"], '_blank').focus();
         }
     };
-    const formData = new FormData();
-    formData.append("type", jobType);
-    xhr.open("POST", "/api/v1/workspaces/" + workspaceUuid + "/process", true);
-    xhr.send(formData);
+    if (jobType == "PROCESS_DEPOSIT") {
+        xhr.open("GET", "/api/v1/workspaces/" + workspaceUuid + "/deposit", true);
+        xhr.send();
+    } else {
+        const formData = new FormData();
+        formData.append("type", jobType);
+        xhr.open("POST", "/api/v1/workspaces/" + workspaceUuid + "/process", true);
+        xhr.send(formData);
+    }
 }
 
 setInterval(updateProgressBar, 1000);
