@@ -74,10 +74,15 @@ def api_v1_new_workspace():
     else:
         redirect_uri = redirect_uri + "?hints=" + urllib.parse.quote_plus(" ".join(hints))
 
+    s3_profile = get_default_s3_profile_name()
+    if request.form.get("s3_profile", "") in get_s3_profiles():
+        s3_profile = request.form.get("s3_profile")
+
     couch_client = get_couch_client()
     couch_client.put_document("crab_workspaces", workspace_uuid, {
             "owner": session_info["user_uuid"],
             "folder_structure": {},
+            "s3_profile": s3_profile,
             "files": {}
         })
 
@@ -115,6 +120,46 @@ def api_v1_get_workspace(workspace_uuid):
             "msg": "Invalid workspace UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
+@workspace_api.route("/api/v1/workspaces/<workspace_uuid>/deposit", methods=['GET'])
+def api_v1_workspace_process_deposit(workspace_uuid):
+    session_info = get_session_info()
+    if session_info is None:
+        return Response(json.dumps({
+            "error": "notLoggedIn",
+            "msg": "User is not logged in, or session has expired."
+            }), status=403, mimetype='application/json')
+
+    try:
+        uuid_obj = uuid.UUID(workspace_uuid, version=4)
+        couch_client = get_couch_client()
+        workspace_def = couch_client.get_document("crab_workspaces", str(uuid_obj))
+        if not session_info["user_uuid"] == workspace_def["owner"]:
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to edit this resource."
+                }), status=401, mimetype='application/json')
+
+
+        job_uuid = uuid.uuid4()
+        job_md = {
+            "type": "PROCESS_DEPOSIT",
+            "target_id": str(uuid_obj),
+            "status": "PENDING",
+            "progress": 0.0
+        }
+
+        get_couch_client().put_document("crab_jobs", str(job_uuid), job_md)
+        advertise_job(str(job_uuid))
+
+        return Response(json.dumps({
+            "job_id": str(job_uuid)
+            }), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid workspace UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
 @workspace_api.route("/api/v1/workspaces/<workspace_uuid>", methods=['POST'])
 def api_v1_workspace_upload_file(workspace_uuid):
     session_info = get_session_info()
@@ -139,12 +184,12 @@ def api_v1_workspace_upload_file(workspace_uuid):
         file_size = uploaded_file.seek(0, os.SEEK_END)
         file_uuid = str(uuid.uuid4())
         if uploaded_file.filename != '':
-            uploaded_file.save(temp_loc + "/" + file_uuid + ".bin")
+            #uploaded_file.save(temp_loc + "/" + file_uuid + ".bin")
             filename = uploaded_file.filename
             filename = re.sub("\\\\", "/", filename)
             filename = filename.strip("/")
 
-            s3_profile = get_default_s3_profile_name()
+            s3_profile = workspace_def["s3_profile"]
             s3_path = "workspaces/" + workspace_uuid + "/" + file_uuid + ".bin"
 
             dirs = filename.split("/")
@@ -162,9 +207,6 @@ def api_v1_workspace_upload_file(workspace_uuid):
 
 
             if file_size > 0:
-                if request.args.get("s3_profile", "") in get_s3_profiles():
-                    s3_profile = request.args.get("s3_profile")
-
                 filedef = {
                         "file_uuid": file_uuid,
                         "owned": True,
@@ -174,8 +216,9 @@ def api_v1_workspace_upload_file(workspace_uuid):
                     }
                 workspace_def["files"][filename] = filedef
 
-                with open(temp_loc + "/" + file_uuid + ".bin", "rb") as f:
-                    get_s3_client(s3_profile).upload_fileobj(f, get_s3_bucket_name(s3_profile), s3_path)
+                #with open(temp_loc + "/" + file_uuid + ".bin", "rb") as f:
+                uploaded_file.seek(0)
+                get_s3_client(s3_profile).upload_fileobj(uploaded_file, get_s3_bucket_name(s3_profile), s3_path)
 
             couch_client.put_document("crab_workspaces", workspace_uuid, workspace_def)
 

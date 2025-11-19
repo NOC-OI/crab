@@ -30,9 +30,11 @@ Raw orthogonal data, and metadata from the original instrument.
 
 #### Note about domain types
 
-Usual domain types are: "spatial", "chromatic", "temporal", "frequency", "feature". Each domain type definition should state the scale of each dimension, and an SI unit symbol as a suffix. The SI unit symbol should be without prefix, and separated from the number with a space. 
+Usual domain types are: "spatial", "angular", "chromatic", "temporal", "frequency", "feature". Each domain type definition should state the scale of each dimension, and an SI unit symbol as a suffix. The SI unit symbol should be without prefix, and separated from the number with a space. 
 
 The number should represent the minimum distance between any two points for a given dimension. For example, a microscope might have a digital resolution of 2.8 pixels per um, which should be represented as "3.5714285714285716e-07 m". This represents the minimum distance resolveable (assuming perfect optics) and can be used to calculate object sizes.
+
+Cameras (with few exceptions) capture perspective images, and an exact spatial relationship cannot be drawn. For this case, the angular domain type is useful, where we can make a definitive judgement about field of view. A camera with a sensor size of 600x400 pixels and a horizontal FOV of 60 degrees could be represented as "angular 0.0017453292519943294 rad". This models each pixel as having a covered area of 0.0017453292519943294 radians.
 
 Where the distances point to point vary inconsistently (e.g. in a Chroma dimension for frequency, or a spatial dimension for line-scan camera data), an average may be used. In cases where a resolution is not applicable (e.g. in feature space), the dimension suffix may be omitted. In this case the entire string would be "feature" with no trailing spaces. In the case where a dimension steps in a non-linear way, an additional suffix of "log <base\>" should be used, with the first gap being given as the resolution. For example, a spectrogram with the following frequency bins; 4Hz, 8Hz, 16Hz, 32Hz; should use the domain type: "frequency 4 Hz log 2". Fractional log bases are allowed for inverse logarithmic scaling.
 
