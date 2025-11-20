@@ -5,6 +5,26 @@ CRAB accepts arbitrary data as parquet files.
 > [!NOTE]
 > This format is still a living standard, and is not considered final. Feedback is greatly appreciated.
 
+## Goals and justification
+
+The main goals for this specification are to be:
+
+0. Optimised for scientific data.
+1. Search optimised, even without an index.
+2. Suitable for fedaration, with no central authority.
+3. Auditable, with full change tracking.
+4. Partition tolerant, and repairable.
+
+0 - Scientific data comes in all shapes and sizes, so CRAB is designed to accept data in all shapes and sizes. The goal is simple; anything that can be represented as an array can be stored, indexed and annotated in CRAB.
+
+1 - Being search optimised on-disk is important, as a system that has limited local disk space, but virtually unlimited object store space hugely benefits from the ability to keep as small an internal database as possible. This is key to addressing concerns of managing large volumes of data with limited raw disk space, as is often the case in research organisations.
+
+2 - Unique, but detrministic identifiers [UDTs](https://github.com/NOC-OI/universal-data-tracker-spec/blob/main/main.pdf) are heavily relied upon to ensure data can be shared, indexed and collaborated upon in both public and private, with the ability to integrate data from different research organisations. 
+
+3 - Having a full audit log is vital for maintaining scientific integrigty, and is thus a core part of the design. Inherent to the design is an ability to not only search the current accepted data, but also revision history and disputed entries.
+
+4 - Partition tolerance is of particular importance to marine science, where there is often unreliable network connections with a single point of failure. Outside of the specific case of network partition, it is often useful to preserve annotations even if the underlying raw data is lost. The system must fail gracefully, with just enough information to still recover instrument information and original data collection times.
+
 ## Data files
 
 Raw orthogonal data, and metadata from the original instrument.
@@ -131,65 +151,9 @@ This would make RGB splits the second most efficient operation. It is important 
 
 On a side note, it is also sometimes useful to adopt the order or popular tools. Pixel Y comes before Pixel X here as this is the order that OpenCV will expect dimensions to be in. Therefore for image data, CRAB reccomends placing Y first and X second to avoid unexpectedly rotated imaged.
 
-## Region of interest
-
-Each ROI simply maps out the extents of an observation. This is often an automatic process, and may be abstracted into higher dimensions. Each ROI has a UUID assigned to ensure change tracking can be carried out effectively. A ROI might be seen as a type of annotation, but it is often useful to seperate it from the process of identification and classification.
-
-### Per-file metadata
-
-| Key | Expected value |
-| --- | --- |
-| data_type | Literal string "CRAB_ROI_V1" |
-| last_modified | uint64, Unix timestamp of last modification |
-| references_udts | Concatenated binary string of binary compact UDTs referenced |
-| x_<metadata_name\> | **(optional)** Arbitrary fields for use in application-specific scenarios |
-
-#### Example for annotations from IFCBProc
-
-| Key | Value |
-| --- | --- |
-| data_type | CRAB_ROI_V1 |
-| last_modified | 1762184646 |
-| references_udts | 0x022dc621accf3dc224a43f022373c200006839044c |
-
-### Per-entry values
-
-| Key | Expected value |
-| --- | --- |
-| udt | Full UDT |
-| udt_bin | Binary compact UDT, for search |
-| sha256 | Binary, SHA256 hash of the exact data source the ROI was originally generated for |
-| uuid | In compact binary form, used as the unique identifier of the ROI |
-| last_modified | uint64, Unix timestamp of ROI modification time |
-| extents | Array of uint64, **two** for each dimension, first an lower bound, then an upper bound |
-| origin_extents | Array of uint64, **one** for each dimension, gives the maximum dimension size of the original data as created. See note below. |
-| annotator | String, an email address or ORCID identifier (MUST be formatted with dashes). MUST be null if no human involvement |
-| annotation_software | String, URI reference to the software used to create the ROI, preferably the source code repository |
-| x_<metadata_name\> | **(optional)** Arbitrary fields for use in application-specific scenarios |
-
-#### Example for annotations from IFCBProc
-
-| Key | Value |
-| --- | --- |
-| udt | udt1__usa_mc_lane_research_laboratories__imaging_flow_cytobot__225__1748567116__19 |
-| udt_bin | 0x032dc621accf3dc224a43f022373c200006839044c9400f1b21cb527d7 |
-| sha256 | 0xf22136124cd3e1d65a48487cecf310771b2fd1e83dc032e3d19724160ac0ff71 |
-| uuid | 0x486b38eefc0a4a1aa16a1ac3b0eb5ed8 |
-| last_modified | 1762184586 |
-| extents | 0, 400, 0, 600 |
-| origin_extents | 400, 600 |
-| annotator | null |
-| annotation_software | https://github.com/NOC-OI/ifcbproc |
-
-#### Note regarding origin_extents
-Origin extents address the case where there are multiple copies of the original data that have undergone different post processing. One example would be a video that has been compressed to a lower resolution, and has multiple different resolutions as seperate entries in the database. It is therefore useful to know how to scale annotations where multiple sources exist.
-
-#### Note regarding use_dictionary
-It is highly reccomended to use the "use_dictionary" parameter for "annotator" and "annotation_software".
-
 ## Annotation files
 
-Each annotation is attached to a specific ROI, of a specific data frame. In a biological context, the most important metadata tag is usually "taxa", which should contain taxanomic information relative to the chosen authoratative taxonomy. Other metadata might be stored in an annotation however, such as particle size or other morphological measurements.
+Each annotation is attached to a specific extent, of a specific data frame. In a biological context, the most important metadata tag is usually "taxa", which should contain taxanomic information relative to the chosen authoratative taxonomy. Other metadata might be stored in an annotation however, such as particle size or other morphological measurements. Annotations are broken up into individual entries, where each one represents a log of changes. This provides a mechanism for inherent change tracking, and maintains searchability of disputed entries.
 
 ### Per-file metadata
 
@@ -214,13 +178,30 @@ Each annotation is attached to a specific ROI, of a specific data frame. In a bi
 | --- | --- |
 | udt | Full UDT |
 | udt_bin | Binary compact UDT, for search |
-| uuid | In compact binary form, used as the unique identifier of the ROI referenced |
+| uuid | In compact binary form, used as the unique identifier for this annotation |
+| sha256 | Binary, SHA256 hash of the exact data source the annotation was originally generated for |
 | last_modified | uint64, Unix timestamp of annotation modification time |
+| extents | Array of uint64, **two** for each dimension, first an lower bound, then an upper bound |
+| origin_extents | Array of uint64, **one** for each dimension, gives the maximum dimension size of the original data as created. See note below. |
 | annotator | String, an email address or ORCID identifier (MUST be formatted with dashes). MUST be null if no human involvement |
 | annotation_software | String, URI reference to the software used to create the annotation, preferably the source code repository |
-| discarded | Boolean, special mark to indicate that the underlying ROI should be hidden, as if it were deleted. Always false if either of the below are anything but null. If true, and a field_* or discarded_field_* is present, both will be ignored and the record deleted. |
-| field_<field_name\> | **(optional, but reccomended)** Arbitrary fields for use in annotation, common ones listed below. |
-| discarded_field_<field_name\> | **(optional)** Boolean, special mark to indicate that the field should be discarded, as if it were deleted. Should be true on deleted fields, false or null otherwise. |
+| discard_in_favour | **(optional)** Usually null or empty. Used to replace or update the extents of an annotation. |
+| field_<field_name\> | **(optional, but reccomended)** Arbitrary fields for use in annotation, common ones listed below. Null values will be ignored, *and will not overwrite existing values* |
+| discard_field_<field_name\> | **(optional)** Boolean, special mark to indicate that the field should be discarded, as if it were deleted. Should be true on deleted fields, false or null otherwise. |
+
+#### Example for ROI only information from IFCBProc
+
+| Key | Value |
+| --- | --- |
+| udt | udt1__usa_mc_lane_research_laboratories__imaging_flow_cytobot__225__1748567116__19 |
+| udt_bin | 0x032dc621accf3dc224a43f022373c200006839044c9400f1b21cb527d7 |
+| uuid | 0x486b38eefc0a4a1aa16a1ac3b0eb5ed8 |
+| sha256 | 0xf22136124cd3e1d65a48487cecf310771b2fd1e83dc032e3d19724160ac0ff71 |
+| last_modified | 1762184586 |
+| extents | 0, 400, 0, 600 |
+| origin_extents | 400, 600 |
+| annotator | null |
+| annotation_software | https://github.com/NOC-OI/ifcbproc |
 
 #### Example for annotations from EcoTaxa
 
@@ -229,7 +210,10 @@ Each annotation is attached to a specific ROI, of a specific data frame. In a bi
 | udt | udt1__usa_mc_lane_research_laboratories__imaging_flow_cytobot__225__1748567116__19 |
 | udt_bin | 0x032dc621accf3dc224a43f022373c200006839044c9400f1b21cb527d7 |
 | uuid | 0x486b38eefc0a4a1aa16a1ac3b0eb5ed8 |
+| sha256 | 0xf22136124cd3e1d65a48487cecf310771b2fd1e83dc032e3d19724160ac0ff71 |
 | last_modified | 1762184586 |
+| extents | 0, 400, 0, 600 |
+| origin_extents | 400, 600 |
 | annotator | alewin@noc.ac.uk |
 | annotation_software | https://github.com/ecotaxa/ecotaxa |
 | field_taxon | https://www.gbif.org/species/8211946 |
@@ -242,6 +226,12 @@ Each annotation is attached to a specific ROI, of a specific data frame. In a bi
 When creating fields, it is always advisable to use URIs wherever possible. URIs are preferred as they are instantly recognisable, and allow new users to easily access further information. Parquet's dictionary compresson means that the excess size of URIs is not a problem for search or storage, so long as single, authorotative sources are used.
 
 For taxonomic data, CRAB reccomends using GBIF URIs to refer to species. While a WoRMS LSID is a suitable alternative (and will be recognised by CRAB), a GBIF URI is more immediately usable when encountered in the wild, and is preferred for datasets intended for public distribution.
+
+#### Note regarding discard_in_favour
+Discard in favour is used as a special annotation type that tells the system that all previous annotations regarding the region of interest bounded by the extents should be moved to the location specified in the new annotation. The new annotation is referred to by its binary-form UUID. When this value is null, this field is ignored. In order to totally delete a region of interest, this value should be set to the null UUID (00000000-0000-0000-0000-000000000000). This mechanism preserves change tracking when the extents are changed.
+
+#### Note regarding origin_extents
+Origin extents address the case where there are multiple copies of the original data that have undergone different post processing. One example would be a video that has been compressed to a lower resolution, and has multiple different resolutions as seperate entries in the database. It is therefore useful to know how to scale annotations where multiple sources exist.
 
 #### Note regarding use_dictionary
 It is highly reccomended to use the "use_dictionary" parameter for "annotator", "annotation_software" and any other string field with high repitition. For biological data this usually includes fields such as "taxon" where there are a lot of duplicated string entries. With a lot of fields, it might make sense to increase the max dictionary size. Anaecdotally, around 2MB results in good performance on S3 backed storage, but decreased row group sizes of 32-64MB are needed for lower memory use.
