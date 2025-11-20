@@ -37,7 +37,7 @@ Storage for raw, encoded or even compressed orthogonal data.
 | last_modified | uint64, Unix timestamp of last modification |
 | contains_udts | Concatenated binary string of binary UDTs |
 
-**Example for a RGB microscopic image system:**
+#### Example
 
 | Key | Value |
 | --- | --- |
@@ -61,7 +61,7 @@ Storage for raw, encoded or even compressed orthogonal data.
 | last_modified | uint64, Unix timestamp of data collection |
 | extents | Array of uint64, one for each dimension |
 
-**Example for an IFCB greyscale plankton imaging system:**
+#### Example for an IFCB greyscale plankton imaging system
 
 | Key | Value |
 | --- | --- |
@@ -85,8 +85,8 @@ The default application/octet-stream will be interpreted as a NumPy array in C (
 
 Other popular container formats supported include:
 
-- video/matroska* (only video stream supported)
-- video/mp4
+- video/matroska* (only video stream supported, audio will be ignored)
+- video/mp4 (only video stream supported, audio will be ignored)
 - audio/matroska*
 - audio/flac
 - audio/wav
@@ -106,7 +106,7 @@ Other popular container formats supported include:
 - Vorbis
 - Ogg
 
-Just because your codec isn't listed here, doesn't mean CRAB will not support it, but these should be used for maximum compatibility.
+Just because your codec isn't listed here, doesn't mean CRAB will not support it, but these should be used for maximum compatibility. Multi-modal data containers are not supported, as they conflict with the N-dimensional generalisability goal of CRAB.
 
 #### Numerical format
 For compatibility, this must be a power of two NumPy numerical type (i.e. float64 and float128 is permitted, but not float96). Any data in a crab compatible data container must be coercible to a NumPy array. This holds true for the vast majority of multimedia containers that could be used. For example, a 30fps ROV dive video in the H.264 codec in an Matroska container could be translated into a rather unweildly 4D array of unit8, with the domain types \["temporal 0.03333333333333333 s", "angular", "angular", "chromatic 1.5e-07 m"\]. This would likely not be done in practice, but is neccesary functionality to allow true interoperability with arbitrary N-dimensional processing.
