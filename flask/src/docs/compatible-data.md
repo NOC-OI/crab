@@ -2,6 +2,9 @@
 
 CRAB accepts arbitrary data as parquet files.
 
+> [!NOTE]
+> This format is still a living standard, and is not considered final. Feedback is greatly appreciated.
+
 ## Data files
 
 Raw orthogonal data, and metadata from the original instrument.
@@ -12,9 +15,6 @@ Raw orthogonal data, and metadata from the original instrument.
 | --- | --- |
 | data_type | Literal string "CRAB_DATA_V1" |
 | last_modified | uint64, Unix timestamp of last modification |
-| domain_types | JSON encoded array, stating the type of each domain. See note below about domain types. |
-| bit_depth | uint64, the bit depth of the data |
-| numerical_format | String, represents the format of values in the data arrays. Must be a power of two Numpy numerical type (i.e. float64 and float128 is permitted, but not float96). |
 | contains_udts | Concatenated binary string of binary UDTs |
 
 **Example for a RGB microscopic image system:**
@@ -23,10 +23,73 @@ Raw orthogonal data, and metadata from the original instrument.
 | --- | --- |
 | data_type | CRAB_DATA_V1 |
 | last_modified | 1762184335 |
+| contains_udts | 0x022dc621accf3dc224a43f022373c200006839044c |
+
+### Per-entry values
+
+| Key | Expected value |
+| --- | --- |
+| udt | Full UDT |
+| udt_bin | Binary compact UDT, for search |
+| data | Raw binary data |
+| data_uri | String, should be a publicly accessible URI for the data. MAY be null if data is present in-file. May be provided in addition to data in-file. |
+| sha256 | Binary, SHA256 hash of the data (should match the output of sha256sum on the raw binary data) |
+| mime_type | String mime type for data, see note below for handling of mime types |
+| numerical_format | String, represents the format of values in the resulting data. See note below about numerical format. |
+| domain_types | JSON encoded array, stating the type of each domain. See note below about domain types. |
+| bit_depth | uint64, the original bit depth of the data, regardless of current numerical format. E.g. a 12-bit camera image stored in a 16-bit image format would have the value 12 here. |
+| last_modified | uint64, Unix timestamp of data collection |
+| extents | Array of uint64, one for each dimension |
+
+**Example for an IFCB greyscale plankton imaging system:**
+
+| Key | Value |
+| --- | --- |
+| udt | udt1__usa_mc_lane_research_laboratories__imaging_flow_cytobot__225__1748567116__19 |
+| udt_bin | 0x032dc621accf3dc224a43f022373c200006839044c9400f1b21cb527d7 |
+| data | <raw_array_data\> |
+| data_uri | null |
+| sha256 | 0xf22136124cd3e1d65a48487cecf310771b2fd1e83dc032e3d19724160ac0ff71 |
+| mime_type | application/octet-stream |
+| numerical_format | uint8 |
 | domain_types | \["spatial 3.5714285714285716e-07 m", "spatial 3.5714285714285716e-07 m", "chromatic 1.5e-07 m"\] |
 | bit_depth | 8 |
-| numerical_format | uint8 |
-| contains_udts | 0x022dc621accf3dc224a43f022373c200006839044c |
+| last_modified | 1762184646 |
+| extents | 400, 600 |
+
+#### Note regarding use_dictionary
+It is highly reccomended to use the "use_dictionary" parameter for "domain_types", "mime_type" and "numerical_format".
+
+#### Handling of mime types
+The default application/octet-stream will be interpreted as a NumPy array in C (column major) order. Using extents and the numerical_format, an arbitrary NumPy array can be reconstructed. This data type is the preferred default, with other formats only being used when neccesary for compression (e.g. video). Especially for collections of small images (<200px wide/high), the NumPy array type should be used over image formats, as image format overheads will usually outweigh any space savings from image-specific compression.
+
+Other popular container formats supported include:
+
+- video/matroska* (only video stream supported)
+- video/mp4
+- audio/matroska*
+- audio/flac
+- audio/wav
+- audio/mpeg
+- image/jpeg
+- image/jp2
+- image/png
+- image/tiff
+
+*Codecs supported include:
+
+- H.264
+- H.265
+- FLAC
+- AAC
+- MP3
+- Vorbis
+- Ogg
+
+Just because your codec isn't listed here, doesn't mean CRAB will not support it, but these should be used for maximum compatibility.
+
+#### Numerical format
+For compatibility, this must be a power of two NumPy numerical type (i.e. float64 and float128 is permitted, but not float96). Any data in a crab compatible data container must be coercible to a NumPy array. This holds true for the vast majority of multimedia containers that could be used. For example, a 30fps ROV dive video in the H.264 codec in an Matroska container could be translated into a rather unweildly 4D array of unit8, with the domain types \["temporal 0.03333333333333333 s", "angular", "angular", "chromatic 1.5e-07 m"\]. This would likely not be done in practice, but is neccesary functionality to allow true interoperability with arbitrary N-dimensional processing.
 
 #### Note about domain types
 
@@ -68,26 +131,6 @@ This would make RGB splits the second most efficient operation. It is important 
 
 On a side note, it is also sometimes useful to adopt the order or popular tools. Pixel Y comes before Pixel X here as this is the order that OpenCV will expect dimensions to be in. Therefore for image data, CRAB reccomends placing Y first and X second to avoid unexpectedly rotated imaged.
 
-### Per-entry values
-
-| Key | Expected value |
-| --- | --- |
-| udt | Full UDT |
-| udt_bin | Binary compact UDT, for search |
-| data | Raw binary data, column major |
-| last_modified | uint64, Unix timestamp of data collection |
-| extents | Array of uint64, one for each dimension |
-
-**Example for an IFCB greyscale plankton imaging system:**
-
-| Key | Value |
-| --- | --- |
-| udt | udt1__usa_mc_lane_research_laboratories__imaging_flow_cytobot__225__1748567116__19 |
-| udt_bin | 0x032dc621accf3dc224a43f022373c200006839044c9400f1b21cb527d7 |
-| data | <raw_array_data\> |
-| last_modified | 1762184646 |
-| extents | 400, 600 |
-
 ## Region of interest
 
 Each ROI simply maps out the extents of an observation. This is often an automatic process, and may be abstracted into higher dimensions. Each ROI has a UUID assigned to ensure change tracking can be carried out effectively. A ROI might be seen as a type of annotation, but it is often useful to seperate it from the process of identification and classification.
@@ -101,7 +144,7 @@ Each ROI simply maps out the extents of an observation. This is often an automat
 | references_udts | Concatenated binary string of binary compact UDTs referenced |
 | x_<metadata_name\> | **(optional)** Arbitrary fields for use in application-specific scenarios |
 
-**Example for annotations from IFCBProc**
+#### Example for annotations from IFCBProc
 
 | Key | Value |
 | --- | --- |
@@ -122,9 +165,7 @@ Each ROI simply maps out the extents of an observation. This is often an automat
 | annotation_software | String, URI reference to the software used to create the ROI, preferably the source code repository |
 | x_<metadata_name\> | **(optional)** Arbitrary fields for use in application-specific scenarios |
 
-**Note regarding use_dictionary:** It is highly reccomended to use the "use_dictionary" parameter for "annotator" and "annotation_software".
-
-**Example for annotations from IFCBProc**
+#### Example for annotations from IFCBProc
 
 | Key | Value |
 | --- | --- |
@@ -136,6 +177,8 @@ Each ROI simply maps out the extents of an observation. This is often an automat
 | annotator | null |
 | annotation_software | https://github.com/NOC-OI/ifcbproc |
 
+#### Note regarding use_dictionary
+It is highly reccomended to use the "use_dictionary" parameter for "annotator" and "annotation_software".
 
 ## Annotation files
 
@@ -150,7 +193,7 @@ Each annotation is attached to a specific ROI, of a specific data frame. In a bi
 | references_udts | Concatenated binary string of binary compact UDTs referenced |
 | x_<metadata_name\> | **(optional)** Arbitrary fields for use in application-specific scenarios |
 
-**Example for annotations from EcoTaxa**
+#### Example for annotations from EcoTaxa**
 
 | Key | Value |
 | --- | --- |
@@ -168,20 +211,11 @@ Each annotation is attached to a specific ROI, of a specific data frame. In a bi
 | last_modified | uint64, Unix timestamp of annotation modification time |
 | annotator | String, an email address or ORCID identifier (MUST be formatted with dashes). MUST be null if no human involvement |
 | annotation_software | String, URI reference to the software used to create the annotation, preferably the source code repository |
-| field_<field_name\> | **(optional, but reccomended)** Arbitrary fields for use in annotation, common ones listed below |
+| discarded | Boolean, special mark to indicate that the underlying ROI should be hidden, as if it were deleted. Always false if either of the below are anything but null. If true, and a field_* or discarded_field_* is present, both will be ignored and the record deleted. |
+| field_<field_name\> | **(optional, but reccomended)** Arbitrary fields for use in annotation, common ones listed below. |
+| discarded_field_<field_name\> | **(optional)** Boolean, special mark to indicate that the field should be discarded, as if it were deleted. Should be true on deleted fields, false or null otherwise. |
 
-**Common fields**
-
-- taxon (e.g. https://www.gbif.org/species/8211946, or urn:lsid:marinespecies.org:taxname:149093)
-- major_axis_um (e.g. 129)
-
-When creating fields, it is always advisable to use URIs wherever possible. URIs are preferred as they are instantly recognisable, and allow new users to easily access further information. Parquet's dictionary compresson means that the excess size of URIs is not a problem for search or storage, so long as single, authorotative sources are used.
-
-For taxonomic data, CRAB reccomends using GBIF URIs to refer to species. While a WoRMS LSID is a suitable alternative (and will be recognised by CRAB), a GBIF URI is more immediately usable when encountered in the wild, and is preferred for datasets intended for public distribution.
-
-**Note regarding use_dictionary:** It is highly reccomended to use the "use_dictionary" parameter for "annotator", "annotation_software" and any other string field with high repitition. For biological data this usually includes fields such as "taxon" where there are a lot of duplicated string entries. With a lot of fields, it might make sense to increase the max dictionary size. Anaecdotally, around 2MB results in good performance on S3 backed storage, but decreased row group sizes of 32-64MB are needed for lower memory use.
-
-**Example for annotations from EcoTaxa**
+#### Example for annotations from EcoTaxa
 
 | Key | Value |
 | --- | --- |
@@ -192,3 +226,16 @@ For taxonomic data, CRAB reccomends using GBIF URIs to refer to species. While a
 | annotator | alewin@noc.ac.uk |
 | annotation_software | https://github.com/ecotaxa/ecotaxa |
 | field_taxon | https://www.gbif.org/species/8211946 |
+
+#### Common fields
+
+- taxon (e.g. https://www.gbif.org/species/8211946, or urn:lsid:marinespecies.org:taxname:149093)
+- major_axis_um (e.g. 129)
+
+When creating fields, it is always advisable to use URIs wherever possible. URIs are preferred as they are instantly recognisable, and allow new users to easily access further information. Parquet's dictionary compresson means that the excess size of URIs is not a problem for search or storage, so long as single, authorotative sources are used.
+
+For taxonomic data, CRAB reccomends using GBIF URIs to refer to species. While a WoRMS LSID is a suitable alternative (and will be recognised by CRAB), a GBIF URI is more immediately usable when encountered in the wild, and is preferred for datasets intended for public distribution.
+
+#### Note regarding use_dictionary
+It is highly reccomended to use the "use_dictionary" parameter for "annotator", "annotation_software" and any other string field with high repitition. For biological data this usually includes fields such as "taxon" where there are a lot of duplicated string entries. With a lot of fields, it might make sense to increase the max dictionary size. Anaecdotally, around 2MB results in good performance on S3 backed storage, but decreased row group sizes of 32-64MB are needed for lower memory use.
+
