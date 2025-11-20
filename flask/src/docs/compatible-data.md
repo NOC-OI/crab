@@ -58,6 +58,7 @@ Storage for raw, encoded or even compressed orthogonal data.
 | numerical_format | String, represents the format of values in the resulting data. See note below about numerical format. |
 | domain_types | JSON encoded array, stating the type of each domain. See note below about domain types. |
 | bit_depth | uint64, the original bit depth of the data, regardless of current numerical format. E.g. a 12-bit camera image stored in a 16-bit image format would have the value 12 here. |
+| value_domain | String, similar to domain_type, but with only one value |
 | last_modified | uint64, Unix timestamp of data collection |
 | extents | Array of uint64, one for each dimension |
 
@@ -74,6 +75,7 @@ Storage for raw, encoded or even compressed orthogonal data.
 | numerical_format | uint8 |
 | domain_types | \["spatial 3.5714285714285716e-07 m", "spatial 3.5714285714285716e-07 m"\] |
 | bit_depth | 8 |
+| value_domain | "magnitude" |
 | last_modified | 1762184646 |
 | extents | 400, 600 |
 
@@ -111,11 +113,13 @@ Just because your codec isn't listed here, doesn't mean CRAB will not support it
 #### Numerical format
 For compatibility, this must be a power of two NumPy numerical type (i.e. float64 and float128 is permitted, but not float96). Any data in a crab compatible data container must be coercible to a NumPy array. This holds true for the vast majority of multimedia containers that could be used. For example, a 30fps ROV dive video in the H.264 codec in an Matroska container could be translated into a rather unweildly 4D array of unit8, with the domain types \["temporal 0.03333333333333333 s", "angular", "angular", "chromatic 1.5e-07 m"\]. This would likely not be done in practice, but is neccesary functionality to allow true interoperability with arbitrary N-dimensional processing.
 
-#### Note about domain types
+#### Note about domain types and value domain
 
-Usual domain types are: "spatial", "angular", "chromatic", "temporal", "frequency", "feature". Each domain type definition should state the scale of each dimension, and an SI unit symbol as a suffix. The SI unit symbol should be without prefix, and separated from the number with a space. 
+Usual domain types are: "spatial", "angular", "magnitude", "chromatic", "temporal", "frequency", "feature". Each domain type definition should state the scale of each dimension, and an SI unit symbol as a suffix. The SI unit symbol should be without prefix, and separated from the number with a space. The scale and unit MUST be included as a pair, and both omitted if unknown.
 
 The number should represent the minimum distance between any two points for a given dimension. For example, a microscope might have a digital resolution of 2.8 pixels per um, which should be represented as "3.5714285714285716e-07 m". This represents the minimum distance resolveable (assuming perfect optics) and can be used to calculate object sizes.
+
+Specifically for the value_domain, this represents what a unit of 1 represents in the value space. For any given point in an array this could be thought of as the "intensity" of the signal.
 
 Cameras (with few exceptions) capture perspective images, and an exact spatial relationship cannot be drawn. For this case, the angular domain type is useful, where we can make a definitive judgement about field of view. A camera with a sensor size of 600x400 pixels and a horizontal FOV of 60 degrees could be represented as "angular 0.0017453292519943294 rad". This models each pixel as having a covered area of 0.0017453292519943294 radians.
 
@@ -124,6 +128,10 @@ Where the distances point to point vary inconsistently (e.g. in a Chroma dimensi
 While it may seem abstract, each domain type has a specific function to allow definition of arbitrary orthagonal data:
 
 - Spatial dimensions might be the most obvious type. Each different spatial dimention represents a new spatial axis that a data point might refer to.
+
+- Angular dimensions are a consequence of many sensor types. These are useful where perspective is important or inherent to the sensor, such as in cameras or LIDAR scanners.
+
+- Magnitude dimensions are usually used as the value domain. A calibrated camera might output a specific value that could be expressed in lux for example. A microphone specifically, may use non-SI units for this, and dBSPL is explicitly allowed for this purpose. 
 
 - Temporal dimensions are another common type, that is largely self explanatory. It generally only makes sense to have one such dimension, and many annotation suites will be unable to process any more than the first temporal dimension.
 
