@@ -158,9 +158,11 @@ Each ROI simply maps out the extents of an observation. This is often an automat
 | --- | --- |
 | udt | Full UDT |
 | udt_bin | Binary compact UDT, for search |
+| sha256 | Binary, SHA256 hash of the exact data source the ROI was originally generated for |
 | uuid | In compact binary form, used as the unique identifier of the ROI |
 | last_modified | uint64, Unix timestamp of ROI modification time |
 | extents | Array of uint64, **two** for each dimension, first an lower bound, then an upper bound |
+| origin_extents | Array of uint64, **one** for each dimension, gives the maximum dimension size of the original data as created. See note below. |
 | annotator | String, an email address or ORCID identifier (MUST be formatted with dashes). MUST be null if no human involvement |
 | annotation_software | String, URI reference to the software used to create the ROI, preferably the source code repository |
 | x_<metadata_name\> | **(optional)** Arbitrary fields for use in application-specific scenarios |
@@ -171,11 +173,16 @@ Each ROI simply maps out the extents of an observation. This is often an automat
 | --- | --- |
 | udt | udt1__usa_mc_lane_research_laboratories__imaging_flow_cytobot__225__1748567116__19 |
 | udt_bin | 0x032dc621accf3dc224a43f022373c200006839044c9400f1b21cb527d7 |
+| sha256 | 0xf22136124cd3e1d65a48487cecf310771b2fd1e83dc032e3d19724160ac0ff71 |
 | uuid | 0x486b38eefc0a4a1aa16a1ac3b0eb5ed8 |
 | last_modified | 1762184586 |
-| extents | 0, 400, 0, 600, 0, 3 |
+| extents | 0, 400, 0, 600 |
+| origin_extents | 400, 600 |
 | annotator | null |
 | annotation_software | https://github.com/NOC-OI/ifcbproc |
+
+#### Note regarding origin_extents
+Origin extents address the case where there are multiple copies of the original data that have undergone different post processing. One example would be a video that has been compressed to a lower resolution, and has multiple different resolutions as seperate entries in the database. It is therefore useful to know how to scale annotations where multiple sources exist.
 
 #### Note regarding use_dictionary
 It is highly reccomended to use the "use_dictionary" parameter for "annotator" and "annotation_software".
