@@ -27,7 +27,7 @@ The main goals for this specification are to be:
 
 ## Data files
 
-Raw orthogonal data, and metadata from the original instrument.
+Storage for raw, encoded or even compressed orthogonal data.
 
 ### Per-file metadata
 
@@ -72,7 +72,7 @@ Raw orthogonal data, and metadata from the original instrument.
 | sha256 | 0xf22136124cd3e1d65a48487cecf310771b2fd1e83dc032e3d19724160ac0ff71 |
 | mime_type | application/octet-stream |
 | numerical_format | uint8 |
-| domain_types | \["spatial 3.5714285714285716e-07 m", "spatial 3.5714285714285716e-07 m", "chromatic 1.5e-07 m"\] |
+| domain_types | \["spatial 3.5714285714285716e-07 m", "spatial 3.5714285714285716e-07 m"\] |
 | bit_depth | 8 |
 | last_modified | 1762184646 |
 | extents | 400, 600 |
