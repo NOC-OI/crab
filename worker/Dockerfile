@@ -1,7 +1,7 @@
 FROM python:3.9.20-bookworm
 WORKDIR /app
 SHELL ["/bin/bash", "-c"]
-RUN pip install boto3 requests pillow numpy pyjwt cryptography microtiff couchbeans pika
+RUN pip install boto3 requests pillow numpy pyjwt cryptography microtiff couchbeans pika s3fs crabdeposit
 COPY src /app
 WORKDIR /app
 RUN mkdir -p temp
