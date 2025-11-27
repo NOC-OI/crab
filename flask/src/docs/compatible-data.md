@@ -57,8 +57,8 @@ Storage for raw, encoded or even compressed orthogonal data.
 | mime_type | String mime type for data, see note below for handling of mime types |
 | numerical_format | String, represents the format of values in the resulting data. See note below about numerical format. |
 | domain_types | JSON encoded array, stating the type of each domain. See note below about domain types. |
+| value_domain | String, similar to domain_types, but with only one value |
 | bit_depth | uint64, the original bit depth of the data, regardless of current numerical format. E.g. a 12-bit camera image stored in a 16-bit image format would have the value 12 here. |
-| value_domain | String, similar to domain_type, but with only one value |
 | last_modified | uint64, Unix timestamp of data collection |
 | extents | Array of uint64, one for each dimension |
 
@@ -74,8 +74,8 @@ Storage for raw, encoded or even compressed orthogonal data.
 | mime_type | application/octet-stream |
 | numerical_format | uint8 |
 | domain_types | \["spatial 3.5714285714285716e-07 m", "spatial 3.5714285714285716e-07 m"\] |
-| bit_depth | 8 |
 | value_domain | "magnitude" |
+| bit_depth | 8 |
 | last_modified | 1762184646 |
 | extents | 400, 600 |
 
@@ -225,15 +225,19 @@ Each annotation is attached to a specific extent, of a specific data frame. In a
 | annotator | alewin@noc.ac.uk |
 | annotation_software | https://github.com/ecotaxa/ecotaxa |
 | field_taxon | https://www.gbif.org/species/8211946 |
+| field_label | Thalassionema nitzschioides |
 
 #### Common fields
 
 - taxon (e.g. https://www.gbif.org/species/8211946, or urn:lsid:marinespecies.org:taxname:149093)
+- label (e.g. fiber<detritus)
 - major_axis_um (e.g. 129)
 
 When creating fields, it is always advisable to use URIs wherever possible. URIs are preferred as they are instantly recognisable, and allow new users to easily access further information. Parquet's dictionary compresson means that the excess size of URIs is not a problem for search or storage, so long as single, authorotative sources are used.
 
-For taxonomic data, CRAB reccomends using GBIF URIs to refer to species. While a WoRMS LSID is a suitable alternative (and will be recognised by CRAB), a GBIF URI is more immediately usable when encountered in the wild, and is preferred for datasets intended for public distribution.
+For taxonomic data, CRAB reccomends using GBIF URIs to refer to species. While a WoRMS LSID is a suitable alternative, a GBIF URI is more immediately usable when encountered in the wild, and is preferred for datasets intended for public distribution.
+
+The label field should take string data verbatim from the annotation platform in question. This is to allow free-form string search for non-accepted species or non-biological annotations.
 
 #### Note regarding discard_in_favour
 Discard in favour is used as a special annotation type that tells the system that all previous annotations regarding the region of interest bounded by the extents should be moved to the location specified in the new annotation. The new annotation is referred to by its binary-form UUID. When this value is null, this field is ignored. In order to totally delete a region of interest, this value should be set to the null UUID (00000000-0000-0000-0000-000000000000). This mechanism preserves change tracking when the extents are changed.

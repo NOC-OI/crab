@@ -27,7 +27,7 @@ def can_view(deposit_uuid):
         if deposit_data["public_visibility"] == True:
             return True
     if not session_info is None:
-        if session_info["user_uuid"] == deposit_data["creator"]["uuid"]:
+        if session_info["user_uuid"] in deposit_data["owners"]:
             return True
     #projects = []
     layer_match = couch_client.find_all("crab_layers", {"deposits":{"$in": [deposit_uuid]}}, ["_id", "project"])
@@ -47,7 +47,7 @@ def can_edit(deposit_uuid):
     couch_client = get_couch_client()
     deposit_data = couch_client.get_document("crab_deposits", deposit_uuid)
     if not session_info is None:
-        if session_info["user_uuid"] == deposit_data["creator"]["uuid"]:
+        if session_info["user_uuid"] in deposit_data["owners"]:
             return True
     return False
 

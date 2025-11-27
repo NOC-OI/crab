@@ -21,8 +21,14 @@
                                 {% if workspace.last_active %}
                                 <dd>{{ workspace.last_active }}</dd>
                                 {% else %}
-
                                 <dd><em>Never used</em></dd>
+                                {% endif %}
+
+                                <dt>Workspace size</dt>
+                                {% if workspace.size %}
+                                <dd>{{ workspace.size }}</dd>
+                                {% else %}
+                                <dd><em>Unknown</em></dd>
                                 {% endif %}
                             </dl>
                             <a class="btn btn-primary" href="/workspaces/{{ workspace._id }}">Open workspace</a>
