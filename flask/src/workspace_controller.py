@@ -2,12 +2,12 @@ import uuid
 import zipfile
 import re
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 from PIL import Image
 from flask import Blueprint, request, render_template, Response, make_response, redirect
 import urllib.parse
-from utils import get_session_info, get_app_frontend_globals, to_snake_case
+from utils import get_session_info, get_app_frontend_globals, to_snake_case, sizeof_fmt
 from db import get_couch, get_bucket, get_bucket_uri, get_couch_client, advertise_job, get_s3_profiles, get_s3_profile, get_default_s3_profile_name, get_s3_client, get_s3_bucket_name
 
 temp_loc = "temp"
@@ -41,7 +41,12 @@ def workspace_list_screen():
     if session_info is None:
         return redirect("/login", code=302)
     couch_client = get_couch_client()
-    workspace_list = couch_client.find_all("crab_workspaces", {"owner": session_info["user_uuid"]}, ["last_active", "_id"])
+    workspace_list = couch_client.find_all("crab_workspaces", {"owner": session_info["user_uuid"]}, ["last_active", "size", "_id"])
+    for ws in workspace_list:
+        if "last_active" in ws:
+            ws["last_active"] = datetime.fromtimestamp(ws["last_active"]).strftime('%Y-%m-%d %H:%M:%S')
+        if "size" in ws:
+            ws["size"] = sizeof_fmt(ws["size"])
     return render_template("workspaces.html", global_vars=get_app_frontend_globals(), session_info=session_info, workspace_list=workspace_list)
 
 
@@ -83,6 +88,8 @@ def api_v1_new_workspace():
             "owner": session_info["user_uuid"],
             "folder_structure": {},
             "s3_profile": s3_profile,
+            "size": 0,
+            "last_active": 0,
             "files": {}
         })
 
@@ -215,11 +222,14 @@ def api_v1_workspace_upload_file(workspace_uuid):
                         "path": s3_path
                     }
                 workspace_def["files"][filename] = filedef
+                workspace_def["size"] += file_size
 
                 #with open(temp_loc + "/" + file_uuid + ".bin", "rb") as f:
                 uploaded_file.seek(0)
                 get_s3_client(s3_profile).upload_fileobj(uploaded_file, get_s3_bucket_name(s3_profile), s3_path)
 
+
+            workspace_def["last_active"] = int(datetime.now(timezone.utc).timestamp())
             couch_client.put_document("crab_workspaces", workspace_uuid, workspace_def)
 
             if file_size > 0:
@@ -238,7 +248,7 @@ def api_v1_workspace_upload_file(workspace_uuid):
         return Response(json.dumps({
             "error": "uploadError",
             "msg": "File did not upload correctly."
-            }), status=400, mimetype='application/json')
+            }), status=500, mimetype='application/json')
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
