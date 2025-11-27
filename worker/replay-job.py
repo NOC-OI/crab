@@ -4,6 +4,7 @@ import os
 import uuid
 import sys
 
+print(os.environ.get("RABBITMQ_DEFAULT_USER") + ":" + os.environ.get("RABBITMQ_DEFAULT_PASS"))
 credentials = pika.PlainCredentials(os.environ.get("RABBITMQ_DEFAULT_USER"), os.environ.get("RABBITMQ_DEFAULT_PASS"))
 connection = pika.BlockingConnection(pika.ConnectionParameters("localhost", 5672, "/", credentials))
 channel = connection.channel()
