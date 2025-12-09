@@ -80,6 +80,13 @@ def get_s3_profile(profile=None):
         return profile_copy
     raise KeyError("Missing S3 profile: " + str(profile))
 
+def advertise_job(job_id):
+    connection = get_rabbitmq_connection()
+    channel = connection.channel()
+    channel.queue_declare(queue="crab_jobs")
+    channel.basic_publish(exchange="", routing_key="crab_jobs", body=job_id)
+    connection.close()
+
 def get_s3_bucket_name(profile=None):
     return get_s3_profile(profile)["bucket"]
 
