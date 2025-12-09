@@ -86,6 +86,7 @@ def api_v1_new_workspace():
     couch_client = get_couch_client()
     couch_client.put_document("crab_workspaces", workspace_uuid, {
             "owner": session_info["user_uuid"],
+            "contributors": [],
             "folder_structure": {},
             "s3_profile": s3_profile,
             "size": 0,
@@ -115,52 +116,13 @@ def api_v1_get_workspace(workspace_uuid):
         couch_client = get_couch_client()
         workspace_def = couch_client.get_document("crab_workspaces", str(uuid_obj))
         if not session_info["user_uuid"] == workspace_def["owner"]:
-            return Response(json.dumps({
-                "error": "readDenied",
-                "msg": "User is not allowed to view this resource."
-                }), status=401, mimetype='application/json')
+            if not session_info["user_uuid"] in workspace_def["contributors"]:
+                return Response(json.dumps({
+                    "error": "readDenied",
+                    "msg": "User is not allowed to view this resource."
+                    }), status=401, mimetype='application/json')
 
         return Response(json.dumps(workspace_def), status=200, mimetype='application/json')
-    except ValueError:
-        return Response(json.dumps({
-            "error": "badUUID",
-            "msg": "Invalid workspace UUID " + raw_uuid
-            }), status=400, mimetype='application/json')
-
-@workspace_api.route("/api/v1/workspaces/<workspace_uuid>/deposit", methods=['GET'])
-def api_v1_workspace_process_deposit(workspace_uuid):
-    session_info = get_session_info()
-    if session_info is None:
-        return Response(json.dumps({
-            "error": "notLoggedIn",
-            "msg": "User is not logged in, or session has expired."
-            }), status=403, mimetype='application/json')
-
-    try:
-        uuid_obj = uuid.UUID(workspace_uuid, version=4)
-        couch_client = get_couch_client()
-        workspace_def = couch_client.get_document("crab_workspaces", str(uuid_obj))
-        if not session_info["user_uuid"] == workspace_def["owner"]:
-            return Response(json.dumps({
-                "error": "writeDenied",
-                "msg": "User is not allowed to edit this resource."
-                }), status=401, mimetype='application/json')
-
-
-        job_uuid = uuid.uuid4()
-        job_md = {
-            "type": "PROCESS_DEPOSIT",
-            "target_id": str(uuid_obj),
-            "status": "PENDING",
-            "progress": 0.0
-        }
-
-        get_couch_client().put_document("crab_jobs", str(job_uuid), job_md)
-        advertise_job(str(job_uuid))
-
-        return Response(json.dumps({
-            "job_id": str(job_uuid)
-            }), status=200, mimetype='application/json')
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
@@ -182,10 +144,11 @@ def api_v1_workspace_upload_file(workspace_uuid):
         workspace_def = couch_client.get_document("crab_workspaces", str(uuid_obj))
 
         if not session_info["user_uuid"] == workspace_def["owner"]:
-            return Response(json.dumps({
-                "error": "writeDenied",
-                "msg": "User is not allowed to edit this resource."
-                }), status=401, mimetype='application/json')
+            if not session_info["user_uuid"] in workspace_def["contributors"]:
+                return Response(json.dumps({
+                    "error": "writeDenied",
+                    "msg": "User is not allowed to edit this resource."
+                    }), status=401, mimetype='application/json')
 
         uploaded_file = request.files['file']
         file_size = uploaded_file.seek(0, os.SEEK_END)
@@ -249,6 +212,78 @@ def api_v1_workspace_upload_file(workspace_uuid):
             "error": "uploadError",
             "msg": "File did not upload correctly."
             }), status=500, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid workspace UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
+@workspace_api.route("/api/v1/workspaces/<workspace_uuid>", methods=['DELETE'])
+def api_v1_delete_workspace(workspace_uuid):
+    session_info = get_session_info()
+    if session_info is None:
+        return Response(json.dumps({
+            "error": "notLoggedIn",
+            "msg": "User is not logged in, or session has expired."
+            }), status=403, mimetype='application/json')
+
+    try:
+        uuid_obj = uuid.UUID(workspace_uuid, version=4)
+        couch_client = get_couch_client()
+        workspace_def = couch_client.get_document("crab_workspaces", str(uuid_obj))
+
+        if not session_info["user_uuid"] == workspace_def["owner"]:
+            return Response(json.dumps({
+                "error": "deleteDenied",
+                "msg": "User is not allowed to delete this resource."
+                }), status=401, mimetype='application/json')
+
+        couch_client.delete_document("crab_workspaces", workspace_uuid)
+
+        return Response(json.dumps({
+                "msg": "Workspace deleted"
+            }), status=200, mimetype='application/json')
+
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid workspace UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
+@workspace_api.route("/api/v1/workspaces/<workspace_uuid>/deposit", methods=['GET'])
+def api_v1_workspace_process_deposit(workspace_uuid):
+    session_info = get_session_info()
+    if session_info is None:
+        return Response(json.dumps({
+            "error": "notLoggedIn",
+            "msg": "User is not logged in, or session has expired."
+            }), status=403, mimetype='application/json')
+
+    try:
+        uuid_obj = uuid.UUID(workspace_uuid, version=4)
+        couch_client = get_couch_client()
+        workspace_def = couch_client.get_document("crab_workspaces", str(uuid_obj))
+        if not session_info["user_uuid"] == workspace_def["owner"]:
+            return Response(json.dumps({
+                "error": "writeDenied",
+                "msg": "User is not allowed to edit this resource."
+                }), status=401, mimetype='application/json')
+
+
+        job_uuid = uuid.uuid4()
+        job_md = {
+            "type": "PROCESS_DEPOSIT",
+            "target_id": str(uuid_obj),
+            "status": "PENDING",
+            "progress": 0.0
+        }
+
+        get_couch_client().put_document("crab_jobs", str(job_uuid), job_md)
+        advertise_job(str(job_uuid))
+
+        return Response(json.dumps({
+            "job_id": str(job_uuid)
+            }), status=200, mimetype='application/json')
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",

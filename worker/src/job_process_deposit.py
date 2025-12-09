@@ -1,7 +1,7 @@
 import couchbeans
 import crabdeposit
 from crabdeposit import Deposit, DepositFile
-from utils import get_couch_client, get_s3_client, get_s3_bucket_name, get_s3_bucket_uri, to_snake_case, get_s3_fs
+from utils import get_couch_client, get_s3_client, get_s3_bucket_name, get_s3_bucket_uri, to_snake_case, get_s3_fs, advertise_job
 from PIL import Image
 import zipfile
 import tempfile
@@ -18,6 +18,7 @@ from datetime import datetime
 import pyarrow
 import pyarrow.parquet
 import pyarrow.compute
+import pyarrow.types
 
 class ProcessDepositJob:
     def __init__(self):
@@ -101,14 +102,21 @@ class ProcessDepositJob:
 
         deposit_uuid = str(uuid.uuid4())
         deposit_info = {
+                "deposit_uuid": deposit_uuid,
                 "related_nse_udts": related_udts,
                 "data_files": [],
                 "annotation_files": [],
                 "source_files": [],
                 "s3_profile": s3_profile,
                 "public_visibility": True,
-                "owners": []
+                "owners": [],
+                "numeric_annotation_fields": [],
+                "string_annotation_fields": [],
+                "boolean_annotation_fields": [],
+                "binary_annotation_fields": []
             }
+
+        deposit_info["owners"].append(workspace_info["owner"])
 
         for parquet_file_info in parquet_file_info_collection:
             df_type = parquet_file_info["deposit_file"].get_type()
@@ -123,6 +131,18 @@ class ProcessDepositJob:
                 output_key = "deposits/" + deposit_uuid + "/annotation/" + parquet_file_info["deposit_file_uuid"] + ".parquet"
                 df_def["references_nse_udts"] = parquet_file_info["deposit_file"].get_nse_udts()
                 deposit_info["annotation_files"].append(df_def)
+                schema = parquet_file_info["deposit_file"].parquet_file.schema_arrow
+
+                for schema_column in zip(schema.names, schema.types):
+                    if schema_column[0].startswith("field_"):
+                        if pyarrow.types.is_string(schema_column[1]):
+                            deposit_info["string_annotation_fields"].append(schema_column[0])
+                        elif pyarrow.types.is_binary(schema_column[1]):
+                            deposit_info["binary_annotation_fields"].append(schema_column[0])
+                        elif pyarrow.types.is_boolean(schema_column[1]):
+                            deposit_info["boolean_annotation_fields"].append(schema_column[0])
+                        elif pyarrow.types.is_floating(schema_column[1]) or pyarrow.types.is_integer(schema_column[1]):
+                            deposit_info["numeric_annotation_fields"].append(schema_column[0])
 
             df_def["s3_location"] = output_key
             s3_client.copy({"Bucket": s3_bucket, "Key": parquet_file_info["origin_file_def"]["path"]}, s3_bucket, output_key)
@@ -141,7 +161,9 @@ class ProcessDepositJob:
             deposit_info["source_files"].append(df_def)
             s3_client.copy({"Bucket": s3_bucket, "Key": file_def["path"]}, s3_bucket, output_key)
 
-
+        output_key = "deposits/" + deposit_uuid + "/metadata.json"
+        output_bytes = json.dumps(deposit_info, indent=4).encode("utf-8")
+        s3_client.put_object(Bucket=s3_bucket, Key=output_key, Body=output_bytes)
         couch_client.put_document("crab_deposits", deposit_uuid, deposit_info)
 
         patch["workspace_deleted"] = workspace_uuid
@@ -149,5 +171,15 @@ class ProcessDepositJob:
         patch["deposit_info"] = deposit_info
 
         self.progress_func(1)
+
+        next_job_uuid = uuid.uuid4()
+        next_job_md = {
+            "type": "INDEX_DEPOSIT",
+            "target_id": str(deposit_uuid),
+            "status": "PENDING",
+            "progress": 0.0
+        }
+        couch_client.put_document("crab_jobs", str(next_job_uuid), next_job_md)
+        advertise_job(str(next_job_uuid))
 
         return patch

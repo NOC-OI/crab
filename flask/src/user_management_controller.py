@@ -138,6 +138,20 @@ def api_v1_get_user(raw_uuid):
             "msg": "Invalid UUID " + raw_uuid
             }), status=400, mimetype='application/json')
 
+@users_api.route("/api/v1/users/search", methods=['POST'])
+def api_v1_user_search():
+    try:
+        uuid_obj = uuid.UUID(raw_uuid, version=4)
+        couch_client = get_couch_client()
+        raw_users = couch_client.find_all("crab_users", selector = {"$text": {"$search": request.form.get("all")}})
+        users = raw_users
+        return Response(json.dumps(users), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
 @session_api.route("/api/v1/sessions/<raw_uuid>/close")
 def api_v1_close_session(raw_uuid):
     session_info = get_session_info()
