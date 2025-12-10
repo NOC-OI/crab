@@ -62,6 +62,13 @@ def get_app_frontend_globals():
         "long_brand": crab_config["long_brand"]
     }
 
+def sizeof_fmt(num, suffix="B"):
+    for unit in ("", "K", "M", "G", "T", "P", "E", "Z"):
+        if abs(num) < 1024.0:
+            return f"{num:3.1f} {unit}{suffix}"
+        num /= 1024.0
+    return f"{num:.1f}Y{suffix}"
+
 def to_snake_case(str_in):
     str_out = re.sub("(?<!^)(?<![A-Z])(?=[A-Z]+)", "_", str_in).lower() # Prepend all strings of uppercase with an underscore
     str_out = re.sub("[^a-z0-9]", "_", str_out) # Replace all non-alphanumeric with underscore

@@ -31,38 +31,40 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 
 
 from utils import get_session_info, get_app_frontend_globals
-from user_management_controller import login_pages, account_pages, access_token_pages, session_api, users_api
-from ingest_controller import ingest_pages
-from run_controller import run_pages, run_api
-from project_controller import project_pages, project_api
-from layer_controller import layer_pages, layer_api
-from job_controller import job_pages, job_api
-from snapshot_controller import snapshot_pages, snapshot_api
-from documentation_controller import documentation_pages
-from annotation_set_controller import annotation_set_pages, annotation_set_api
-from export_controller import export_pages, export_api
 
+from user_management_controller import login_pages, account_pages, access_token_pages, session_api, users_api
 app.register_blueprint(login_pages)
 app.register_blueprint(account_pages)
 app.register_blueprint(access_token_pages)
-app.register_blueprint(users_api)
 app.register_blueprint(session_api)
-app.register_blueprint(ingest_pages)
-app.register_blueprint(run_pages)
-app.register_blueprint(run_api)
+app.register_blueprint(users_api)
+
+from deposit_controller import deposit_pages, deposit_api
+app.register_blueprint(deposit_pages)
+app.register_blueprint(deposit_api)
+
+from project_controller import project_pages, project_api
 app.register_blueprint(project_pages)
 app.register_blueprint(project_api)
-app.register_blueprint(layer_pages)
-app.register_blueprint(layer_api)
+
+from job_controller import job_pages, job_api
 app.register_blueprint(job_pages)
 app.register_blueprint(job_api)
+
+from snapshot_controller import snapshot_pages, snapshot_api
 app.register_blueprint(snapshot_pages)
 app.register_blueprint(snapshot_api)
-app.register_blueprint(annotation_set_pages)
-app.register_blueprint(annotation_set_api)
+
+from export_controller import export_pages, export_api
 app.register_blueprint(export_pages)
 app.register_blueprint(export_api)
+
+from documentation_controller import documentation_pages
 app.register_blueprint(documentation_pages)
+
+from workspace_controller import workspace_pages, workspace_api
+app.register_blueprint(workspace_pages)
+app.register_blueprint(workspace_api)
 
 @app.errorhandler(404)
 def not_found_error_handler(e):

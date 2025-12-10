@@ -4,6 +4,7 @@ import os
 import re
 import json
 import pika
+import pyarrow.fs
 
 config_file_loc = os.environ.get("CRAB_CONFIG_FILE", "config.json")
 crab_config = {}
@@ -32,17 +33,35 @@ def get_rabbitmq_connection():
 def get_couch_client():
     return couchbeans.CouchClient(couch_base_uri)
 
+s3_client_map = {}
+s3_fs_map = {}
+
 def get_s3_client(profile=None):
     profile = get_s3_profile(profile)
-    client = boto3.client("s3",
-        endpoint_url=profile["endpoint"],
-        aws_access_key_id=profile["access_key"],
-        aws_secret_access_key=profile["secret_key"],
-        aws_session_token=None,
-        config=boto3.session.Config(signature_version='s3v4'),
-        verify=False
-    )
-    return client
+    if profile["local_id"] not in s3_client_map:
+        s3_client_map[profile["local_id"]] = boto3.client("s3",
+            endpoint_url=profile["endpoint"],
+            aws_access_key_id=profile["access_key"],
+            aws_secret_access_key=profile["secret_key"],
+            region_name=profile["region"],
+            aws_session_token=None,
+            config=boto3.session.Config(signature_version='s3v4'),
+            verify=False
+        )
+    return s3_client_map[profile["local_id"]]
+
+def get_s3_fs(profile=None):
+    profile = get_s3_profile(profile)
+    if profile["local_id"] not in s3_fs_map:
+        uri_split = profile["endpoint"].split("://")
+        s3_fs_map[profile["local_id"]] = pyarrow.fs.S3FileSystem(
+                endpoint_override=uri_split[1],
+                scheme=uri_split[0],
+                access_key=profile["access_key"],
+                secret_key=profile["secret_key"],
+                region=profile["region"]
+            )
+    return s3_fs_map[profile["local_id"]]
 
 def get_default_s3_profile_name():
     return crab_config["default_s3_bucket"]
@@ -56,8 +75,17 @@ def get_s3_profile(profile=None):
     if len(profile) == 0:
         profile = crab_config["default_s3_bucket"]
     if profile in crab_config["s3_buckets"]:
-        return crab_config["s3_buckets"][profile]
+        profile_copy = crab_config["s3_buckets"][profile]
+        profile_copy["local_id"] = profile
+        return profile_copy
     raise KeyError("Missing S3 profile: " + str(profile))
+
+def advertise_job(job_id):
+    connection = get_rabbitmq_connection()
+    channel = connection.channel()
+    channel.queue_declare(queue="crab_jobs")
+    channel.basic_publish(exchange="", routing_key="crab_jobs", body=job_id)
+    connection.close()
 
 def get_s3_bucket_name(profile=None):
     return get_s3_profile(profile)["bucket"]

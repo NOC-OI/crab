@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Workspace{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+<div class="gx-3 row">
+    <div class="col-12 mb-3">
+        <div class="">
+            <h1 id="workspace_identifier_label"><em>Untitled workspace</em></h1>
+            <div id="workspace_identifier_input_group" style="display:none;" class="input-group mb-3">
+                <input class="form-control" type="text" id="workspace_identifier_input" placeholder="A descriptive name for your data" />
+                <a class="btn btn-success" href="javascript:saveWorkspaceNameButton()">Save changes <i class="bi bi-floppy-fill"></i></a>
+            </div>
+            <span id="top_text">Upload your raw data and parquet files here to get started.</span>
+
+            <div class="progress mt-2">
+                <div id="top_progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+            </div>
+
+            <div class="my-3">
+                <a class="btn mb-1 btn-primary" onclick="startDefinedJob('PROCESS_DEPOSIT');">Deposit files to database <i class="bi bi-database-fill-add"></i></a>
+                <a class="btn mb-1 btn-outline-secondary" href="javascript:editWorkspaceNameButton()">Edit workspace name <i class="bi bi-pencil-fill"></i></a>
+                <!-- <a class="btn mb-1 btn-outline-secondary" href="javascript:editContributorsButton()">Invite contributor <i class="bi bi-person-fill-add"></i></a> -->
+                <a class="btn mb-1 btn-danger" href="javascript:deleteWorkspaceButton(&quot;{{ workspace_id }}&quot;, true)">Delete workspace <i class="bi bi-trash-fill"></i></a>
+                <!--
+                <a class="btn btn-outline-secondary" style="display:none;">New folder <i class="bi bi-folder-fill"></i></a>
+                <a class="btn btn-outline-secondary" style="display:none;">Get FTP login details <i class="bi bi-hdd-network-fill"></i></a>
+                -->
+            </div>
+        </div>
+
+
+        <div class="p-4 border rounded mt-3" ondrop="fileDropHandler(event);" ondragover="fileDragOverHandler(event);" id="file_area">
+            <span id="no_files_message"><strong>No files yet</strong><br />Drag and drop here to upload files.</span>
+        </div>
+    </div>
+
+
+    <!--
+
+    <div class="col-12 col-lg-8 mb-3">
+     ...
+
+    <div class="col-12 col-lg-4">
+        <div class="p-4 border rounded mt-3" style="display:none;">
+            <p>Detected IFCB data, would you like to ingest this dataset?</p>
+            <a class="btn btn-primary">Add images to database <i class="bi bi-database-fill-add"></i></a>
+        </div>
+    </div>
+    -->
+
+    <div id="pixel_scale_elem" style="visibility: hidden;" class="file-entry"><i class="bi bi-file-earmark"></i><span>undefined</span></div>
+
+</div>
+</div>
+
+<input type="hidden" value="{{ workspace_id }}" id="workspace_id"></input>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Really delete workspace?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        This action is irreversible.
+      </div>
+      <div class="modal-footer justify-content-between">
+        <div id="deleteModalWaiting" class="d-inline-block spinner-container" style="visibility: hidden;">
+            <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">loading icon</span>
+            </div>
+            <span class="spinner-container-text"> Please wait...</span>
+        </div>
+        <div>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button id="deleteModalConfirmButton" type="button" class="btn btn-danger">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/page-specific/workspace.js"></script>
+<script src="/static/page-specific/workspaces.js"></script>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}Deposit info{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1>{{ deposit_data.identifier if deposit_data.identifier is defined else "Untitled deposit" }}</h1>
+    <span>Deposit UUID: {{ deposit_data._id }}</span>
+    <div class="my-3">
+        <a href="/api/v1/deposits/{{ deposit_data._id }}/as_zip" class="btn btn-primary">Download raw data</a>
+        {% if can_edit %}
+        <a href="/deposits/{{ deposit_data._id }}/delete" class="btn btn-danger">Delete</a>
+        {% endif %}
+    </div>
+    <hr class="my-3">
+</div>
+{% endblock %}

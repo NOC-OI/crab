@@ -92,4 +92,4 @@ export RABBITMQ_DEFAULT_PASS=$RABBITMQ_DEFAULT_PASS
 export RABBITMQ_HOST=$RABBITMQ_HOST
 export RABBITMQ_PORT=$RABBITMQ_PORT
 
-gunicorn -w 4 main:app -b 0.0.0.0
+gunicorn -w 8 main:app -b 0.0.0.0

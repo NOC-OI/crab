@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}New Workspace{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1>Create new workspace</h1>
+
+    <div class="col-lg-8 px-0">
+        <hr class="my-4">
+
+        <p class="fs-5">Workspaces are temporary areas to upload data, metadata and annotations.</p>
+        <form method="POST" action="/api/v1/workspaces/new?view_resource=true&hints={{ hints }}" enctype="multipart/form-data">
+            <fieldset>
+                <div class="mb-3">
+                    <label class="form-label" for="s3_profile">Storage location</label>
+                    <select class="form-select" name="s3_profile" id="form_s3_profile" aria-label="Storage location">
+                        <option value="" selected>Default</option>
+                        {% for profile in s3_profiles %}
+                        <option value="{{ profile.id }}">{{ profile.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">This will affect where your data is physically stored.</div>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="ftp_server_switch" name="ftp_server" disabled>
+                        <label class="form-check-label" for="ftp_server_switch">Allow data upload via FTP</label>
+                        <div class="form-text">Your organisation has disabled this feature.</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <input class="btn btn-primary" type="submit" value="Create workspace">
+                </div>
+            </fieldset>
+        </form>
+
+
+
+    </div>
+</div>
+
+{% endblock %}
