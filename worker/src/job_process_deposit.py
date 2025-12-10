@@ -14,7 +14,7 @@ import uuid
 import re
 import io
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 import pyarrow
 import pyarrow.parquet
 import pyarrow.compute
@@ -103,6 +103,7 @@ class ProcessDepositJob:
         deposit_uuid = str(uuid.uuid4())
         deposit_info = {
                 "deposit_uuid": deposit_uuid,
+                "ingest_timestamp": int(datetime.now(timezone.utc).timestamp()),
                 "related_nse_udts": related_udts,
                 "data_files": [],
                 "annotation_files": [],
@@ -115,6 +116,11 @@ class ProcessDepositJob:
                 "boolean_annotation_fields": [],
                 "binary_annotation_fields": []
             }
+
+        if "identifier" in workspace_info.keys():
+            if workspace_info["identifier"] is not None:
+                deposit_info["identifier"] = workspace_info["identifier"]
+                print("Deposit has name!")
 
         deposit_info["owners"].append(workspace_info["owner"])
 

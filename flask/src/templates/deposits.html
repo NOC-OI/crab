@@ -17,7 +17,9 @@ input::-webkit-inner-spin-button {
 
 <div class="container my-5">
     <h1>Browse data</h1>
-    <hr class="my-3">
+    <div class="my-3">
+        <a href="/workspaces/new?hints=NEW_RUN" class="btn btn-primary">Upload new data, metadata or annotations <i class="bi bi-cloud-upload-fill"></i></a>
+    </div>
 
     <ul class="pagination">
         <li class="page-item">
@@ -51,7 +53,7 @@ input::-webkit-inner-spin-button {
     </ul>
 </div>
 
-<input id="class_of_browse_object" value="run" type="hidden" />
+<input id="class_of_browse_object" value="deposit" type="hidden" />
 
 <script src="/static/page-specific/page-view.js"></script>
 {% endblock %}

@@ -8,16 +8,16 @@
     <div class="col-lg-8 px-0">
         <span>Session UUID: {{ session_info.session_uuid }}</span><br />
         <span>User UUID: {{ session_info.user_uuid }}</span><br />
-        <span>User Email: {{ session_info.email }}</span>
+        <span>User Email: {{ session_info.email }}</span><br />
 
-        <hr class="my-4">
+        <!-- <hr class="my-4"> -->
 
-        <a href="/logout" class="btn btn-primary">Logout</a>
-        <a href="/workspaces/new?hints=NEW_RUN" class="btn btn-primary">Upload data</a>
-        <a href="/workspaces" class="btn btn-primary">View open workspaces</a>
-        <a href="/account/access-tokens" class="btn btn-primary">Manage API access tokens</a>
+        <br />
 
-        <hr class="my-4">
+        <a href="/logout" class="btn mb-1 btn-primary">Logout</a>
+        <a href="/workspaces/new?hints=NEW_RUN" class="btn mb-1 btn-primary">Upload data</a>
+        <a href="/workspaces" class="btn mb-1 btn-primary">View open workspaces</a>
+        <a href="/account/access-tokens" class="btn mb-1 btn-primary">Manage API access tokens</a>
 
         {% for session in sessions %}
                 <div class="mt-3">

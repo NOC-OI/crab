@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container my-5">
     <h1>{{ deposit_data.identifier if deposit_data.identifier is defined else "Untitled deposit" }}</h1>
-    <span>Run UUID: {{ deposit_data._id }}</span>
+    <span>Deposit UUID: {{ deposit_data._id }}</span>
     <div class="my-3">
         <a href="/api/v1/deposits/{{ deposit_data._id }}/as_zip" class="btn btn-primary">Download raw data</a>
         {% if can_edit %}
@@ -13,35 +13,5 @@
         {% endif %}
     </div>
     <hr class="my-3">
-
-    <h2>Run metadata</h2>
-    <form method="PUT" action="/api/v1/deposits/{{ deposit_data._id }}/put_metadata">
-        <div class="mb-3">
-            <textarea class="form-control" rows="8" name="metadata">{{ deposit_data_raw }}</textarea>
-        </div>
-        {% if can_edit %}
-        <input class="btn btn-primary" type="submit" value="Save changes to metadata">
-        {% endif %}
-    </form>
-
-    <hr class="my-3">
-
-    <div id="list_view" class="row gx-3">
-        {% if deposit_data.observation_count > 10 %}
-            <p>{{ deposit_data.observation_count }} total entries in dataset. 10 shown below as a sample.</p>
-        {% else %}
-            <p>{{ deposit_data.observation_count }} entries in dataset.</p>
-        {% endif %}
-        {% for observation in deposit_data.observations %}
-        <div class="mb-3 mr-3 col-lg-3 col-md-4 col-sm-12 col-12 col">
-            <div class="card bg-light"><img class="card-img-top" src="/api/v1/observations/{{ observation }}/thumbnail">
-                <div class="card-body">
-                    <p class="card-text"><small class="text-muted">{{ "{" ~ observation ~ "}" }}</small></p>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
 </div>
 {% endblock %}

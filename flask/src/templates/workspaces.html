@@ -7,15 +7,15 @@
     <h1>My workspaces</h1>
     <div class="col-lg-8 px-0">
 
-        <a href="/workspaces/new" class="btn btn-primary">Create new workspace</a>
-
-        <hr class="my-4">
-
         {% for workspace in workspace_list %}
                 <div class="mt-3">
                     <div class="card">
                         <div class="card-body">
+                            {% if workspace.identifier %}
+                            <h5 class="card-title">{{ workspace.identifier }}</h5>
+                            {% else %}
                             <h5 class="card-title">{{ workspace._id }}</h5>
+                            {% endif %}
                             <dl>
                                 <dt>Last activity</dt>
                                 {% if workspace.last_active %}

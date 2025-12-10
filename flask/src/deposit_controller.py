@@ -68,10 +68,8 @@ def deposit_detail_screen(raw_uuid):
                 }), status=401, mimetype='application/json')
 
         deposit_data = get_couch()["crab_deposits"][str(uuid_obj)]
-        deposit_data_raw = json.dumps(deposit_data["tags"], indent=2)
-        deposit_data["observation_count"] = len(deposit_data["observations"])
-        deposit_data["observations"] = deposit_data["observations"][:10]
-        return render_template("deposit_info.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), deposit_data=deposit_data, deposit_data_raw=deposit_data_raw, can_edit=can_edit(str(uuid_obj)))
+        #deposit_data_raw = json.dumps(deposit_data["tags"], indent=2)
+        return render_template("deposit_info.html", global_vars=get_app_frontend_globals(), session_info=get_session_info(), deposit_data=deposit_data, can_edit=can_edit(str(uuid_obj)))
     except ValueError:
         return Response(json.dumps({
             "error": "badUUID",
@@ -148,8 +146,8 @@ def api_v1_deposit_delete(raw_uuid):
                     "msg": "CSRF token tampering detected"
                     }), status=401, mimetype='application/json')
 
-
-
+        couch_client = get_couch_client()
+        couch_client.delete_document("crab_deposits", str(uuid_obj))
 
         if len(redirect_uri) > 0:
             return redirect(redirect_uri, code=302)
@@ -181,7 +179,7 @@ def api_v1_get_deposits():
     limit = 12
     mango = {
             "selector": mango_selector,
-            "fields": ["creator", "ingest_timestamp", "_id", "observations.0", "identifier"],
+            "fields": ["public_visibility", "s3_profile", "identifier", "ingest_timestamp", "_id", "owners"],
             "sort": mango_sort,
             "skip": page * limit,
             "limit": limit
