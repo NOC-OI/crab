@@ -141,14 +141,15 @@ class ProcessDepositJob:
 
                 for schema_column in zip(schema.names, schema.types):
                     if schema_column[0].startswith("field_"):
+                        field_name = schema_column[0][6:]
                         if pyarrow.types.is_string(schema_column[1]):
-                            deposit_info["string_annotation_fields"].append(schema_column[0])
+                            deposit_info["string_annotation_fields"].append(field_name)
                         elif pyarrow.types.is_binary(schema_column[1]):
-                            deposit_info["binary_annotation_fields"].append(schema_column[0])
+                            deposit_info["binary_annotation_fields"].append(field_name)
                         elif pyarrow.types.is_boolean(schema_column[1]):
-                            deposit_info["boolean_annotation_fields"].append(schema_column[0])
+                            deposit_info["boolean_annotation_fields"].append(field_name)
                         elif pyarrow.types.is_floating(schema_column[1]) or pyarrow.types.is_integer(schema_column[1]):
-                            deposit_info["numeric_annotation_fields"].append(schema_column[0])
+                            deposit_info["numeric_annotation_fields"].append(field_name)
 
             df_def["s3_location"] = output_key
             s3_client.copy({"Bucket": s3_bucket, "Key": parquet_file_info["origin_file_def"]["path"]}, s3_bucket, output_key)
