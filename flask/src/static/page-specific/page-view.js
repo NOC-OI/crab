@@ -189,8 +189,21 @@ let renderPage = (docs, docClass, listView, page) => {
                     case "deposit":
                         let timestamp = new Date();
                         timestamp.setTime(docInfo["ingest_timestamp"] * 1000);
-                        getUserInfo(docInfo["creator"]["uuid"]).then((userInfo) => {
-                            cardText.innerText = "Uploaded by " + userInfo["name"] + "\n on " + timestamp.toLocaleString();
+                        let promises = []
+                        for (let ownerIndex = 0; ownerIndex < docInfo["owners"].length; ownerIndex++) {
+                            promises.push(getUserInfo(docInfo["owners"][ownerIndex]))
+                        }
+                        Promise.all(promises).then((values) => {
+                            names = []
+                            for (let infoIndex = 0; infoIndex < values.length; infoIndex++) {
+                                names.push(values[infoIndex]["name"])
+                            }
+                            let namesString = names.pop()
+                            let otherNames = names.join(", ")
+                            if (otherNames.length > 0) {
+                                namesString = otherNames + " and " + namesString
+                            }
+                            cardText.innerText = "Uploaded by " + namesString + "\n on " + timestamp.toLocaleString();
                         });
                         break;
                 }

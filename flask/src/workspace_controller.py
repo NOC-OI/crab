@@ -41,7 +41,7 @@ def workspace_list_screen():
     if session_info is None:
         return redirect("/login", code=302)
     couch_client = get_couch_client()
-    workspace_list = couch_client.find_all("crab_workspaces", {"owner": session_info["user_uuid"]}, ["last_active", "size", "_id"])
+    workspace_list = couch_client.find_all("crab_workspaces", {"owner": session_info["user_uuid"]}, ["last_active", "identifier", "size", "_id"])
     for ws in workspace_list:
         if "last_active" in ws:
             ws["last_active"] = datetime.fromtimestamp(ws["last_active"]).strftime('%Y-%m-%d %H:%M:%S')
@@ -121,6 +121,40 @@ def api_v1_get_workspace(workspace_uuid):
                     "error": "readDenied",
                     "msg": "User is not allowed to view this resource."
                     }), status=401, mimetype='application/json')
+
+        return Response(json.dumps(workspace_def), status=200, mimetype='application/json')
+    except ValueError:
+        return Response(json.dumps({
+            "error": "badUUID",
+            "msg": "Invalid workspace UUID " + raw_uuid
+            }), status=400, mimetype='application/json')
+
+@workspace_api.route("/api/v1/workspaces/<workspace_uuid>/metadata", methods=['POST'])
+def api_v1_update_workspace_metadata(workspace_uuid):
+    session_info = get_session_info()
+    if session_info is None:
+        return Response(json.dumps({
+            "error": "notLoggedIn",
+            "msg": "User is not logged in, or session has expired."
+            }), status=403, mimetype='application/json')
+
+    try:
+        uuid_obj = uuid.UUID(workspace_uuid, version=4)
+        couch_client = get_couch_client()
+        workspace_def = couch_client.get_document("crab_workspaces", str(uuid_obj))
+        if not session_info["user_uuid"] == workspace_def["owner"]:
+            if not session_info["user_uuid"] in workspace_def["contributors"]:
+                return Response(json.dumps({
+                    "error": "writeDenied",
+                    "msg": "User is not allowed to edit this resource."
+                    }), status=401, mimetype='application/json')
+
+        identifier = request.form.get("identifier", None)
+
+        if identifier is not None:
+            workspace_def["identifier"] = identifier
+
+        couch_client.put_document("crab_workspaces", str(uuid_obj), workspace_def)
 
         return Response(json.dumps(workspace_def), status=200, mimetype='application/json')
     except ValueError:

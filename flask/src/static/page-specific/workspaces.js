@@ -23,7 +23,7 @@ let deleteWorkspace = (wsUuid) => {
 
 let deleteWorkspaceButtonListener = null;
 
-let deleteWorkspaceButton = (wsUuid) => {
+let deleteWorkspaceButton = (wsUuid, redirectToWorkspaces = false) => {
     let modal = new bootstrap.Modal(document.getElementById("deleteModal"));
     modal.show();
     if (deleteWorkspaceButtonListener != null) {
@@ -34,7 +34,11 @@ let deleteWorkspaceButton = (wsUuid) => {
 
         deleteWorkspace(wsUuid)
         .then(() => {
-            window.location.reload();
+            if (redirectToWorkspaces) {
+                window.location.replace("/workspaces");
+            } else {
+                window.location.reload();
+            }
         })
         .finally(() => {
             modal.hide()

@@ -275,6 +275,13 @@ let pollChanges = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
             let wsd = JSON.parse(xhr.responseText);
             let updates = false;
+
+            if ("identifier" in wsd) {
+                if (wsd["identifier"] != null) {
+                    document.getElementById("workspace_identifier_label").innerText = wsd["identifier"];
+                }
+            }
+
             for (const [path, fd] of Object.entries(wsd["files"])) {
                 if (fileRecord.hasOwnProperty(path)) {
                     //console.log("skip!")
@@ -289,6 +296,9 @@ let pollChanges = () => {
                 updateFileElements();
                 //sortView();
             }
+        } else {
+            document.getElementById("workspace_identifier_label").innerHTML = "<em>Workspace not found!</em>";
+            document.getElementById("file_area").innerHTML = "<span id=\"no_files_message\"><strong>Error!</strong><br />Could not retrieve workspace information. Has the workspace been deleted?</span>";
         }
     };
     xhr.open("GET", "/api/v1/workspaces/" + workspaceUuid, true);
@@ -323,6 +333,28 @@ let startDefinedJob = (jobType) => {
         xhr.open("POST", "/api/v1/workspaces/" + workspaceUuid + "/process", true);
         xhr.send(formData);
     }
+}
+
+let editWorkspaceNameButton = () => {
+    document.getElementById("workspace_identifier_label").style.display = "none";
+    document.getElementById("workspace_identifier_input_group").style.display = null;
+}
+
+let saveWorkspaceNameButton = () => {
+    document.getElementById("workspace_identifier_label").style.display = null;
+    document.getElementById("workspace_identifier_input_group").style.display = "none";
+
+    const xhr = new XMLHttpRequest();
+    xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+            let responseObject = JSON.parse(xhr.responseText);
+            console.log(responseObject);
+        }
+    };
+    const formData = new FormData();
+    formData.append("identifier", document.getElementById("workspace_identifier_input").value);
+    xhr.open("POST", "/api/v1/workspaces/" + workspaceUuid + "/metadata", true);
+    xhr.send(formData);
 }
 
 setInterval(updateProgressBar, 1000);
