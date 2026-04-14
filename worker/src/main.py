@@ -6,7 +6,6 @@ import os
 import time
 import datetime
 from utils import get_couch_client
-from job_run_apply_upload_profile import RunApplyUploadProfileJob
 from job_take_snapshot import TakeSnapshotJob
 from job_build_snapshot_package import BuildSnapshotPackageJob
 from job_export_project import ExportProjectJob
@@ -40,7 +39,6 @@ def main():
         log(f"Handling job {uuid_str}")
 
         worker_mapping = {
-                "RUN_APPLY_UPLOAD_PROFILE": RunApplyUploadProfileJob,
                 "TAKE_SNAPSHOT": TakeSnapshotJob,
                 "BUILD_SNAPSHOT_PACKAGE": BuildSnapshotPackageJob,
                 "PROCESS_DEPOSIT": ProcessDepositJob,
