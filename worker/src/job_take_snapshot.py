@@ -1,6 +1,4 @@
 import couchbeans
-import microtiff.ifcb
-import microtiff.lisst_holo
 from utils import get_couch_client, get_s3_client, get_s3_bucket_name, get_s3_bucket_uri, to_snake_case
 from PIL import Image
 import zipfile
