@@ -24,16 +24,23 @@ elif os.environ.get("CRAB_EXTERNAL_PORT") == "443":
 openid_config = {}
 all_oid_providers_conf_info = try_get_config_prop("openid_providers")
 for provider in all_oid_providers_conf_info:
-    oid_conf_file = requests.get(all_oid_providers_conf_info[provider]["oid_config_uri"]).json()
-    oid_keys = jwt.PyJWKClient(oid_conf_file["jwks_uri"])
-    openid_config[provider] = {
-            "name": all_oid_providers_conf_info[provider]["name"],
-            "src_config": oid_conf_file,
-            "client_id": all_oid_providers_conf_info[provider]["oid_client_id"],
-            "client_secret": all_oid_providers_conf_info[provider]["oid_client_secret"],
-            "scopes": all_oid_providers_conf_info[provider]["scopes"],
-            "keys": oid_keys
-        }
+    try:
+        oid_conf_file = requests.get(all_oid_providers_conf_info[provider]["oid_config_uri"]).json()
+        oid_keys = jwt.PyJWKClient(oid_conf_file["jwks_uri"])
+        openid_config[provider] = {
+                "name": all_oid_providers_conf_info[provider]["name"],
+                "src_config": oid_conf_file,
+                "client_id": all_oid_providers_conf_info[provider]["oid_client_id"],
+                "client_secret": all_oid_providers_conf_info[provider]["oid_client_secret"],
+                "scopes": all_oid_providers_conf_info[provider]["scopes"],
+                "keys": oid_keys
+            }
+    except KeyError:
+        try:
+            print(requests.get(all_oid_providers_conf_info[provider]["oid_config_uri"]).json())
+        except:
+            print("Could not get any JSON data!")
+        raise RuntimeError("Could not parse OpenID config from " + all_oid_providers_conf_info[provider]["oid_config_uri"])
 
 login_pages = Blueprint("login_pages", __name__)
 account_pages = Blueprint("account_pages", __name__)

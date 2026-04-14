@@ -70,10 +70,39 @@ cat > config/crab.json << EOF
     "long_brand": "Centralised Repository for Annotations and BLOBs",
     "s3_buckets": {
         "main": {
-            "endpoint": "$DEFAULT_S3_ENDPOINT",
-            "bucket": "$DEFAULT_S3_BUCKET",
-            "access_key": "$DEFAULT_S3_ACCESS_KEY",
-            "secret_key": "$DEFAULT_S3_SECRET_KEY"
+            "name": "Default Bucket",
+            "endpoint": "$S3_ENDPOINT",
+            "bucket": "$S3_BUCKET",
+            "access_key": "$S3_ACCESS_KEY",
+            "secret_key": "$S3_SECRET_KEY",
+            "open_to": "*@*"
+        }
+    },
+    "default_s3_bucket": "main",
+    "default_public_s3_bucket": "main",
+    "openid_providers": {
+        "keycloak": {
+            "name": "Local Account",
+            "oid_config_uri": "$CRAB_OPENID_CONFIG_URI",
+            "oid_client_id": "crab",
+            "oid_client_secret": "REPLACE_ME_WITH_KEYCLOAK_KEY",
+            "scopes": ["openid", "email", "profile"]
+        }
+    }
+}
+EOF
+cat > config/crab-devel.json << EOF
+{
+    "brand": "CRAB",
+    "long_brand": "Centralised Repository for Annotations and BLOBs",
+    "s3_buckets": {
+        "main": {
+            "name": "Default Bucket",
+            "endpoint": "$S3_ENDPOINT",
+            "bucket": "$S3_BUCKET",
+            "access_key": "$S3_ACCESS_KEY",
+            "secret_key": "$S3_SECRET_KEY",
+            "open_to": "*@*"
         }
     },
     "default_s3_bucket": "main",

@@ -1,4 +1,4 @@
-s#!/bin/bash
+#!/bin/bash
 source .env
 docker compose up -d couchdb
 echo "Waiting for CouchDB to start..."

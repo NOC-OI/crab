@@ -13,7 +13,6 @@ services:
       - public
     volumes:
       - ./templates/nginx.conf:/etc/nginx/conf.d/revproxy.conf
-      - ./config/nginx/well-known:/var/www/html/well-known
 
   minio:
     image: minio/minio:RELEASE.2024-10-13T13-34-11Z
@@ -62,7 +61,7 @@ services:
       - public
     volumes:
       - couchdb:/opt/couchdb/data
-      - ./config/couchdb:/opt/couchdb/etc/local.d
+      - ./config/couchdb/docker.ini:/opt/couchdb/etc/local.d/docker.ini
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0.5
@@ -79,7 +78,7 @@ services:
     command: ["start-dev", "--http-port", "7080", "--https-port", "7443", "--proxy-headers", "forwarded", "--hostname", "${EXT_KEYCLOAK_HOST}"]
 
   ui:
-    image: crab/ui
+    image: habaldwin01/crab-ui:latest
     container_name: crab-ui
     depends_on:
       - minio
@@ -90,9 +89,11 @@ services:
       - ./.env
     networks:
       - private
+    volumes:
+      - ${CRAB_CONFIG_FILE_HOST_LOCATION:-./config/crab.json}:/app/config.json
 
   worker:
-    image: crab/worker
+    image: habaldwin01/crab-ui:latest
     restart: on-failure
     depends_on:
       - minio
@@ -102,6 +103,8 @@ services:
       - ./.env
     networks:
       - private
+    volumes:
+      - ${CRAB_CONFIG_FILE_HOST_LOCATION:-./config/crab.json}:/app/config.json
 
 networks:
   public:

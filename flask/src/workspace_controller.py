@@ -40,8 +40,7 @@ def workspace_list_screen():
     session_info = get_session_info()
     if session_info is None:
         return redirect("/login", code=302)
-    couch_client = get_couch_client()
-    workspace_list = couch_client.find_all("crab_workspaces", {"owner": session_info["user_uuid"]}, ["last_active", "identifier", "size", "_id"])
+    workspace_list = get_couch_client().find_all("crab_workspaces", {"owner": session_info["user_uuid"]}, ["last_active", "identifier", "size", "_id"])
     for ws in workspace_list:
         if "last_active" in ws:
             ws["last_active"] = datetime.fromtimestamp(ws["last_active"]).strftime('%Y-%m-%d %H:%M:%S')

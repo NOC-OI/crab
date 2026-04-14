@@ -8,6 +8,7 @@ import random
 import string
 import secrets
 import json
+import traceback
 
 config_file_loc = os.environ.get("CRAB_CONFIG_FILE", "config.json")
 crab_config = {}
@@ -102,12 +103,15 @@ def get_session_info():
         session_uuid = str(uuid_obj)
     except ValueError:
         return None
-    session_info = get_couch()["crab_sessions"][session_uuid].copy()
-    if session_info["status"] == "ACTIVE":
-        if session_info["access_token"] == access_token:
-            session_info["session_uuid"] = session_uuid
-            session_info["ip_addr"] = request.remote_addr
-            session_info["last_active"] = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
-            get_couch()["crab_sessions"][session_uuid] = session_info
-            return session_info
+    try:
+        session_info = get_couch()["crab_sessions"][session_uuid].copy()
+        if session_info["status"] == "ACTIVE":
+            if session_info["access_token"] == access_token:
+                session_info["session_uuid"] = session_uuid
+                session_info["ip_addr"] = request.remote_addr
+                session_info["last_active"] = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
+                get_couch()["crab_sessions"][session_uuid] = session_info
+                return session_info
+    except:
+        traceback.print_exc()
     return None

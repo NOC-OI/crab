@@ -5,6 +5,7 @@ import os
 import pika
 import uuid
 import sys
+import warnings
 import json
 
 config_file_loc = os.environ.get("CRAB_CONFIG_FILE", "config.json")
@@ -31,8 +32,10 @@ rabbitmq_port = os.environ.get("RABBITMQ_PORT", try_get_config_prop("rabbitmq_po
 # Provided for backwards compatibility
 # References to these functions should be removed as code is updated
 def get_couch():
+    warnings.warn("Deprecated use of legacy CouchDB library", DeprecationWarning, stacklevel=2)
     return couch
 def get_couchpotato():
+    warnings.warn("Deprecated use of old CouchDB library name", DeprecationWarning, stacklevel=2)
     return couchbeans.CouchClient(couch_base_uri)
 def get_s3_resource(profile=None):
     profile = get_s3_profile(profile)
