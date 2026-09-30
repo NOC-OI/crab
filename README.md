@@ -1,4 +1,4 @@
-![Centralised Repository for Annotations and BLOBs](flask/src/static/crab-logotext512.png)
+![Collaborative Repository for Annotations and BLOBs](flask/src/static/crab-logotext512.png)
 
 ## About
 
@@ -26,4 +26,4 @@ For futher notes on [installation](./flask/src/docs/admin-guide.md), [using the 
 
 ## License
 CRAB is free software under the AGPL-3.0 license.
-The CRAB Logo (© 2024, Alex Baldwin) is licensed under CC BY-SA 4.0.
+The CRAB Logo (© 2024, Hannah Baldwin) is licensed under CC BY-SA 4.0.

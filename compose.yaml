@@ -52,7 +52,7 @@ services:
       - private
 
   couchdb:
-    image: couchdb:3.4.2
+    image: couchdb:latest
     container_name: crab-couchdb
     ports:
       - 5984:5984
